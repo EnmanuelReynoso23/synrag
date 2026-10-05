@@ -42,25 +42,25 @@ export const Hero: React.FC = () => {
 
             {/* Descripción técnica */}
             <p className="mt-5 max-w-2xl mx-auto lg:mx-0 text-sm leading-6 text-[#8B949E] sm:text-base sm:leading-7 font-normal">
-              Olvídate de partir funciones por la mitad o saturar ventanas de contexto. SyntaxRAG analiza quirúrgicamente el <strong className="font-bold text-white">Árbol de Sintaxis Abstracta (AST)</strong> con <strong className="font-bold text-[#00E5FF]">Tree-sitter</strong>, previene código roto con un <strong className="font-bold text-[#FF7B72]">Grafo de Impacto de 23,364 aristas</strong> y responde en milisegundos a costo <strong className="font-bold text-[#7EE787]">$0.00</strong> desde LanceDB local.
+              Olvídate de partir funciones por la mitad o saturar ventanas de contexto. SyntaxRAG analiza quirúrgicamente el <strong className="font-bold text-white">Árbol de Sintaxis Abstracta (AST)</strong> con <strong className="font-bold text-[#00E5FF]">Tree-sitter</strong>, previene código roto con un <strong className="font-bold text-[#FF7B72]">Grafo de Impacto de dependencias</strong> y responde en milisegundos a costo <strong className="font-bold text-[#7EE787]">$0.00</strong> desde LanceDB local.
             </p>
 
             {/* Botones de acción principales */}
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5">
+            <div className="mt-8 flex flex-col sm:flex-row sm:flex-wrap items-center justify-center lg:justify-start gap-3.5">
               <a
-                href="#playground"
-                className="w-full sm:w-auto inline-flex min-h-[3.25rem] items-center justify-center gap-2.5 rounded-xl bg-[#00E5FF] px-7 text-base font-black text-[#0D1117] shadow-[0_0_25px_-5px_rgba(0,229,255,0.4)] transition-all duration-200 hover:bg-[#00E5FF]/90 hover:shadow-[0_0_35px_rgba(0,229,255,0.6)] cursor-pointer active:scale-95"
+                href="#instalar"
+                className="w-full sm:w-auto whitespace-nowrap inline-flex min-h-[3.25rem] items-center justify-center gap-2.5 rounded-xl bg-[#00E5FF] px-7 text-base font-black text-[#0D1117] shadow-[0_0_25px_-5px_rgba(0,229,255,0.4)] transition-all duration-200 hover:bg-[#00E5FF]/90 hover:shadow-[0_0_35px_rgba(0,229,255,0.6)] cursor-pointer active:scale-95"
               >
                 <Sparkles className="h-4 w-4" />
-                Probar Simulador AST en Vivo
+                Instalar en 1 línea
                 <ArrowRight className="h-4 w-4" />
               </a>
 
               <a
-                href="#metricas"
-                className="w-full sm:w-auto inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-xl border border-[#30363D] bg-[#161B22] px-6 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:border-[#8B949E] hover:bg-[#21262D] cursor-pointer"
+                href="#playground"
+                className="w-full sm:w-auto whitespace-nowrap inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-xl border border-[#30363D] bg-[#161B22] px-6 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:border-[#8B949E] hover:bg-[#21262D] cursor-pointer"
               >
-                Ver Métricas Reales
+                Probar el simulador
               </a>
 
               {/* Botón rápido de copia de terminal */}
@@ -84,7 +84,7 @@ export const Hero: React.FC = () => {
             <div className="mt-8 pt-6 border-t border-[#30363D] grid grid-cols-3 gap-4 text-center lg:text-left">
               <div>
                 <dt className="text-xl sm:text-2xl font-black text-white">95.5k</dt>
-                <dd className="text-xs font-bold text-[#8B949E]">Fragmentos AST</dd>
+                <dd className="text-xs font-bold text-[#8B949E]">Fragmentos AST (ejemplo)</dd>
               </div>
               <div>
                 <dt className="text-xl sm:text-2xl font-black text-[#00E5FF]">&lt; 1 ms</dt>
@@ -101,18 +101,18 @@ export const Hero: React.FC = () => {
           <div className="lg:col-span-5 flex justify-center">
             <div className="w-full max-w-lg rounded-2xl sm:rounded-3xl border border-[#30363D] bg-[#161B22] p-5 sm:p-6 shadow-2xl shadow-black/80">
               {/* Header de la tarjeta */}
-              <div className="flex items-center justify-between pb-4 border-b border-[#30363D]">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2 pb-4 border-b border-[#30363D]">
+                <div className="flex min-w-0 items-center gap-2">
                   <div className="flex gap-1.5">
                     <span className="w-3 h-3 rounded-full bg-[#FF5F56]"></span>
                     <span className="w-3 h-3 rounded-full bg-[#FFBD2E]"></span>
                     <span className="w-3 h-3 rounded-full bg-[#27C93F]"></span>
                   </div>
-                  <span className="ml-2 font-mono text-xs font-bold text-[#8B949E]">
-                    asistoya-web/asistencia.servicio.ts
+                  <span className="ml-2 truncate font-mono text-xs font-bold text-[#8B949E]">
+                    mi-monorepo/asistencia.servicio.ts
                   </span>
                 </div>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-[#7EE787]/15 text-[#7EE787] border border-[#7EE787]/30">
+                <span className="inline-flex shrink-0 items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-[#7EE787]/15 text-[#7EE787] border border-[#7EE787]/30">
                   <Zap className="w-3 h-3" /> 0 Tokens
                 </span>
               </div>
@@ -178,7 +178,7 @@ export const Hero: React.FC = () => {
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#FF7B72]/15 border border-[#FF7B72]/30 text-[#FF7B72] text-xs font-bold">
                       <ShieldAlert className="w-4 h-4 shrink-0" />
-                      <span>9 archivos consumen este servicio en asistoya-web</span>
+                      <span>9 archivos consumen este servicio en mi-monorepo</span>
                     </div>
 
                     <ul className="space-y-1.5 text-xs font-mono text-slate-300">

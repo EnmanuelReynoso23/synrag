@@ -30,7 +30,7 @@ El RAG tradicional (Retrieval-Augmented Generation) para código está roto: cor
 
 ## Instalacion Universal en 1 Linea
 
-Funciona en **Linux (CachyOS, Arch, Ubuntu, Debian, Fedora), macOS y Windows (WSL/nativo)**:
+Funciona en **Linux (CachyOS, Arch, Ubuntu, Debian, Fedora), macOS y Windows con WSL**:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash
@@ -44,22 +44,56 @@ cd synrag
 ./install.sh
 ```
 
-El instalador detecta automáticamente tu sistema operativo, crea el entorno virtual aislado en CPU, compila los binarios globales en `~/.local/bin` y auto-configura todas las IAs que tengas instaladas en tu equipo.
+El instalador copia o descarga el motor, crea un entorno virtual aislado en CPU, instala los lanzadores `SYNRAG` / `synrag` en `~/.local/bin` y configura **solo las IAs que de verdad tengas instaladas**. Si algo falla, se detiene y dice qué falló. Para ver qué haría sin escribir nada: `./install.sh --dry-run` (o `SYNRAG configure --dry-run`).
 
 ---
 
 ## Auto-Configuracion Multi-IA
 
-Al instalarse o al ejecutar `SYNRAG configure`, SyntaxRAG inyecta automáticamente el servidor MCP `desktop-lancedb` en todas las herramientas de IA detectadas sin requerir copiar JSONs manualmente:
+Al instalarse o al ejecutar `SYNRAG configure`, SyntaxRAG hace dos cosas en cada IA detectada: registra el servidor MCP `desktop-lancedb` y añade a sus instrucciones globales un bloque corto (entre las marcas `<!-- SYNRAG:BEGIN -->` y `<!-- SYNRAG:END -->`) que le indica usar `search_desktop` antes de listar carpetas o leer archivos enteros. Sin ese bloque la IA ve la herramienta pero casi nunca la elige.
 
-| Herramienta / Agente | Archivo de Configuracion Auto-Inyectado |
-|---|---|
+| Herramienta / Agente | MCP (servidor) | Instrucciones globales |
+|---|---|---|
+| **Claude Code** | `~/.claude.json` | `~/.claude/CLAUDE.md` |
+| **Google Antigravity** | `~/.gemini/antigravity/mcp_config.json` | `~/.gemini/GEMINI.md` |
+| **Gemini CLI** | `~/.gemini/settings.json` | `~/.gemini/GEMINI.md` |
+| **Codex CLI** | `~/.codex/config.toml` | `~/.codex/AGENTS.md` |
+| **Cursor** | `~/.cursor/mcp.json` | (se añade a mano en Settings > Rules) |
+| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | `~/.codeium/windsurf/memories/global_rules.md` |
+| **Cline / Roo Code** | `cline_mcp_settings.json` de VS Code | n/a |
+| **Zed** | `~/.config/zed/settings.json` (solo si es JSON puro; con comentarios muestra qué añadir) | n/a |
+
+Garantías del instalador: no crea la carpeta de una IA que no está instalada, hace una copia `.bak-AAAAMMDD-HHMMSS` antes de modificar un archivo existente, nunca sobrescribe un JSON que no pueda leer y es idempotente (ejecutarlo dos veces no duplica nada).
+
+---|---|
 | **Claude Code** | `~/.claude.json` y `~/.claude/settings.json` |
 | **Google Antigravity** | `~/.gemini/antigravity/mcp/desktop-lancedb` |
 | **Cursor IDE** | `~/.cursor/mcp.json` / `globalStorage` |
 | **Windsurf / Codeium** | `~/.codeium/windsurf/mcp_config.json` |
 | **VS Code / Cline / Roo Code** | `cline_mcp_settings.json` / `~/.vscode/mcp.json` |
 | **Zed Editor** | `~/.config/zed/settings.json` |
+
+---
+
+## Desinstalar
+
+```bash
+SYNRAG uninstall            # quita la entrada MCP y el bloque de instrucciones de cada IA y los comandos
+rm -rf ~/.local/opt/lancedb-hub   # opcional: borra tambien el motor y su indice
+```
+
+`SYNRAG uninstall --dry-run` muestra que quitaria sin escribir nada. Solo elimina lo que el instalador anadio.
+
+---
+
+## Publicar la web en Vercel
+
+1. En Vercel: **Add New > Project** e importa este repositorio.
+2. Framework **Vite** (se detecta solo): comando `pnpm build`, carpeta de salida `dist`.
+3. Opcional: define `VITE_SITE_URL` (por ejemplo `https://synrag.dev`) para las etiquetas de compartir (Open Graph). Sin ella se usa `VERCEL_PROJECT_PRODUCTION_URL`.
+4. `vercel.json` ya trae cabeceras de seguridad, cache de `/assets` y el tipo correcto para `/install.sh`.
+
+La imagen para compartir es `public/og.png` (1200x630).
 
 ---
 

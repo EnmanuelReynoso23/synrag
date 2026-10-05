@@ -15,7 +15,7 @@ const INITIAL_LOGS: WatcherLog[] = [
     id: '1',
     time: '08:04:12',
     file: 'apps/web/src/modulos/asistencia/asistencia.servicio.ts',
-    project: 'asistoya-web',
+    project: 'mi-monorepo',
     latencyMs: 18.2,
     chunksUpdated: 6,
   },
@@ -23,7 +23,7 @@ const INITIAL_LOGS: WatcherLog[] = [
     id: '2',
     time: '08:04:38',
     file: 'apps/web/src/modulos/reconocimiento-facial/reconocimiento.servicio.ts',
-    project: 'asistoya-web',
+    project: 'mi-monorepo',
     latencyMs: 17.5,
     chunksUpdated: 4,
   },
@@ -31,7 +31,7 @@ const INITIAL_LOGS: WatcherLog[] = [
     id: '3',
     time: '08:05:02',
     file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx',
-    project: 'asistoya-web',
+    project: 'mi-monorepo',
     latencyMs: 19.1,
     chunksUpdated: 3,
   },
@@ -42,10 +42,10 @@ export const DaemonStatus: React.FC = () => {
 
   const simulateSave = () => {
     const candidates = [
-      { file: 'apps/web/src/modulos/asistencia/asistencia.hook.ts', project: 'asistoya-web' },
-      { file: 'apps/web/src/modulos/estudiantes/hooks/useEstudiantes.ts', project: 'asistoya-web' },
-      { file: 'apps/web/src/modulos/kiosco/TerminalBiometrico.tsx', project: 'asistoya-web' },
-      { file: 'apps/web/src/services/analytics/eventos.ts', project: 'asistoya-web' },
+      { file: 'apps/web/src/modulos/asistencia/asistencia.hook.ts', project: 'mi-monorepo' },
+      { file: 'apps/web/src/modulos/estudiantes/hooks/useEstudiantes.ts', project: 'mi-monorepo' },
+      { file: 'apps/web/src/modulos/kiosco/TerminalBiometrico.tsx', project: 'mi-monorepo' },
+      { file: 'apps/web/src/services/analytics/eventos.ts', project: 'mi-monorepo' },
     ];
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
     const now = new Date();
@@ -76,7 +76,7 @@ export const DaemonStatus: React.FC = () => {
             DEMONIO REACTIVO · SYSTEMD WATCHER
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Hot-Reload AST en Tiempo Real (~18ms)
+            Hot-Reload AST (~18 ms)
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
             Cada vez que guardas con <kbd className="px-2 py-0.5 rounded bg-[#161B22] border border-[#30363D] text-[#00E5FF] font-mono text-xs">Ctrl+S</kbd> en tu editor, el servicio <strong className="text-white font-semibold">lancedb-watcher.service</strong> detecta la modificación y re-parsea quirúrgicamente el archivo afectado en memoria.
@@ -114,7 +114,7 @@ export const DaemonStatus: React.FC = () => {
           {/* Consola de Eventos */}
           <div className="p-4 sm:p-5 bg-[#0D1117] text-[#C9D1D9] font-mono text-xs overflow-x-auto min-h-[220px]">
             <div className="text-[#8B949E] mb-2 pb-2 border-b border-[#21262D] text-[11px] flex justify-between">
-              <span>EVENTOS REACTIVOS EN VIVO (Ctrl+S)</span>
+              <span>SIMULACIÓN DE EVENTOS (Ctrl+S)</span>
               <span className="text-[#00E5FF]">LANCE_DB_ENGINE · AST_HOTRELOAD</span>
             </div>
 

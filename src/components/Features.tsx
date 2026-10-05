@@ -36,7 +36,7 @@ const INNOVACIONES = [
     icono: GitFork,
     descripcion: 'Construye una red estática de dependencias con 23,364 aristas que mapea qué archivos importan y consumen cada componente o servicio del proyecto.',
     beneficio: 'Alerta antes de modificar firmas exportadas, previniendo regresiones silenciosas.',
-    lenguajes: 'NetworkX + Matriz de Aristas',
+    lenguajes: 'Grafo de dependencias en memoria',
   },
   {
     id: 'flashrank-onnx',

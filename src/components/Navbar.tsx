@@ -25,6 +25,7 @@ export const Navbar: React.FC = () => {
 
         {/* Desktop Nav Links */}
         <nav className="hidden lg:flex items-center gap-7 text-xs sm:text-sm font-semibold text-[#8B949E]">
+          <a href="#instalar" className="text-white hover:text-[#00E5FF] transition-colors">Instalar</a>
           <a href="#playground" className="hover:text-[#00E5FF] transition-colors flex items-center gap-1.5">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E5FF] opacity-75"></span>
@@ -91,6 +92,13 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-[#30363D] bg-[#0D1117] px-4 pt-3 pb-6 space-y-3 shadow-2xl">
           <a
+            href="#instalar"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-bold text-white hover:text-[#00E5FF]"
+          >
+            Instalar
+          </a>
+          <a
             href="#playground"
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
@@ -116,7 +124,7 @@ export const Navbar: React.FC = () => {
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
           >
-            Métricas Reales
+            Ejemplo medido
           </a>
           <a
             href="#innovaciones"

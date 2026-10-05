@@ -22,7 +22,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     id: 'asistencia-servicio',
     query: 'asistenciaServicio',
     label: 'Servicio Central de Asistencia',
-    project: 'asistoya-web',
+    project: 'mi-monorepo',
     file: 'apps/web/src/modulos/asistencia/asistencia.servicio.ts',
     lines: '35-72',
     symbol: 'asistenciaServicio',
@@ -46,14 +46,14 @@ export const SAMPLE_QUERIES: ASTResult[] = [
   }
 };`,
     impactConsumers: [
-      { file: 'apps/web/src/demo/demoData.ts', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/modulos/asistencia/asistencia.hook.ts', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/modulos/administrador/componentes/PanelAsistencia.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/modulos/kiosco/PaginaKioscoPublica.tsx', project: 'asistoya-web', risk: 'WARNING' },
-      { file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/services/analytics/eventos.ts', project: 'asistoya-web', risk: 'INFO' },
-      { file: 'apps/web/src/modulos/padre/componentes/HistorialHijo.tsx', project: 'asistoya-web', risk: 'WARNING' },
-      { file: 'apps/web/src/modulos/reportes/exportadorAsistencia.ts', project: 'asistoya-web', risk: 'INFO' },
+      { file: 'apps/web/src/demo/demoData.ts', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/asistencia/asistencia.hook.ts', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/administrador/componentes/PanelAsistencia.tsx', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/kiosco/PaginaKioscoPublica.tsx', project: 'mi-monorepo', risk: 'WARNING' },
+      { file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/services/analytics/eventos.ts', project: 'mi-monorepo', risk: 'INFO' },
+      { file: 'apps/web/src/modulos/padre/componentes/HistorialHijo.tsx', project: 'mi-monorepo', risk: 'WARNING' },
+      { file: 'apps/web/src/modulos/reportes/exportadorAsistencia.ts', project: 'mi-monorepo', risk: 'INFO' },
     ],
     score: 99.2,
     cacheHit: true,
@@ -65,7 +65,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     id: 'reconocimiento-facial',
     query: 'reconocimientoFacial',
     label: 'Algoritmo Biométrico Escolar',
-    project: 'asistoya-web',
+    project: 'mi-monorepo',
     file: 'apps/web/src/modulos/reconocimiento-facial/reconocimiento.servicio.ts',
     lines: '18-54',
     symbol: 'procesarDescriptorFacial',
@@ -89,9 +89,9 @@ export const SAMPLE_QUERIES: ASTResult[] = [
   return mejorMatch;
 }`,
     impactConsumers: [
-      { file: 'apps/web/src/modulos/kiosco/TerminalBiometrico.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/modulos/reconocimiento-facial/componentes/CamaraCaptura.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/services/face/faceService.ts', project: 'asistoya-web', risk: 'WARNING' },
+      { file: 'apps/web/src/modulos/kiosco/TerminalBiometrico.tsx', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/reconocimiento-facial/componentes/CamaraCaptura.tsx', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/services/face/faceService.ts', project: 'mi-monorepo', risk: 'WARNING' },
     ],
     score: 98.7,
     cacheHit: true,
@@ -103,7 +103,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     id: 'use-estudiantes',
     query: 'useEstudiantes',
     label: 'Hook de Estado React',
-    project: 'asistoya-web',
+    project: 'mi-monorepo',
     file: 'apps/web/src/modulos/estudiantes/hooks/useEstudiantes.ts',
     lines: '14-48',
     symbol: 'useEstudiantes',
@@ -130,9 +130,9 @@ export const SAMPLE_QUERIES: ASTResult[] = [
   return { estudiantes, cargando, total: estudiantes.length };
 };`,
     impactConsumers: [
-      { file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/modulos/calificaciones/componentes/TablaNotas.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'apps/web/src/modulos/reportes/ReporteSeccion.tsx', project: 'asistoya-web', risk: 'WARNING' },
+      { file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/calificaciones/componentes/TablaNotas.tsx', project: 'mi-monorepo', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/reportes/ReporteSeccion.tsx', project: 'mi-monorepo', risk: 'WARNING' },
     ],
     score: 97.9,
     cacheHit: false,
@@ -183,7 +183,7 @@ export const ARCHITECTURE_PIPELINE = [
     id: 'agent',
     step: '01',
     name: 'Editor / Agente IA',
-    tech: 'Antigravity CLI · Claude Code · Herdr Hub',
+    tech: 'Claude Code · Antigravity · Codex · Cursor',
     file: 'Entorno de Desarrollo',
     role: 'Petición de búsqueda o contexto mediante protocolo MCP stdio.',
     desc: 'El agente o programador consulta funciones sin leer archivos enteros ni desbordar la ventana de contexto.',
@@ -195,7 +195,7 @@ export const ARCHITECTURE_PIPELINE = [
     step: '02',
     name: 'Servidor MCP Stdio',
     tech: 'desktop-lancedb (JSON-RPC)',
-    file: '~/.gemini/antigravity/mcp/desktop-lancedb',
+    file: '~/.local/opt/lancedb-hub/server_mcp.py',
     role: 'Exposición estándar de search_desktop y list_projects.',
     desc: 'Protocolo nativo que conecta al agente con la base vectorial local a velocidad casi instantánea.',
     badge: 'Protocolo',
@@ -227,7 +227,7 @@ export const ARCHITECTURE_PIPELINE = [
     id: 'impact',
     step: '05',
     name: 'Grafo de Impacto Bidireccional',
-    tech: 'NetworkX + Matriz de Dependencias (23,364 aristas)',
+    tech: 'Grafo de dependencias en memoria (23,364 aristas)',
     file: 'impact.py',
     role: 'Mapeo estático de imports y dependientes.',
     desc: 'Inyecta advertencias sobre qué archivos consumen el símbolo consultado para evitar roturas antes de editar.',
@@ -264,16 +264,16 @@ export const ECOSYSTEM_METRICS = [
   { label: 'Ahorro de Cuota de API', value: '100% $0', unit: 'evitado en consultas repetidas', delta: 'Zero-Token Cache activo' },
   { label: 'Aristas en Grafo de Impacto', value: '23,364', unit: 'dependencias mapeadas', delta: 'Prevención de roturas' },
   { label: 'Hot-Reload por Guardado', value: '~18 ms', unit: 're-indexado reactivo (Ctrl+S)', delta: 'Demonio systemd activo' },
-  { label: 'Archivos Monitoreados', value: '7,536+', unit: 'código fuente en monorepo', delta: 'asistoya-web y satélites' },
+  { label: 'Archivos Monitoreados', value: '7,536+', unit: 'código fuente en monorepo', delta: 'mi-monorepo y satélites' },
 ];
 
 export const PROYECTOS_DISTRIBUCION = [
-  { nombre: 'asistoya-web', chunks: 22923, porcentaje: 24.0, descripcion: 'Monorepo principal (Portal Web, Kiosco y Módulos)' },
-  { nombre: 'asistoya-local', chunks: 16157, porcentaje: 16.9, descripcion: 'Servicios de sincronización y base local' },
-  { nombre: 'respaldo-personal', chunks: 11075, porcentaje: 11.6, descripcion: 'Componentes y scripts de soporte' },
-  { nombre: 'jev-mario64', chunks: 10365, porcentaje: 10.8, descripcion: 'Ecosistema de juegos y gamificación' },
-  { nombre: 'AsistoYa', chunks: 7462, porcentaje: 7.8, descripcion: 'Servicios legados y librerías base' },
-  { nombre: 'asistoya-empresas', chunks: 5856, porcentaje: 6.1, descripcion: 'Portal de empresas y proveedores' },
+  { nombre: 'mi-monorepo', chunks: 22923, porcentaje: 24.0, descripcion: 'Monorepo principal (Portal Web, Kiosco y Módulos)' },
+  { nombre: 'servicios-locales', chunks: 16157, porcentaje: 16.9, descripcion: 'Servicios de sincronización y base local' },
+  { nombre: 'scripts-soporte', chunks: 11075, porcentaje: 11.6, descripcion: 'Componentes y scripts de soporte' },
+  { nombre: 'juego-demo', chunks: 10365, porcentaje: 10.8, descripcion: 'Ecosistema de juegos y gamificación' },
+  { nombre: 'libs-base', chunks: 7462, porcentaje: 7.8, descripcion: 'Servicios legados y librerías base' },
+  { nombre: 'portal-empresas', chunks: 5856, porcentaje: 6.1, descripcion: 'Portal de empresas y proveedores' },
   { nombre: 'Vision-Humana', chunks: 3758, porcentaje: 3.9, descripcion: 'Motor de biometría y visión artificial' },
 ];
 
@@ -284,8 +284,8 @@ SYNRAG
 # Búsqueda semántica AST inteligente
 SYNRAG "asistenciaServicio"
 
-# Búsqueda acotada al monorepo de AsistoYA
-SYNRAG --project asistoya-web "reconocimientoFacial"
+# Búsqueda acotada a un proyecto del monorepo
+SYNRAG --project mi-monorepo "reconocimientoFacial"
 
 # Ver métricas de ahorro y tokens evitados
 SYNRAG stats
@@ -293,29 +293,34 @@ SYNRAG stats
 # Ver log reactivo ante Ctrl+S
 SYNRAG watch`,
 
-  claude: `{
+  claude: `// ~/.claude.json  (el instalador lo escribe solo con: SYNRAG configure)
+// Cambia TU_USUARIO por tu nombre de usuario.
+{
   "mcpServers": {
     "desktop-lancedb": {
-      "type": "stdio",
-      "command": "/home/reyno/.local/bin/lancedb-mcp",
-      "args": [],
-      "env": {}
+      "command": "/home/TU_USUARIO/.local/opt/lancedb-hub/.venv/bin/python",
+      "args": ["/home/TU_USUARIO/.local/opt/lancedb-hub/server_mcp.py"],
+      "env": { "PYTHONUNBUFFERED": "1" }
     }
   }
 }`,
 
-  antigravity: `{
+  antigravity: `// ~/.gemini/antigravity/mcp_config.json  (SYNRAG configure lo escribe solo)
+// Cambia TU_USUARIO por tu nombre de usuario.
+{
   "mcpServers": {
     "desktop-lancedb": {
-      "command": "/home/reyno/.local/bin/lancedb-mcp",
-      "args": []
+      "command": "/home/TU_USUARIO/.local/opt/lancedb-hub/.venv/bin/python",
+      "args": ["/home/TU_USUARIO/.local/opt/lancedb-hub/server_mcp.py"],
+      "env": { "PYTHONUNBUFFERED": "1" }
     }
   }
 }`,
 
-  fish: `# Abreviaturas rápidas en tu terminal Fish:
-srag "asistenciaServicio"    # Búsqueda rápida
-sstats                      # Métricas de ahorro
-swatch                      # Log en vivo
-sinfo                       # Dashboard de arquitectura`
+  codex: `# ~/.codex/config.toml  (SYNRAG configure lo escribe solo)
+# Cambia TU_USUARIO por tu nombre de usuario.
+[mcp_servers.desktop-lancedb]
+command = "/home/TU_USUARIO/.local/opt/lancedb-hub/.venv/bin/python"
+args = ["/home/TU_USUARIO/.local/opt/lancedb-hub/server_mcp.py"]
+env = { PYTHONUNBUFFERED = "1" }`
 };

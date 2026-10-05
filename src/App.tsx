@@ -10,6 +10,8 @@ import { Features } from './components/Features';
 import { Comparison } from './components/Comparison';
 import { DaemonStatus } from './components/DaemonStatus';
 import { Integrations } from './components/Integrations';
+import { Install } from './components/Install';
+import { Faq } from './components/Faq';
 import { Footer } from './components/Footer';
 
 export const App: React.FC = () => {
@@ -22,6 +24,9 @@ export const App: React.FC = () => {
       <main>
         {/* Hero Section */}
         <Hero />
+
+        {/* Instalación en 1 línea */}
+        <Install />
 
         {/* Live Ecosystem Metrics */}
         <Metrics />
@@ -49,6 +54,9 @@ export const App: React.FC = () => {
 
         {/* Ready-to-copy MCP and CLI Integrations */}
         <Integrations />
+
+        {/* Preguntas frecuentes */}
+        <Faq />
       </main>
 
       {/* Footer */}

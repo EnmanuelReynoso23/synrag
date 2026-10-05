@@ -23,7 +23,7 @@ export const InteractiveTerminal: React.FC = () => {
       id: 'init-1',
       command: 'SYNRAG "asistenciaServicio"',
       output: [
-        '[SYNRAG v2.4] Consultando índice AST LanceDB local en ~/AsistoYA/Proyectos/asistoya-web...',
+        '[SYNRAG v2.4] Consultando índice AST LanceDB local en ~/proyectos/mi-monorepo...',
         '[OK] Árbol Tree-sitter parseado en 4.2ms | FlashRank ONNX Rerank: 98.4%',
         '--------------------------------------------------------------------------------',
         'ARCHIVO: apps/web/src/modulos/asistencia/asistencia.servicio.ts:35-72',
@@ -55,7 +55,7 @@ export const InteractiveTerminal: React.FC = () => {
       return;
     } else if (trimmed.toLowerCase() === 'help') {
       lines = [
-        'Comandos disponibles en SYNRAG CLI (CachyOS x86_64):',
+        'Comandos disponibles en SYNRAG CLI (Linux / macOS):',
         '  SYNRAG "<query>"               Busca símbolo o función sintáctica con AST + FlashRank.',
         '  SYNRAG --stats                 Muestra estadísticas de fragmentos, caché y consumo.',
         '  SYNRAG --graph "<símbolo>"     Calcula el radio de explosión (blast radius) de dependencias.',
@@ -66,11 +66,11 @@ export const InteractiveTerminal: React.FC = () => {
     } else if (trimmed.includes('--stats')) {
       lines = [
         '================================================================================',
-        '               MÉTRICAS DEL MOTOR SYNTAX RAG (LOCAL CACHYOS)                  ',
+        '               MÉTRICAS DEL MOTOR SYNTAX RAG (LOCAL)                  ',
         '================================================================================',
-        'Repositorios indexados:     asistoya-web, memoria-claude, Proyectos',
+        'Repositorios indexados:     mi-monorepo, notas-ia, proyectos',
         'Fragmentos AST totales:     95,502 bloques de código sintáctico',
-        'Aristas en grafo (NetworkX): 23,364 dependencias y llamadas mapeadas',
+        'Aristas en el grafo: 23,364 dependencias y llamadas mapeadas',
         'Latencia promedio de caché: 0.8ms (<1ms Zero-Token)',
         'Tokens ahorrados acumulados: 124,500,000 tokens',
         'Costo en API de la nube:   $0.00 USD (Inferencia 100% en CPU local)',
@@ -79,13 +79,13 @@ export const InteractiveTerminal: React.FC = () => {
     } else if (trimmed.includes('--daemon')) {
       lines = [
         '● lancedb-watcher.service - Daemon reactivo de indexación AST',
-        '     Loaded: loaded (/home/reyno/.config/systemd/user/lancedb-watcher.service; enabled)',
+        '     Loaded: loaded (~/.config/systemd/user/lancedb-watcher.service; enabled)',
         '     Active: active (running) desde las 08:00:15 UTC',
         '   Main PID: 3239 (python3 -m synrag.daemon)',
         '      Tasks: 4 (limit: 18884)',
         '     Memory: 12.3M',
         '        CPU: 0.1% en reposo (~18ms pico al guardar con Ctrl+S)',
-        '     Status: "Vigilando 2,450 archivos en ~/AsistoYA/Proyectos/asistoya-web"',
+        '     Status: "Vigilando 2,450 archivos en ~/proyectos/mi-monorepo"',
       ];
     } else if (trimmed.includes('--graph')) {
       lines = [
@@ -165,7 +165,7 @@ export const InteractiveTerminal: React.FC = () => {
             Simulador de Terminal SYNRAG CLI
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Ejecuta comandos reales del motor en esta terminal interactiva. Experimenta la velocidad de respuesta, el parseo de árboles y las alertas del grafo de impacto tal como ocurren en tu máquina CachyOS.
+            Ejecuta comandos reales del motor en esta terminal interactiva. Experimenta la velocidad de respuesta, el parseo de árboles y las alertas del grafo de impacto como ocurren en tu equipo.
           </p>
         </div>
 
@@ -186,7 +186,7 @@ export const InteractiveTerminal: React.FC = () => {
 
         {/* Ventana de Terminal */}
         <div className="mt-8 max-w-5xl mx-auto rounded-2xl border border-[#30363D] bg-[#0D1117] shadow-2xl overflow-hidden font-mono">
-          {/* Barra Superior estilo macOS / CachyOS */}
+          {/* Barra Superior estilo macOS */}
           <div className="p-3.5 bg-[#161B22] border-b border-[#30363D] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-[#FF7B72]/80 inline-block" />
@@ -194,7 +194,7 @@ export const InteractiveTerminal: React.FC = () => {
               <span className="w-3 h-3 rounded-full bg-[#7EE787]/80 inline-block" />
               <span className="ml-2 text-xs font-bold text-white flex items-center gap-1.5">
                 <Terminal className="w-3.5 h-3.5 text-[#00E5FF]" />
-                reyno@cachyos: ~/Proyectos/synrag
+                dev@equipo: ~/proyectos/mi-monorepo
               </span>
             </div>
 
@@ -224,7 +224,7 @@ export const InteractiveTerminal: React.FC = () => {
             {history.map((item) => (
               <div key={item.id} className="space-y-1.5">
                 <div className="flex items-center gap-2 text-white font-bold">
-                  <span className="text-[#00E5FF]">reyno@cachyos</span>
+                  <span className="text-[#00E5FF]">dev@equipo</span>
                   <span className="text-[#8B949E]">:</span>
                   <span className="text-[#58A6FF]">~</span>
                   <span className="text-[#8B949E]">$</span>
