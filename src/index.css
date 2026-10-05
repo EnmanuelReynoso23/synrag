@@ -98,3 +98,23 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #30363d;
 }
+
+/* Las columnas de una cuadrícula no deben ensancharse por su contenido (chips de código que no se parten):
+   en celular empujaban el héroe 45 px fuera de la pantalla. */
+.grid > * {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 2px;
+}

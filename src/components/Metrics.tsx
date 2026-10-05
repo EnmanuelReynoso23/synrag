@@ -9,13 +9,13 @@ export const Metrics: React.FC = () => {
         {/* Encabezado */}
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-[#00E5FF]">
-            Pulso del Ecosistema Local · Métricas en Tiempo Real
+            Ejemplo medido · monorepo real
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Rendimiento Real y Ahorro Medido
+            Así rinde en un monorepo grande
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Métricas vivas extraídas de la base de datos LanceDB Hub y los repositorios indexados en esta máquina.
+            Cifras medidas por el autor en su equipo con ~95 mil fragmentos indexados. En el tuyo variarán según el tamaño de tus proyectos y tu CPU.
           </p>
         </div>
 

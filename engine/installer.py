@@ -283,6 +283,110 @@ complete -c synrag -c SYNRAG -l help -s h -d "Mostrar ayuda"
     return True
 
 
+# --------------------------------------------------------------------------
+# Desinstalacion: deshace solo lo que escribio este instalador
+# --------------------------------------------------------------------------
+
+def _quitar_json(path: Path, raiz: str = "mcpServers") -> str:
+    try:
+        if not path.is_file():
+            return YA
+        datos = json.loads(path.read_text(encoding="utf-8"))
+        bloque = datos.get(raiz) if isinstance(datos, dict) else None
+        if not isinstance(bloque, dict) or SERVER_NAME not in bloque:
+            return YA
+        del bloque[SERVER_NAME]
+        _escribir(path, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+        _log(OK, f"quitado de {path}")
+        return OK
+    except Exception as e:  # noqa: BLE001 - JSON ilegible: no se toca
+        _log(OMITIDO, str(path), f"no se pudo leer ({e}); quita '{SERVER_NAME}' a mano")
+        return OMITIDO
+
+
+def _quitar_toml_codex(path: Path) -> str:
+    try:
+        if not path.is_file():
+            return YA
+        lineas = path.read_text(encoding="utf-8").split("\n")
+        tabla = f"[mcp_servers.{SERVER_NAME}]"
+        if tabla not in lineas:
+            return YA
+        i = lineas.index(tabla)
+        j = i + 1
+        while j < len(lineas) and not lineas[j].startswith("["):
+            j += 1
+        nuevo = lineas[:i] + lineas[j:]
+        while len(nuevo) > 1 and nuevo[i - 1:i] == [""] and (i >= len(nuevo) or nuevo[i:i + 1] == [""]):
+            del nuevo[i - 1]
+            i -= 1
+        _escribir(path, "\n".join(nuevo).rstrip("\n") + "\n")
+        _log(OK, f"quitado de {path}")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(path), str(e))
+        return ERROR
+
+
+def _quitar_bloque(path: Path) -> str:
+    try:
+        real = path.resolve() if path.is_symlink() else path
+        if not real.is_file():
+            return YA
+        texto = real.read_text(encoding="utf-8")
+        if BLOQUE_INI not in texto or BLOQUE_FIN not in texto:
+            return YA
+        ini = texto.index(BLOQUE_INI)
+        fin = texto.index(BLOQUE_FIN) + len(BLOQUE_FIN)
+        nuevo = (texto[:ini].rstrip("\n") + "\n" + texto[fin:].lstrip("\n")).strip("\n")
+        _escribir(real, nuevo + "\n" if nuevo else "")
+        _log(OK, f"instrucciones quitadas de {path}")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, f"instrucciones en {path}", str(e))
+        return ERROR
+
+
+def run_uninstall() -> None:
+    """Quita el servidor MCP, el bloque de instrucciones y los lanzadores. No borra el motor."""
+    print("=" * 80)
+    print("   DESINSTALANDO SYNRAG DE TUS IAs" + ("  [SIMULACION]" if DRY_RUN else ""))
+    print("=" * 80)
+    cline = HOME / ".config" / "Code" / "User" / "globalStorage"
+    for ruta, raiz in (
+        (HOME / ".claude.json", "mcpServers"),
+        (HOME / ".gemini" / "antigravity" / "mcp_config.json", "mcpServers"),
+        (HOME / ".gemini" / "settings.json", "mcpServers"),
+        (HOME / ".cursor" / "mcp.json", "mcpServers"),
+        (HOME / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),
+        (cline / "saoudrizwan.claude-dev" / "settings" / "cline_mcp_settings.json", "mcpServers"),
+        (cline / "rooveterinaryinc.roo-cline" / "settings" / "cline_mcp_settings.json", "mcpServers"),
+        (HOME / ".config" / "zed" / "settings.json", "context_servers"),
+    ):
+        _quitar_json(ruta, raiz)
+    _quitar_toml_codex(HOME / ".codex" / "config.toml")
+    for ruta in (
+        HOME / ".claude" / "CLAUDE.md",
+        HOME / ".gemini" / "GEMINI.md",
+        HOME / ".codex" / "AGENTS.md",
+        HOME / ".codeium" / "windsurf" / "memories" / "global_rules.md",
+    ):
+        _quitar_bloque(ruta)
+    if not DRY_RUN:
+        for nombre in ("SYNRAG", "synrag", "syntaxrag"):
+            lanzador = HOME / ".local" / "bin" / nombre
+            if lanzador.is_file() and "SyntaxRAG Universal CLI Launcher" in lanzador.read_text(encoding="utf-8", errors="ignore"):
+                lanzador.unlink()
+        for nombre in ("synrag.fish", "SYNRAG.fish"):
+            comp = HOME / ".config" / "fish" / "completions" / nombre
+            if comp.is_file() and "Autocompletado para SyntaxRAG" in comp.read_text(encoding="utf-8", errors="ignore"):
+                comp.unlink()
+    print("-" * 80)
+    print("Listo. Reinicia tus IAs. Para borrar tambien el motor y su indice:")
+    print(f"  rm -rf {BASE_DIR}")
+    print("=" * 80)
+
+
 def run_full_installation() -> None:
     """Instalacion completa: lanzadores, autocompletado y una pasada por cada IA instalada."""
     print("=" * 80)
@@ -319,4 +423,7 @@ def run_full_installation() -> None:
 
 
 if __name__ == "__main__":
-    run_full_installation()
+    if "--uninstall" in sys.argv:
+        run_uninstall()
+    else:
+        run_full_installation()

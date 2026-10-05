@@ -395,6 +395,7 @@ def print_help_menu():
     cmd_table.add_row("SYNRAG impact <símbolo>", "Radio de impacto y dependientes de una función", "SYNRAG impact asistenciaServicio")
     cmd_table.add_row("SYNRAG tests <símbolo>", "Localiza los tests asociados a un símbolo", "SYNRAG tests asistenciaServicio")
     cmd_table.add_row("SYNRAG configure", "Auto-configura todas las IAs del sistema (MCP)", "SYNRAG configure")
+    cmd_table.add_row("SYNRAG uninstall", "Quita SYNRAG de todas tus IAs (no borra el motor)", "SYNRAG uninstall")
     cmd_table.add_row("SYNRAG stats", "Métricas de Ahorro de Tokens, Latencia y Chunks", "SYNRAG stats")
     cmd_table.add_row("SYNRAG info", "Dashboard de arquitectura, subsistemas y rutas", "SYNRAG info")
     cmd_table.add_row("SYNRAG index", "Reindexar repositorios con Tree-sitter AST", "SYNRAG index")
@@ -437,6 +438,8 @@ def main():
         run_watch_ui()
     elif arg1 in ("configure", "install", "--configure"):
         installer.run_full_installation()
+    elif arg1 in ("uninstall", "--uninstall"):
+        installer.run_uninstall()
     elif arg1 in ("outline", "--outline") and len(sys.argv) > 2:
         file_arg = sys.argv[2]
         console.print(Panel(server_mcp.get_file_outline(file_arg), border_style="#00E5FF", box=box.ROUNDED))

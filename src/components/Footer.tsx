@@ -23,13 +23,13 @@ export const Footer: React.FC = () => {
             </div>
 
             <p className="text-xs sm:text-sm text-[#8B949E] leading-relaxed max-w-sm">
-              Motor de inteligencia de código sintáctico local y búsqueda semántica AST con cero consumo de tokens, diseñado para potenciar Claude Code, Google Antigravity y flujos de desarrollo de alto rendimiento en CachyOS.
+              Motor de inteligencia de código sintáctico local y búsqueda semántica AST con cero consumo de tokens, diseñado para potenciar Claude Code, Google Antigravity y flujos de desarrollo de alto rendimiento en tu equipo.
             </p>
 
             <div className="flex items-center gap-3 pt-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#161B22] text-[#7EE787] border border-[#30363D]">
                 <span className="w-2 h-2 rounded-full bg-[#7EE787] animate-pulse"></span>
-                Daemon Watcher ~18ms Operativo
+                Código abierto · MIT
               </span>
             </div>
           </div>
@@ -43,7 +43,7 @@ export const Footer: React.FC = () => {
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Tree-sitter AST Chunker</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">LanceDB Columnar Store</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">FlashRank TinyBERT ONNX</li>
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Grafo de Impacto (NetworkX)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Grafo de Impacto de dependencias</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Zero-Token Cache (<span className="text-[#7EE787] font-bold">&lt;1ms</span>)</li>
             </ul>
           </div>
@@ -54,11 +54,11 @@ export const Footer: React.FC = () => {
               Repositorios Indexados
             </h4>
             <ul className="space-y-2 text-xs font-medium text-[#8B949E]">
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">asistoya-web (Monorepo pnpm)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">mi-monorepo (Monorepo pnpm)</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">apps/web (Kiosco & Portal)</li>
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">memoria-claude</li>
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Proyectos Locales (~/Proyectos)</li>
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Configuración Global CachyOS</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">notas-ia</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Proyectos locales (~/proyectos)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Configuración global de IAs</li>
             </ul>
           </div>
 
@@ -72,7 +72,7 @@ export const Footer: React.FC = () => {
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Google Antigravity CLI (agy)</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Claude Code (MCP Protocol)</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">lancedb-watcher.service</li>
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Herdr Workspace Manager</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Codex CLI (MCP)</li>
             </ul>
           </div>
         </div>
@@ -80,7 +80,7 @@ export const Footer: React.FC = () => {
         {/* Barra Inferior de Copyright y Retorno */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8B949E] font-medium">
           <p>
-            © 2026 SyntaxRAG (SYNRAG). Motor AST-Native de Código Local. Diseñado y optimizado para desarrolladores en CachyOS.
+            © 2026 SyntaxRAG (SYNRAG). Motor AST-Native de Código Local. Código abierto bajo licencia MIT. Hecho por Enmanuel Reynoso.
           </p>
 
           <button

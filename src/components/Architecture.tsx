@@ -71,7 +71,7 @@ export const Architecture: React.FC = () => {
                 Inferencia Local en CPU sin dependencias de GPU
               </h4>
               <p className="text-xs text-[#8B949E] mt-0.5">
-                Todo el pipeline se ejecuta localmente en esta máquina (CachyOS x86_64). Sin llamadas de red lentas ni cuotas agotadas.
+                Todo el pipeline se ejecuta localmente en esta máquina (Linux / macOS). Sin llamadas de red lentas ni cuotas agotadas.
               </p>
             </div>
           </div>

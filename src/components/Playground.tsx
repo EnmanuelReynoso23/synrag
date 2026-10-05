@@ -118,7 +118,7 @@ export const Playground: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#00E5FF] flex items-center justify-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] animate-pulse" />
-            SIMULADOR INTERACTIVO EN VIVO
+            SIMULADOR INTERACTIVO · DATOS DE EJEMPLO
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
             Explorador AST y Grafo de Impacto
@@ -394,7 +394,7 @@ export const Playground: React.FC = () => {
                 </h5>
                 <span className="text-[11px] font-mono text-[#00E5FF] flex items-center gap-1">
                   <Info className="w-3 h-3" />
-                  NetworkX Edge Map
+                  Mapa de dependencias
                 </span>
               </div>
 
