@@ -1,150 +1,140 @@
 import { useState } from 'react';
-import { Terminal, Copy, Check, Sparkles, Monitor, Bot, Wrench } from 'lucide-react';
 import { CONFIG_SNIPPETS } from '../data/mockData';
-
+import { Terminal, Copy, Check, Sparkles, Cpu, Layers } from 'lucide-react';
 
 export const Integrations: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'claude' | 'antigravity' | 'cli' | 'systemd' | 'herdr'>('claude');
-  const [copied, setCopied] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'synrag' | 'claude' | 'antigravity' | 'fish'>('synrag');
+  const [copied, setCopied] = useState(false);
 
   const getActiveCode = () => {
     switch (activeTab) {
+      case 'synrag':
+        return CONFIG_SNIPPETS.synrag;
       case 'claude':
         return CONFIG_SNIPPETS.claude;
       case 'antigravity':
         return CONFIG_SNIPPETS.antigravity;
-      case 'cli':
-        return CONFIG_SNIPPETS.cli;
-      case 'systemd':
-        return CONFIG_SNIPPETS.systemd;
-      case 'herdr':
-        return `# Atajos nativos configurados en ~/.config/herdr/herdr.conf
-#
-# Panel Antigravity CLI (Google Gemini):
-Ctrl+B  ->  a
-
-# Panel Claude Code (Anthropic):
-Ctrl+B  ->  c
-
-# Hot-Reload automático de LanceDB al guardar en cualquier panel:
-Ctrl+S  ->  Tree-sitter parse (~18 ms)`;
+      case 'fish':
+        return CONFIG_SNIPPETS.fish;
     }
   };
 
-  const handleCopy = () => {
+  const copySnippet = () => {
     navigator.clipboard.writeText(getActiveCode());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <section id="integracion" className="py-20 md:py-32 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181825] border border-[#313244] text-xs font-mono text-[#00e5ff] mb-4">
-            <Wrench className="w-3.5 h-3.5" />
-            INTEGRACIÓN Y CONFIGURACIÓN
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            Conecta Synrag a tus Herramientas
+    <section id="integracion" className="scroll-mt-20 border-b border-[#30363D] bg-[#0D1117] py-16 sm:py-24 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/3 right-1/4 w-[500px] h-[300px] bg-[#00E5FF]/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Encabezado */}
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00E5FF] flex items-center justify-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] animate-pulse"></span>
+            INTEGRACIÓN DIRECTA · PROTOCOLO MCP & CLI
+          </p>
+          <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
+            Comando Único SYNRAG & Protocolo MCP
           </h2>
-          <p className="text-sm sm:text-base text-[#a6adc8]">
-            Configura el servidor MCP en segundos o utiliza el comando CLI global directamente desde tu terminal en CachyOS / Linux.
+          <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
+            Ejecuta el binario unificado en CachyOS para consultar en microsegundos o conéctalo vía MCP a Claude Code y Google Antigravity para dotar a tus agentes de memoria semántica con cero consumo de tokens.
           </p>
         </div>
 
-        {/* Tab Controls */}
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
-          <button
-            onClick={() => setActiveTab('claude')}
-            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-medium transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'claude'
-                ? 'bg-[#00e5ff]/20 text-[#00e5ff] border border-[#00e5ff]/50 shadow-[0_0_15px_-3px_rgba(0,229,255,0.4)]'
-                : 'bg-[#181825] text-[#a6adc8] border border-[#313244] hover:text-white hover:border-[#45475a]'
-            }`}
-          >
-            <Bot className="w-4 h-4" />
-            Claude Code (~/.claude.json)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('antigravity')}
-            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-medium transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'antigravity'
-                ? 'bg-[#cba6f7]/20 text-[#cba6f7] border border-[#cba6f7]/50 shadow-[0_0_15px_-3px_rgba(203,166,247,0.4)]'
-                : 'bg-[#181825] text-[#a6adc8] border border-[#313244] hover:text-white hover:border-[#45475a]'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            Antigravity CLI (mcp.json)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('cli')}
-            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-medium transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'cli'
-                ? 'bg-[#a6e3a1]/20 text-[#a6e3a1] border border-[#a6e3a1]/50 shadow-[0_0_15px_-3px_rgba(166,227,161,0.4)]'
-                : 'bg-[#181825] text-[#a6adc8] border border-[#313244] hover:text-white hover:border-[#45475a]'
-            }`}
-          >
-            <Terminal className="w-4 h-4" />
-            CLI (~/.local/bin/syntaxrag)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('systemd')}
-            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-medium transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'systemd'
-                ? 'bg-[#fab387]/20 text-[#fab387] border border-[#fab387]/50 shadow-[0_0_15px_-3px_rgba(250,179,135,0.4)]'
-                : 'bg-[#181825] text-[#a6adc8] border border-[#313244] hover:text-white hover:border-[#45475a]'
-            }`}
-          >
-            <Wrench className="w-4 h-4" />
-            Servicio Systemd Watcher
-          </button>
-
-          <button
-            onClick={() => setActiveTab('herdr')}
-            className={`px-4 py-2.5 rounded-xl font-mono text-xs font-medium transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'herdr'
-                ? 'bg-[#f38ba8]/20 text-[#f38ba8] border border-[#f38ba8]/50 shadow-[0_0_15px_-3px_rgba(243,139,168,0.4)]'
-                : 'bg-[#181825] text-[#a6adc8] border border-[#313244] hover:text-white hover:border-[#45475a]'
-            }`}
-          >
-            <Monitor className="w-4 h-4" />
-            Atajos en Herdr
-          </button>
-        </div>
-
-        {/* Code Box */}
-        <div className="max-w-4xl mx-auto rounded-3xl bg-[#11111b] border border-[#313244] overflow-hidden shadow-2xl">
-          <div className="px-5 py-3.5 bg-[#181825] border-b border-[#313244] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#f38ba8]/90"></span>
-              <span className="w-3 h-3 rounded-full bg-[#f9e2af]/90"></span>
-              <span className="w-3 h-3 rounded-full bg-[#a6e3a1]/90"></span>
-              <span className="ml-3 font-mono text-xs text-[#89b4fa]">
-                {activeTab === 'claude' && '~/.claude.json'}
-                {activeTab === 'antigravity' && '~/.gemini/antigravity-cli/mcp.json'}
-                {activeTab === 'cli' && 'syntaxrag CLI commands'}
-                {activeTab === 'systemd' && 'lancedb-watcher.service'}
-                {activeTab === 'herdr' && 'Herdr Multiplexer Shortcuts'}
-              </span>
-            </div>
+        {/* Contenedor de Configuración */}
+        <div className="mt-12 max-w-4xl mx-auto rounded-2xl border border-[#30363D] bg-[#161B22] shadow-2xl overflow-hidden">
+          {/* Pestañas de Selección */}
+          <div className="p-3 bg-[#161B22] border-b border-[#30363D] flex flex-wrap gap-2">
+            <button
+              onClick={() => setActiveTab('synrag')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'synrag'
+                  ? 'bg-[#21262D] text-white border border-[#00E5FF]/40 shadow-sm shadow-[#00E5FF]/10'
+                  : 'text-[#8B949E] hover:text-white hover:bg-[#21262D]/50 border border-transparent'
+              }`}
+            >
+              <Terminal className={`w-4 h-4 ${activeTab === 'synrag' ? 'text-[#00E5FF]' : 'text-[#8B949E]'}`} />
+              Comando Maestro SYNRAG
+            </button>
 
             <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#313244]/60 hover:bg-[#313244] text-xs font-mono text-[#cdd6f4] transition-all cursor-pointer"
+              onClick={() => setActiveTab('claude')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'claude'
+                  ? 'bg-[#21262D] text-white border border-[#00E5FF]/40 shadow-sm shadow-[#00E5FF]/10'
+                  : 'text-[#8B949E] hover:text-white hover:bg-[#21262D]/50 border border-transparent'
+              }`}
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? '¡Copiado!' : 'Copiar bloque'}
+              <Cpu className={`w-4 h-4 ${activeTab === 'claude' ? 'text-[#00E5FF]' : 'text-[#8B949E]'}`} />
+              Claude Code MCP
+            </button>
+
+            <button
+              onClick={() => setActiveTab('antigravity')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'antigravity'
+                  ? 'bg-[#21262D] text-white border border-[#00E5FF]/40 shadow-sm shadow-[#00E5FF]/10'
+                  : 'text-[#8B949E] hover:text-white hover:bg-[#21262D]/50 border border-transparent'
+              }`}
+            >
+              <Sparkles className={`w-4 h-4 ${activeTab === 'antigravity' ? 'text-[#00E5FF]' : 'text-[#8B949E]'}`} />
+              Google Antigravity
+            </button>
+
+            <button
+              onClick={() => setActiveTab('fish')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeTab === 'fish'
+                  ? 'bg-[#21262D] text-white border border-[#00E5FF]/40 shadow-sm shadow-[#00E5FF]/10'
+                  : 'text-[#8B949E] hover:text-white hover:bg-[#21262D]/50 border border-transparent'
+              }`}
+            >
+              <Layers className={`w-4 h-4 ${activeTab === 'fish' ? 'text-[#00E5FF]' : 'text-[#8B949E]'}`} />
+              Fish Shell Abreviaturas
             </button>
           </div>
 
-          <div className="p-6 font-mono text-xs sm:text-sm text-[#cdd6f4] bg-[#0d1117] overflow-x-auto leading-relaxed">
-            <pre>
+          {/* Bloque de Código con botón de copia */}
+          <div className="relative p-5 bg-[#0D1117] text-[#C9D1D9] overflow-x-auto min-h-[160px]">
+            <button
+              onClick={copySnippet}
+              className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#21262D] hover:bg-[#30363D] text-white text-xs font-bold border border-[#30363D] hover:border-[#00E5FF]/50 transition-all cursor-pointer active:scale-95"
+            >
+              {copied ? <Check className="w-4 h-4 text-[#7EE787]" /> : <Copy className="w-4 h-4 text-[#8B949E]" />}
+              <span>{copied ? '¡Copiado!' : 'Copiar'}</span>
+            </button>
+
+            <pre className="font-mono text-xs sm:text-sm leading-relaxed pr-24 text-[#C9D1D9]">
               <code>{getActiveCode()}</code>
             </pre>
+          </div>
+
+          {/* Descripción contextual inferior */}
+          <div className="p-4 bg-[#161B22] border-t border-[#30363D] text-xs text-[#8B949E] font-medium">
+            {activeTab === 'synrag' && (
+              <p>
+                El comando <strong className="text-white">SYNRAG</strong> (o <code className="bg-[#0D1117] px-1.5 py-0.5 rounded border border-[#30363D] text-[#00E5FF]">synrag</code>) está registrado globalmente en <code className="text-[#58A6FF]">~/.local/bin/SYNRAG</code>. Al ejecutarse sin argumentos abre el workspace multitarea enriquecido con métricas de ahorro y árbol AST en vivo.
+              </p>
+            )}
+            {activeTab === 'claude' && (
+              <p>
+                Permite a Claude Code invocar la herramienta <strong className="text-white">search_desktop</strong> para consultar los 95,502 fragmentos sintácticos sin exceder límites de lectura de disco ni gastar tokens de contexto.
+              </p>
+            )}
+            {activeTab === 'antigravity' && (
+              <p>
+                Configurado en <code className="text-[#58A6FF]">~/.gemini/antigravity/mcp/desktop-lancedb</code> para el agente de codificación de Google DeepMind en esta máquina.
+              </p>
+            )}
+            {activeTab === 'fish' && (
+              <p>
+                Abreviaturas disponibles en tu shell CachyOS: <code className="text-white font-bold">srag</code> (buscar), <code className="text-white font-bold">sstats</code> (métricas de ahorro), <code className="text-white font-bold">swatch</code> (log reactivo).
+              </p>
+            )}
           </div>
         </div>
       </div>

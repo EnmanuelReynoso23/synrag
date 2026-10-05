@@ -1,81 +1,86 @@
 import { useState } from 'react';
-import { Copy, Check, Menu, X, Sparkles } from 'lucide-react';
-import { CONFIG_SNIPPETS } from '../data/mockData';
-
+import { Check, Menu, X, Terminal } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const copyMCP = () => {
-    navigator.clipboard.writeText(CONFIG_SNIPPETS.claude);
+  const copyCommand = () => {
+    navigator.clipboard.writeText('SYNRAG "asistenciaServicio"');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0d1117]/85 border-b border-[#30363d]/80 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand / Logo */}
+    <header className="sticky top-0 z-50 bg-[#0D1117]/90 backdrop-blur-md border-b border-[#30363D] transition-all">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+        {/* Brand / Logo Oficial SYNRAG */}
         <a href="#" className="flex items-center gap-3 group">
-          <div className="relative flex items-center justify-center">
-            <img 
-              src="/synrag-logo.svg" 
-              alt="Synrag Logo" 
-              className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
-            />
-            <div className="absolute -inset-1 bg-[#00e5ff]/20 rounded-lg blur-md -z-10 group-hover:bg-[#00e5ff]/35 transition-all"></div>
-          </div>
+          <img 
+            src="/synrag-logo.svg" 
+            alt="SYNRAG Logo" 
+            className="h-9 sm:h-10 w-auto object-contain transition-transform group-hover:scale-105"
+          />
         </a>
 
         {/* Desktop Nav Links */}
-        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-[#cdd6f4]/80">
-          <a href="#innovaciones" className="hover:text-[#00e5ff] transition-colors">
-            Innovaciones
-          </a>
-          <a href="#arquitectura" className="hover:text-[#00e5ff] transition-colors">
-            Arquitectura
-          </a>
-          <a href="#playground" className="hover:text-[#00e5ff] transition-colors flex items-center gap-1.5">
+        <nav className="hidden lg:flex items-center gap-7 text-xs sm:text-sm font-semibold text-[#8B949E]">
+          <a href="#playground" className="hover:text-[#00E5FF] transition-colors flex items-center gap-1.5">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00e5ff] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00e5ff]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00E5FF] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00E5FF]"></span>
             </span>
             Simulador AST
           </a>
-          <a href="#metricas" className="hover:text-[#00e5ff] transition-colors">
+          <a href="#calculadora" className="hover:text-[#00E5FF] transition-colors">
+            Calculadora
+          </a>
+          <a href="#terminal-cli" className="hover:text-[#00E5FF] transition-colors">
+            Terminal CLI
+          </a>
+          <a href="#metricas" className="hover:text-[#00E5FF] transition-colors">
             Métricas
           </a>
-          <a href="#integracion" className="hover:text-[#00e5ff] transition-colors">
-            Integración MCP
+          <a href="#innovaciones" className="hover:text-[#00E5FF] transition-colors">
+            5 Pilares
+          </a>
+          <a href="#arquitectura" className="hover:text-[#00E5FF] transition-colors">
+            Arquitectura
+          </a>
+          <a href="#comparativa" className="hover:text-[#00E5FF] transition-colors">
+            Benchmark RAG
+          </a>
+          <a href="#integracion" className="hover:text-[#00E5FF] transition-colors">
+            CLI & MCP
           </a>
         </nav>
 
-        {/* Right Action & Daemon Indicator */}
-        <div className="hidden lg:flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161b22] border border-[#30363d] text-xs text-[#a6e3a1]">
+        {/* Right Action & Watcher Pill */}
+        <div className="hidden sm:flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161B22] border border-[#30363D] text-xs font-mono text-[#7EE787]">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#a6e3a1] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#a6e3a1]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7EE787] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7EE787]"></span>
             </span>
-            <span className="font-mono font-medium text-slate-300">Watcher:</span> 18ms reactivo
+            <span className="text-[#8B949E]">Watcher:</span> ~18ms reactivo
           </div>
 
           <button
-            onClick={copyMCP}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[#00e5ff]/10 hover:bg-[#00e5ff]/20 border border-[#00e5ff]/40 text-[#00e5ff] text-xs font-semibold tracking-wide transition-all shadow-[0_0_15px_-3px_rgba(0,229,255,0.3)] hover:shadow-[0_0_20px_0px_rgba(0,229,255,0.5)] cursor-pointer"
-            title="Copiar configuración de servidor desktop-lancedb para Claude Code y Antigravity"
+            onClick={copyCommand}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] hover:bg-[#00E5FF]/90 text-[#0D1117] text-xs font-black tracking-wide shadow-[0_0_20px_-3px_rgba(0,229,255,0.4)] transition-all cursor-pointer active:scale-95"
+            title="Copiar comando de ejecución de terminal"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? '¡Copiado a portapapeles!' : 'Copiar MCP'}
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Terminal className="w-3.5 h-3.5" />}
+            {copied ? '¡Copiado!' : 'Copiar SYNRAG'}
           </button>
         </div>
 
         {/* Mobile menu button */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none"
+            className="p-2 rounded-xl text-[#8B949E] hover:text-white hover:bg-[#161B22] focus:outline-none"
+            aria-label="Abrir menú de navegación"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -84,49 +89,69 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-800 bg-[#0d1117] px-4 pt-2 pb-6 space-y-3">
-          <a
-            href="#innovaciones"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-medium text-slate-300 hover:text-[#00e5ff]"
-          >
-            Innovaciones
-          </a>
-          <a
-            href="#arquitectura"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-medium text-slate-300 hover:text-[#00e5ff]"
-          >
-            Arquitectura
-          </a>
+        <div className="lg:hidden border-b border-[#30363D] bg-[#0D1117] px-4 pt-3 pb-6 space-y-3 shadow-2xl">
           <a
             href="#playground"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-medium text-[#00e5ff] flex items-center gap-2"
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
           >
-            <Sparkles className="w-4 h-4" /> Simulador AST
+            Simulador AST en Vivo
+          </a>
+          <a
+            href="#calculadora"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
+          >
+            Calculadora de Ahorro
+          </a>
+          <a
+            href="#terminal-cli"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
+          >
+            Terminal CLI Simulador
           </a>
           <a
             href="#metricas"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-medium text-slate-300 hover:text-[#00e5ff]"
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
           >
-            Métricas del Ecosistema
+            Métricas Reales
+          </a>
+          <a
+            href="#innovaciones"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
+          >
+            5 Pilares Tecnológicos
+          </a>
+          <a
+            href="#arquitectura"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
+          >
+            Arquitectura de 7 Fases
+          </a>
+          <a
+            href="#comparativa"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
+          >
+            Benchmark RAG
           </a>
           <a
             href="#integracion"
             onClick={() => setMobileMenuOpen(false)}
-            className="block py-2 text-sm font-medium text-slate-300 hover:text-[#00e5ff]"
+            className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
           >
-            Integración MCP
+            Comandos CLI & MCP
           </a>
-          <div className="pt-2 flex flex-col gap-2">
+          <div className="pt-3 border-t border-[#30363D] flex flex-col gap-2">
             <button
-              onClick={copyMCP}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#00e5ff]/15 border border-[#00e5ff]/40 text-[#00e5ff] text-sm font-medium"
+              onClick={copyCommand}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#00E5FF] text-[#0D1117] text-xs font-black shadow-md shadow-cyan-500/20"
             >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              {copied ? 'Copiado' : 'Copiar MCP Config'}
+              {copied ? '¡Copiado!' : 'Copiar comando SYNRAG'}
             </button>
           </div>
         </div>

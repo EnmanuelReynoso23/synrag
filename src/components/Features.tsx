@@ -1,105 +1,112 @@
-import { Zap, Cpu, ShieldCheck, Database, Terminal, Flame, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Code, Zap, Cpu, GitFork, ShieldAlert, Check } from 'lucide-react';
 
+const INNOVACIONES = [
+  {
+    id: 'tree-sitter',
+    titulo: 'Parser Sintáctico Tree-sitter',
+    estado: 'activo',
+    icono: Code,
+    descripcion: 'A diferencia de los RAG convencionales que parten texto por líneas arbitrarias o tokens fijos, SyntaxRAG desciende al Árbol de Sintaxis Abstracta (AST) para extraer únicamente funciones, clases, hooks e interfaces completas.',
+    beneficio: '0 fragmentos partidos por la mitad; conserva firmas, parámetros y docstrings.',
+    lenguajes: 'TypeScript, TSX, JavaScript, JSX, Python',
+  },
+  {
+    id: 'zero-token-cache',
+    titulo: 'Zero-Token Semantic Cache',
+    estado: 'activo',
+    icono: Zap,
+    descripcion: 'Almacena resultados en la tabla query_cache de LanceDB. Si tú o un agente realizan una consulta semánticamente equivalente, se responde en memoria en menos de 1 milisegundo a costo cero.',
+    beneficio: 'Ahorro del 100% de costos de cuota de API en tareas repetitivas de desarrollo.',
+    lenguajes: 'LanceDB local · < 1 ms',
+  },
+  {
+    id: 'reactive-watcher',
+    titulo: 'Hot-Reload Reactivo (~18ms)',
+    estado: 'activo',
+    icono: Cpu,
+    descripcion: 'Un demonio en segundo plano (lancedb-watcher.service) monitorea los archivos del monorepo. Cada vez que guardas con Ctrl+S en VSCode, Cursor o terminal, el archivo se re-parsea e indexa al vuelo.',
+    beneficio: 'Elimina las reindexaciones completas de 30 segundos. El índice siempre está al día.',
+    lenguajes: 'Demonio systemd in-memory',
+  },
+  {
+    id: 'impact-graph',
+    titulo: 'Grafo de Impacto Bidireccional',
+    estado: 'activo',
+    icono: GitFork,
+    descripcion: 'Construye una red estática de dependencias con 23,364 aristas que mapea qué archivos importan y consumen cada componente o servicio del proyecto.',
+    beneficio: 'Alerta antes de modificar firmas exportadas, previniendo regresiones silenciosas.',
+    lenguajes: 'NetworkX + Matriz de Aristas',
+  },
+  {
+    id: 'flashrank-onnx',
+    titulo: 'Reranker Neuronal FlashRank',
+    estado: 'activo',
+    icono: ShieldAlert,
+    descripcion: 'Reordena los candidatos recuperados por búsqueda BM25 de Tantivy usando un modelo transformador compacto (ms-marco-TinyBERT-L-2-v2) optimizado con ONNX Runtime.',
+    beneficio: 'Precisión semántica superior con scoring continuo (0-100%) sin requerir GPU dedicada.',
+    lenguajes: 'ONNX Runtime en CPU pura',
+  },
+];
 
 export const Features: React.FC = () => {
-  const features = [
-    {
-      icon: <Zap className="w-6 h-6 text-[#00e5ff]" />,
-      badge: 'Hot-Reload 18ms',
-      title: 'Indexado Reactivo por Ctrl+S',
-      desc: 'El demonio en segundo plano (lancedb-watcher.service) escucha el sistema de archivos. En cuanto guardas un archivo, solo ese archivo se parsea por Tree-sitter y actualiza LanceDB en ~18 ms.',
-      highlight: 'Contexto perpetuamente fresco sin escaneos manuales.',
-      borderColor: 'hover:border-[#00e5ff]/50',
-    },
-    {
-      icon: <Cpu className="w-6 h-6 text-[#a6e3a1]" />,
-      badge: '0 Tokens · $0.00',
-      title: 'Caché Semántico Local',
-      desc: 'Consultas idénticas o recurrentes se resuelven en la tabla dedicada query_cache en menos de 1 ms. Evita quemar cuota de API en tus agentes Claude Code o Antigravity.',
-      highlight: 'Ahorro del 100% en tokens para búsquedas repetidas.',
-      borderColor: 'hover:border-[#a6e3a1]/50',
-    },
-    {
-      icon: <ShieldCheck className="w-6 h-6 text-[#f38ba8]" />,
-      badge: 'Protección Anti-Rotura',
-      title: 'Grafo de Impacto de Dependencias',
-      desc: 'Tree-sitter mapea imports y exports de todo el monorepo. Cuando la IA inspecciona o refactoriza una función, SyntaxRAG advierte qué componentes la consumen.',
-      highlight: 'Transforma al agente de un simple buscador a un arquitecto seguro.',
-      borderColor: 'hover:border-[#f38ba8]/50',
-    },
-    {
-      icon: <Flame className="w-6 h-6 text-[#fab387]" />,
-      badge: 'Inferencia en CPU',
-      title: 'Reranker Neuronal FlashRank ONNX',
-      desc: 'Búsqueda híbrida en dos etapas: primero filtro ultra-veloz Tantivy BM25, seguido de reranking con el modelo ms-marco-TinyBERT-L-2-v2 corriendo puramente en CPU.',
-      highlight: 'Precisión profunda de Deep Learning sin gastar VRAM de GPU.',
-      borderColor: 'hover:border-[#fab387]/50',
-    },
-    {
-      icon: <Terminal className="w-6 h-6 text-[#cba6f7]" />,
-      badge: 'Herdr + MCP',
-      title: 'Herdr Workspace & Antigravity CLI',
-      desc: 'Integración nativa con el espacio de trabajo Herdr mediante atajos directos (Ctrl+B a para Antigravity, Ctrl+B c para Claude Code). Protocolo MCP stdio listo para usar.',
-      highlight: 'Flujo de trabajo fluido con cambio de agente en un solo atajo.',
-      borderColor: 'hover:border-[#cba6f7]/50',
-    },
-    {
-      icon: <Database className="w-6 h-6 text-[#89b4fa]" />,
-      badge: 'Storage Columnar',
-      title: 'LanceDB Almacenamiento Columnar',
-      desc: 'Almacena más de 95,500 fragmentos en tan solo 49.8 MB de espacio en disco. Arquitectura columnar Lance de cero copia en memoria para lecturas instantáneas.',
-      highlight: 'Ligero como SQLite, potente como un clúster de vectores.',
-      borderColor: 'hover:border-[#89b4fa]/50',
-    }
-  ];
-
   return (
-    <section id="innovaciones" className="py-20 md:py-32 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181825] border border-[#313244] text-xs font-mono text-[#00e5ff] mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
-            VENTAJAS TECNOLÓGICAS
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            Las Innovaciones Clave de Synrag
+    <section id="innovaciones" className="scroll-mt-20 border-b border-[#30363D] bg-[#0D1117] py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Encabezado */}
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-[#00E5FF]">
+            Innovaciones Tecnológicas
+          </p>
+          <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
+            Los 5 Pilares de Ingeniería de SyntaxRAG
           </h2>
-          <p className="text-sm sm:text-base text-[#a6adc8]">
-            Diseñado desde cero para resolver las deficiencias críticas de los sistemas RAG tradicionales en bases de código reales.
+          <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
+            Diseñados para eliminar los cuellos de botella de indexación y saturación de contexto que sufren los desarrolladores y agentes de IA.
           </p>
         </div>
 
-        {/* Feature Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feat, idx) => (
-            <div
-              key={idx}
-              className={`p-7 rounded-3xl bg-[#181825] border border-[#313244] ${feat.borderColor} transition-all duration-300 hover:shadow-xl hover:translate-y-[-3px] flex flex-col justify-between group`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="p-3 rounded-2xl bg-[#11111b] border border-[#313244] group-hover:scale-105 transition-transform">
-                    {feat.icon}
+        {/* Grid de Tarjetas */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {INNOVACIONES.map((item) => {
+            const Icon = item.icono;
+            return (
+              <div
+                key={item.id}
+                className="group rounded-2xl border border-[#30363D] bg-[#161B22] p-6 hover:border-[#00E5FF]/50 hover:shadow-xl transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="p-2.5 rounded-xl bg-[#21262D] text-[#00E5FF] group-hover:bg-[#00E5FF] group-hover:text-[#0D1117] transition-colors">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-mono font-bold uppercase tracking-wide bg-[#7EE787]/15 text-[#7EE787] border border-[#7EE787]/30">
+                      <Check className="w-3 h-3" />
+                      Activo
+                    </span>
                   </div>
-                  <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#11111b] border border-[#313244] text-[#bac2de]">
-                    {feat.badge}
-                  </span>
+
+                  <h3 className="text-lg font-bold text-white group-hover:text-[#00E5FF] transition-colors">
+                    {item.titulo}
+                  </h3>
+
+                  <p className="mt-2.5 text-xs sm:text-sm leading-relaxed text-[#8B949E]">
+                    {item.descripcion}
+                  </p>
                 </div>
 
-                <h3 className="text-xl font-bold text-white mb-2.5 group-hover:text-[#00e5ff] transition-colors">
-                  {feat.title}
-                </h3>
-
-                <p className="text-sm text-[#a6adc8] leading-relaxed mb-6">
-                  {feat.desc}
-                </p>
+                <div className="mt-6 pt-4 border-t border-[#30363D]">
+                  <p className="text-xs font-bold text-slate-200 flex items-start gap-1.5">
+                    <span className="text-[#00E5FF] font-black">▸</span>
+                    <span>{item.beneficio}</span>
+                  </p>
+                  <span className="mt-2 inline-block text-[11px] font-mono text-[#8B949E]">
+                    {item.lenguajes}
+                  </span>
+                </div>
               </div>
-
-              <div className="pt-4 border-t border-[#313244]/60 text-xs font-mono text-[#cdd6f4] flex items-center justify-between">
-                <span className="text-[#a6e3a1]">{feat.highlight}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

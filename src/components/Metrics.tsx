@@ -1,75 +1,126 @@
 import React from 'react';
-import { FileCode2, Code, GitFork, Zap, Cpu, HardDrive } from 'lucide-react';
-import { ECOSYSTEM_METRICS } from '../data/mockData';
+import { PROYECTOS_DISTRIBUCION } from '../data/mockData';
+import { HardDrive } from 'lucide-react';
 
 export const Metrics: React.FC = () => {
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'FileCode2':
-        return <FileCode2 className="w-6 h-6 text-[#89b4fa]" />;
-      case 'Code':
-        return <Code className="w-6 h-6 text-[#00e5ff]" />;
-      case 'GitFork':
-        return <GitFork className="w-6 h-6 text-[#f38ba8]" />;
-      case 'Zap':
-        return <Zap className="w-6 h-6 text-[#a6e3a1]" />;
-      case 'Cpu':
-        return <Cpu className="w-6 h-6 text-[#cba6f7]" />;
-      case 'HardDrive':
-        return <HardDrive className="w-6 h-6 text-[#fab387]" />;
-      default:
-        return <Code className="w-6 h-6 text-[#00e5ff]" />;
-    }
-  };
-
   return (
-    <section id="metricas" className="py-16 md:py-24 bg-[#11111b]/60 border-y border-[#313244]/80 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181825] border border-[#313244] text-xs font-mono text-[#00e5ff] mb-4">
-            <span className="w-2 h-2 rounded-full bg-[#00e5ff] animate-ping" />
-            BENCHMARKS EN PRODUCCIÓN
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-            Ecosistema en Tiempo Real
+    <section id="metricas" className="scroll-mt-20 border-b border-[#30363D] bg-[#0D1117] py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Encabezado */}
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-[#00E5FF]">
+            Pulso del Ecosistema Local · Métricas en Tiempo Real
+          </p>
+          <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
+            Rendimiento Real y Ahorro Medido
           </h2>
-          <p className="text-sm sm:text-base text-[#a6adc8]">
-            Métricas extraídas directamente de los proyectos activos en este equipo, indexados localmente sin servidores externos ni costos ocultos.
+          <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
+            Métricas vivas extraídas de la base de datos LanceDB Hub y los repositorios indexados en esta máquina.
           </p>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {ECOSYSTEM_METRICS.map((metric, idx) => (
-            <div
-              key={idx}
-              className="p-6 rounded-2xl bg-[#181825]/90 border border-[#313244] hover:border-[#45475a] transition-all hover:translate-y-[-2px] hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] group relative overflow-hidden"
-            >
-              {/* Corner accent glow */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-[#00e5ff]/5 rounded-bl-full group-hover:bg-[#00e5ff]/10 transition-colors pointer-events-none" />
+        {/* Franja de 4 Grandes Cifras */}
+        <dl className="mt-12 grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-8 lg:grid-cols-4 border-b border-[#30363D] pb-14">
+          <div className="text-center sm:text-left">
+            <dt className="text-4xl font-black tracking-tight text-[#00E5FF] sm:text-[2.75rem]">
+              95,502
+            </dt>
+            <dd className="mt-2 text-base font-bold leading-snug text-white">
+              Fragmentos AST Únicos
+            </dd>
+            <dd className="mt-1 text-xs text-[#8B949E] font-medium">
+              Funciones, clases y hooks troceados íntegramente
+            </dd>
+          </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-xl bg-[#11111b] border border-[#313244] group-hover:border-[#00e5ff]/30 transition-colors">
-                  {getIcon(metric.icon)}
-                </div>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[#313244]/60 text-[#bac2de]">
-                  {metric.delta}
-                </span>
-              </div>
+          <div className="text-center sm:text-left">
+            <dt className="text-4xl font-black tracking-tight text-[#00E5FF] sm:text-[2.75rem]">
+              &lt; 1 ms
+            </dt>
+            <dd className="mt-2 text-base font-bold leading-snug text-white">
+              Latencia en Caché
+            </dd>
+            <dd className="mt-1 text-xs text-[#8B949E] font-medium">
+              Respuestas instantáneas en memoria sin red
+            </dd>
+          </div>
 
-              <div className="text-3xl sm:text-4xl font-extrabold text-white mb-1 font-mono tracking-tight group-hover:text-[#00e5ff] transition-colors">
-                {metric.value}
-              </div>
+          <div className="text-center sm:text-left">
+            <dt className="text-4xl font-black tracking-tight text-[#7EE787] sm:text-[2.75rem]">
+              100% $0.00
+            </dt>
+            <dd className="mt-2 text-base font-bold leading-snug text-white">
+              Ahorro de Cuota de API
+            </dd>
+            <dd className="mt-1 text-xs text-[#8B949E] font-medium">
+              0 tokens de LLM consumidos en re-búsquedas
+            </dd>
+          </div>
 
-              <div className="text-sm font-semibold text-[#cdd6f4] mb-0.5">
-                {metric.label}
-              </div>
+          <div className="text-center sm:text-left">
+            <dt className="text-4xl font-black tracking-tight text-[#58A6FF] sm:text-[2.75rem]">
+              23,364
+            </dt>
+            <dd className="mt-2 text-base font-bold leading-snug text-white">
+              Aristas de Dependencias
+            </dd>
+            <dd className="mt-1 text-xs text-[#8B949E] font-medium">
+              Mapeadas en el Grafo de Impacto bidireccional
+            </dd>
+          </div>
+        </dl>
 
-              <div className="text-xs text-[#a6adc8]">
-                {metric.unit}
-              </div>
+        {/* Distribución por Repositorios */}
+        <div className="mt-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                Distribución de Fragmentos por Repositorio
+              </h3>
+              <p className="text-xs text-[#8B949E] mt-0.5 font-medium">
+                Proporción de código analizado por el motor sintáctico Tree-sitter
+              </p>
             </div>
-          ))}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#161B22] border border-[#30363D] text-xs font-mono text-[#00E5FF]">
+              <HardDrive className="w-3.5 h-3.5 text-[#00E5FF]" />
+              <span>LanceDB: ~49.8 MB en disco</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {PROYECTOS_DISTRIBUCION.slice(0, 6).map((item) => (
+              <div 
+                key={item.nombre}
+                className="rounded-xl border border-[#30363D] bg-[#161B22] p-4 hover:border-[#00E5FF]/40 hover:shadow-lg transition-all"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-sm font-bold text-white">
+                    {item.nombre}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[#00E5FF] bg-[#00E5FF]/10 px-2 py-0.5 rounded-full border border-[#00E5FF]/30">
+                    {item.porcentaje}%
+                  </span>
+                </div>
+
+                <p className="text-xs text-[#8B949E] line-clamp-1 mb-3">
+                  {item.descripcion}
+                </p>
+
+                {/* Barra de progreso con gradiente neón */}
+                <div className="w-full bg-[#0D1117] rounded-full h-2 overflow-hidden border border-[#30363D]">
+                  <div 
+                    className="bg-gradient-to-r from-[#00E5FF] to-[#58A6FF] h-2 rounded-full transition-all duration-500" 
+                    style={{ width: `${item.porcentaje * 2.5}%` }}
+                  />
+                </div>
+
+                <div className="mt-2.5 flex items-center justify-between text-[11px] font-mono text-[#8B949E]">
+                  <span>Fragmentos AST:</span>
+                  <span className="text-white font-bold">{item.chunks.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

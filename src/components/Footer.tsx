@@ -1,58 +1,95 @@
+import { ArrowUp } from 'lucide-react';
+
 export const Footer: React.FC = () => {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <footer className="border-t border-[#313244] bg-[#0d1117] text-[#a6adc8] py-14">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pb-12 border-b border-[#30363d]">
-          {/* Logo & description */}
-          <div className="space-y-3 max-w-md">
+    <footer className="bg-[#0D1117] text-[#8B949E] pt-16 pb-12 border-t border-[#30363D] relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute bottom-0 left-1/3 w-[600px] h-[200px] bg-[#00E5FF]/5 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#30363D]">
+          {/* Columna Principal Marca SYNRAG (2 Cols) */}
+          <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <img src="/synrag-logo.svg" alt="Synrag" className="h-8 w-auto" />
+              <img 
+                src="/synrag-logo.svg" 
+                alt="SYNRAG Logo" 
+                className="h-9 sm:h-10 w-auto object-contain"
+              />
             </div>
-            <p className="text-xs sm:text-sm text-[#8b949e] leading-relaxed">
-              Motor de inteligencia de código local nativo AST. Diseñado para potenciar agentes de IA como Claude Code y Antigravity CLI con cero costos de tokens y máxima precisión estructural.
+
+            <p className="text-xs sm:text-sm text-[#8B949E] leading-relaxed max-w-sm">
+              Motor de inteligencia de código sintáctico local y búsqueda semántica AST con cero consumo de tokens, diseñado para potenciar Claude Code, Google Antigravity y flujos de desarrollo de alto rendimiento en CachyOS.
             </p>
+
+            <div className="flex items-center gap-3 pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#161B22] text-[#7EE787] border border-[#30363D]">
+                <span className="w-2 h-2 rounded-full bg-[#7EE787] animate-pulse"></span>
+                Daemon Watcher ~18ms Operativo
+              </span>
+            </div>
           </div>
 
-          {/* Quick specs list */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-xs font-mono">
-            <div>
-              <div className="text-white font-bold mb-2">Motor RAG</div>
-              <div className="space-y-1 text-[#8b949e]">
-                <div>LanceDB 0.25</div>
-                <div>Tree-sitter AST</div>
-                <div>FlashRank ONNX</div>
-              </div>
-            </div>
+          {/* Columna 1: Subsistemas */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-black uppercase tracking-wider text-white">
+              Tecnologías Clave
+            </h4>
+            <ul className="space-y-2 text-xs font-medium text-[#8B949E]">
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Tree-sitter AST Chunker</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">LanceDB Columnar Store</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">FlashRank TinyBERT ONNX</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Grafo de Impacto (NetworkX)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Zero-Token Cache (<span className="text-[#7EE787] font-bold">&lt;1ms</span>)</li>
+            </ul>
+          </div>
 
-            <div>
-              <div className="text-white font-bold mb-2">Protocolo</div>
-              <div className="space-y-1 text-[#8b949e]">
-                <div>Model Context Protocol</div>
-                <div>desktop-lancedb (stdio)</div>
-                <div>JSON-RPC 2.0</div>
-              </div>
-            </div>
+          {/* Columna 2: Repositorios */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-black uppercase tracking-wider text-white">
+              Repositorios Indexados
+            </h4>
+            <ul className="space-y-2 text-xs font-medium text-[#8B949E]">
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">asistoya-web (Monorepo pnpm)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">apps/web (Kiosco & Portal)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">memoria-claude</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Proyectos Locales (~/Proyectos)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Configuración Global CachyOS</li>
+            </ul>
+          </div>
 
-            <div>
-              <div className="text-white font-bold mb-2">Entorno</div>
-              <div className="space-y-1 text-[#8b949e]">
-                <div>CachyOS Linux x86_64</div>
-                <div>Herdr 0.9.3</div>
-                <div>Catppuccin Mocha</div>
-              </div>
-            </div>
+          {/* Columna 3: Herramientas */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-black uppercase tracking-wider text-white">
+              Herramientas & Agentes
+            </h4>
+            <ul className="space-y-2 text-xs font-medium text-[#8B949E]">
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Comando Maestro <strong className="text-white">SYNRAG</strong></li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Google Antigravity CLI (agy)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Claude Code (MCP Protocol)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">lancedb-watcher.service</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Herdr Workspace Manager</li>
+            </ul>
           </div>
         </div>
 
-        {/* Bottom copyright & local path */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-[#585b70]">
-          <div>
-            Ubicación del core: <span className="text-[#89b4fa]">/home/reyno/.local/opt/lancedb-hub</span>
-          </div>
-          <div>
-            ⚡ SyntaxRAG · Desarrollado para el ecosistema de Reyno & AsistoYA
-          </div>
+        {/* Barra Inferior de Copyright y Retorno */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#8B949E] font-medium">
+          <p>
+            © 2026 SyntaxRAG (SYNRAG). Motor AST-Native de Código Local. Diseñado y optimizado para desarrolladores en CachyOS.
+          </p>
+
+          <button
+            onClick={scrollToTop}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#161B22] hover:bg-[#21262D] text-white text-xs font-bold border border-[#30363D] hover:border-[#00E5FF]/50 transition-all cursor-pointer"
+          >
+            <span>Volver arriba</span>
+            <ArrowUp className="w-3.5 h-3.5 text-[#00E5FF]" />
+          </button>
         </div>
       </div>
     </footer>

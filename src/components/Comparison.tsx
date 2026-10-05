@@ -1,98 +1,98 @@
-import { Check, X, Zap } from 'lucide-react';
+import React from 'react';
+import { Check, X } from 'lucide-react';
 
+const CRITERIOS = [
+  {
+    criterio: 'Estrategia de Troceado',
+    tradicional: 'Ventanas fijas (ej. 500 tokens o 50 líneas ciegas)',
+    synrag: 'Parser AST sintáctico (Tree-sitter por nodos reales)',
+    ventaja: 'Nunca parte una función ni corta parámetros de hooks',
+  },
+  {
+    criterio: 'Integridad del Contexto',
+    tradicional: 'Fragmentos huérfanos sin firma completa ni tipos',
+    synrag: 'Bloques íntegros con docstrings, firmas e interfaces',
+    ventaja: 'El agente o desarrollador entiende la función sin releer el archivo',
+  },
+  {
+    criterio: 'Tiempo de Re-indexación',
+    tradicional: 'Re-escaneo global pesado (30 a 90 segundos)',
+    synrag: 'Hot-Reload reactivo in-memory (~18 ms ante Ctrl+S)',
+    ventaja: 'Cada guardado en el editor actualiza LanceDB instantáneamente',
+  },
+  {
+    criterio: 'Costo de Consultas Repetidas',
+    tradicional: 'Llamada externa a embeddings o LLM ($$$ y cuota agotable)',
+    synrag: 'Zero-Token Semantic Cache local ($0.00 y 0 tokens)',
+    ventaja: 'Respuestas semánticas idénticas o afines en < 1 ms',
+  },
+  {
+    criterio: 'Seguridad de Modificación',
+    tradicional: 'Ninguna noción de dependencias o impacto de imports',
+    synrag: 'Grafo de Impacto bidireccional (23,364 aristas)',
+    ventaja: 'Advierte qué archivos consumen la función antes de editar',
+  },
+  {
+    criterio: 'Dependencia de Infraestructura',
+    tradicional: 'Servidores remotos, vector DBs en la nube, GPUs caras',
+    synrag: '100% Local en CPU (LanceDB columnar + TinyBERT ONNX)',
+    ventaja: 'Opera offline sin internet y sin gastar RAM del sistema',
+  },
+];
 
 export const Comparison: React.FC = () => {
-  const comparisonItems = [
-    {
-      feature: 'Segmentación de Código',
-      traditional: 'Cortes ciegos por número fijo de líneas o caracteres (fragmenta funciones a la mitad)',
-      synrag: 'Bloques sintácticos íntegros parseados con Tree-sitter AST (funciones, hooks, interfaces)',
-      isHighlight: true,
-    },
-    {
-      feature: 'Velocidad de Actualización',
-      traditional: 'Reindexación manual pesada (3 a 5 minutos bloqueando el entorno)',
-      synrag: 'Hot-Reload Reactivo en ~18 ms por archivo al presionar Ctrl+S',
-      isHighlight: true,
-    },
-    {
-      feature: 'Costo de Consultas Repetidas',
-      traditional: 'Gasto recurrente de tokens de API ($$$) en cada consulta similar',
-      synrag: 'Caché semántico local: < 1 ms de latencia, 0 tokens gastados y $0.00 de costo',
-      isHighlight: true,
-    },
-    {
-      feature: 'Protección Anti-Rotura',
-      traditional: 'Ciego: El agente modifica una función sin saber quién la importa en el monorepo',
-      synrag: 'Grafo de Impacto: Alerta en vivo sobre qué módulos consumen el símbolo',
-      isHighlight: true,
-    },
-    {
-      feature: 'Requisitos de Hardware',
-      traditional: 'Requiere clústeres vectoriales en la nube o GPU dedicada con alto consumo de VRAM',
-      synrag: 'Inferencia ligera ONNX en CPU pura (ms-marco-TinyBERT-L-2-v2) con LanceDB columnar',
-      isHighlight: false,
-    },
-    {
-      feature: 'Integración con IAs',
-      traditional: 'Endpoints REST personalizados o scripts ad-hoc dependientes de wrappers',
-      synrag: 'Model Context Protocol (MCP) estándar vía stdio para Claude Code, Antigravity y Cursor',
-      isHighlight: false,
-    },
-  ];
-
   return (
-    <section className="py-20 md:py-32 bg-[#11111b]/50 border-t border-[#313244]/80 relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181825] border border-[#313244] text-xs font-mono text-[#a6e3a1] mb-4">
-            <Zap className="w-3.5 h-3.5" />
-            BENCHMARK COMPARATIVO
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            RAG Tradicional vs. Synrag
+    <section id="comparativa" className="scroll-mt-20 border-b border-[#30363D] bg-[#0D1117] py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Encabezado */}
+        <div className="text-center max-w-3xl mx-auto">
+          <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-[#00E5FF]">
+            Benchmark Comparativo
+          </p>
+          <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
+            RAG Tradicional vs SyntaxRAG
           </h2>
-          <p className="text-sm sm:text-base text-[#a6adc8]">
-            Por qué los RAGs convencionales fallan con código fuente y cómo Synrag ofrece precisión estructural quirúrgica.
+          <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
+            Descubre por qué las herramientas de RAG genéricas fallan en código de monorepos y cómo el enfoque AST-Native supera cada limitación.
           </p>
         </div>
 
-        {/* Comparison Table Container */}
-        <div className="rounded-3xl border border-[#313244] bg-[#181825] overflow-hidden shadow-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-12 border-b border-[#313244] bg-[#161b22] text-xs font-mono uppercase tracking-wider font-semibold">
-            <div className="md:col-span-4 p-4 text-[#8b949e]">Característica</div>
-            <div className="md:col-span-4 p-4 text-[#f38ba8] border-t md:border-t-0 md:border-l border-[#313244]">
-              RAG Tradicional
-            </div>
-            <div className="md:col-span-4 p-4 text-[#00e5ff] border-t md:border-t-0 md:border-l border-[#313244] bg-[#00e5ff]/5">
-              ⚡ Synrag (SyntaxRAG)
-            </div>
-          </div>
-
-          <div className="divide-y divide-[#313244]">
-            {comparisonItems.map((item, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-1 md:grid-cols-12 text-sm hover:bg-[#1e1e2e]/50 transition-colors"
-              >
-                {/* Feature Name */}
-                <div className="md:col-span-4 p-4 sm:p-5 flex items-center font-medium text-white">
-                  {item.feature}
-                </div>
-
-                {/* Traditional RAG */}
-                <div className="md:col-span-4 p-4 sm:p-5 flex items-start gap-2.5 text-[#a6adc8] border-t md:border-t-0 md:border-l border-[#313244] bg-[#11111b]/40">
-                  <X className="w-4 h-4 text-[#f38ba8] shrink-0 mt-0.5" />
-                  <span className="text-xs sm:text-sm">{item.traditional}</span>
-                </div>
-
-                {/* Synrag */}
-                <div className="md:col-span-4 p-4 sm:p-5 flex items-start gap-2.5 text-[#cdd6f4] border-t md:border-t-0 md:border-l border-[#313244] bg-[#00e5ff]/5">
-                  <Check className="w-4 h-4 text-[#00e5ff] shrink-0 mt-0.5 font-bold" />
-                  <span className="text-xs sm:text-sm font-medium text-white">{item.synrag}</span>
-                </div>
-              </div>
-            ))}
+        {/* Tabla Comparativa */}
+        <div className="mt-12 overflow-hidden rounded-2xl border border-[#30363D] bg-[#161B22] shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-[#0D1117] border-b border-[#30363D] text-white font-bold">
+                <tr>
+                  <th className="py-4 px-5 sm:px-6">Capacidad Técnica</th>
+                  <th className="py-4 px-5 sm:px-6 text-[#8B949E]">RAG Tradicional (Líneas fijas)</th>
+                  <th className="py-4 px-5 sm:px-6 text-[#00E5FF] bg-[#00E5FF]/5">SyntaxRAG (AST Native)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#30363D] font-medium text-slate-300">
+                {CRITERIOS.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-[#21262D]/60 transition-colors">
+                    <td className="py-4 px-5 sm:px-6 font-bold text-white">
+                      {item.criterio}
+                      <span className="block text-[11px] font-normal text-[#8B949E] mt-0.5">
+                        {item.ventaja}
+                      </span>
+                    </td>
+                    <td className="py-4 px-5 sm:px-6 text-[#8B949E]">
+                      <div className="flex items-start gap-2">
+                        <X className="w-4 h-4 text-[#FF7B72] shrink-0 mt-0.5" />
+                        <span>{item.tradicional}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-5 sm:px-6 text-white font-bold bg-[#00E5FF]/5">
+                      <div className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#7EE787] shrink-0 mt-0.5" />
+                        <span className="text-[#00E5FF]">{item.synrag}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

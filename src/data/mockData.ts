@@ -1,11 +1,12 @@
 export interface ASTResult {
   id: string;
   query: string;
+  label: string;
   project: string;
   file: string;
   lines: string;
   symbol: string;
-  kind: 'Hook' | 'Function' | 'Class' | 'Component' | 'Middleware';
+  kind: 'Hook' | 'Function' | 'Class' | 'Component' | 'Type';
   language: 'typescript' | 'python';
   code: string;
   impactConsumers: Array<{ file: string; project: string; risk: 'CRITICAL' | 'WARNING' | 'INFO' }>;
@@ -20,44 +21,131 @@ export const SAMPLE_QUERIES: ASTResult[] = [
   {
     id: 'asistencia-servicio',
     query: 'asistenciaServicio',
+    label: 'Servicio Central de Asistencia',
     project: 'asistoya-web',
-    file: 'src/services/asistenciaServicio.ts',
-    lines: '45-89',
-    symbol: 'useAsistenciaServicio',
-    kind: 'Hook',
+    file: 'apps/web/src/modulos/asistencia/asistencia.servicio.ts',
+    lines: '35-72',
+    symbol: 'asistenciaServicio',
+    kind: 'Function',
     language: 'typescript',
-    code: `export const useAsistenciaServicio = (institucionId: string) => {
-  const [registros, setRegistros] = useState<AsistenciaRecord[]>([]);
-  const [cargando, setCargando] = useState(false);
+    code: `export const asistenciaServicio = {
+  async registrarPase(payload: RegistroAsistenciaDTO): Promise<ResultadoAsistencia> {
+    // Valida sesión activa, biometría facial y políticas del centro
+    const validacion = await validarPoliticaCentro(payload.escuelaId, payload.estudianteId);
+    if (!validacion.permitido) {
+      throw new Error(\`Registro denegado: \${validacion.motivo}\`);
+    }
 
-  const registrarAsistencia = useCallback(async (datos: PayloadAsistencia) => {
-    // Procesa el pase de lista con validación biométrica facial
-    const resultado = await api.post(\`/asistencias/\${institucionId}\`, datos);
-    setRegistros(prev => [resultado.data, ...prev]);
-    return resultado.status === 200;
-  }, [institucionId]);
+    const registro = await persistirAsistenciaLocal(payload);
+    emitirEventoRealtime('asistencia:registrada', registro);
+    return { exito: true, timestamp: Date.now(), registroId: registro.id };
+  },
 
-  return { registros, cargando, registrarAsistencia };
+  async obtenerResumenDiario(escuelaId: string, fecha: string): Promise<ResumenAula> {
+    return await consultarResumenEscolar(escuelaId, fecha);
+  }
 };`,
     impactConsumers: [
-      { file: 'src/features/asistencia/PaseDeLista.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'src/components/KioskoBiometrico.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'src/pages/ReportesMensuales.tsx', project: 'asistoya-web', risk: 'WARNING' },
-      { file: 'src/features/monitor/MonitorTiempoReal.tsx', project: 'asistoya-web', risk: 'WARNING' },
-      { file: 'src/hooks/useAuditoriaPase.ts', project: 'asistoya-web', risk: 'INFO' },
-      { file: 'src/routes/AulaRouter.tsx', project: 'asistoya-web', risk: 'INFO' },
+      { file: 'apps/web/src/demo/demoData.ts', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/asistencia/asistencia.hook.ts', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/administrador/componentes/PanelAsistencia.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/kiosco/PaginaKioscoPublica.tsx', project: 'asistoya-web', risk: 'WARNING' },
+      { file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/services/analytics/eventos.ts', project: 'asistoya-web', risk: 'INFO' },
+      { file: 'apps/web/src/modulos/padre/componentes/HistorialHijo.tsx', project: 'asistoya-web', risk: 'WARNING' },
+      { file: 'apps/web/src/modulos/reportes/exportadorAsistencia.ts', project: 'asistoya-web', risk: 'INFO' },
     ],
-    score: 98.7,
+    score: 99.2,
     cacheHit: true,
     latencyMs: 0.38,
     tokensConsumed: 0,
     cost: '$0.00',
   },
   {
+    id: 'reconocimiento-facial',
+    query: 'reconocimientoFacial',
+    label: 'Algoritmo Biométrico Escolar',
+    project: 'asistoya-web',
+    file: 'apps/web/src/modulos/reconocimiento-facial/reconocimiento.servicio.ts',
+    lines: '18-54',
+    symbol: 'procesarDescriptorFacial',
+    kind: 'Function',
+    language: 'typescript',
+    code: `export async function procesarDescriptorFacial(
+  descriptor: Float32Array,
+  descriptoresConocidos: DescriptorEstudiante[]
+): Promise<CoincidenciaFacial | null> {
+  let mejorDistancia = UMBRAL_DISTANCIA_MINERD; // 0.42 estricto
+  let mejorMatch: CoincidenciaFacial | null = null;
+
+  for (const conocido of descriptoresConocidos) {
+    const distancia = distanciaEuclidiana(descriptor, conocido.vector);
+    if (distancia < mejorDistancia) {
+      mejorDistancia = distancia;
+      mejorMatch = { estudianteId: conocido.estudianteId, confianza: 1 - distancia };
+    }
+  }
+
+  return mejorMatch;
+}`,
+    impactConsumers: [
+      { file: 'apps/web/src/modulos/kiosco/TerminalBiometrico.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/reconocimiento-facial/componentes/CamaraCaptura.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/services/face/faceService.ts', project: 'asistoya-web', risk: 'WARNING' },
+    ],
+    score: 98.7,
+    cacheHit: true,
+    latencyMs: 0.45,
+    tokensConsumed: 0,
+    cost: '$0.00',
+  },
+  {
+    id: 'use-estudiantes',
+    query: 'useEstudiantes',
+    label: 'Hook de Estado React',
+    project: 'asistoya-web',
+    file: 'apps/web/src/modulos/estudiantes/hooks/useEstudiantes.ts',
+    lines: '14-48',
+    symbol: 'useEstudiantes',
+    kind: 'Hook',
+    language: 'typescript',
+    code: `export const useEstudiantes = (seccionId: string) => {
+  const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    async function sincronizar() {
+      setCargando(true);
+      const data = await estudianteServicio.listarPorSeccion(seccionId);
+      if (!cancelado) {
+        setEstudiantes(data);
+        setCargando(false);
+      }
+    }
+    sincronizar();
+    return () => { cancelado = true; };
+  }, [seccionId]);
+
+  return { estudiantes, cargando, total: estudiantes.length };
+};`,
+    impactConsumers: [
+      { file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/calificaciones/componentes/TablaNotas.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
+      { file: 'apps/web/src/modulos/reportes/ReporteSeccion.tsx', project: 'asistoya-web', risk: 'WARNING' },
+    ],
+    score: 97.9,
+    cacheHit: false,
+    latencyMs: 16.4,
+    tokensConsumed: 0,
+    cost: '$0.00',
+  },
+  {
     id: 'chunker-ast',
     query: 'chunkerTreeSitter',
+    label: 'Parser Sintáctico AST en Python',
     project: 'syntaxrag-core',
-    file: 'chunker.py',
+    file: '~/.local/opt/lancedb-hub/chunker.py',
     lines: '118-154',
     symbol: 'extract_ast_blocks',
     kind: 'Function',
@@ -80,120 +168,11 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     impactConsumers: [
       { file: 'indexer.py', project: 'syntaxrag-core', risk: 'CRITICAL' },
       { file: 'watcher.py', project: 'syntaxrag-core', risk: 'CRITICAL' },
-      { file: 'test_chunker.py', project: 'syntaxrag-core', risk: 'INFO' },
       { file: 'cli.py', project: 'syntaxrag-core', risk: 'WARNING' },
     ],
-    score: 99.4,
+    score: 99.5,
     cacheHit: true,
-    latencyMs: 0.42,
-    tokensConsumed: 0,
-    cost: '$0.00',
-  },
-  {
-    id: 'pase-lista',
-    query: 'paseDeLista',
-    project: 'asistoya-web',
-    file: 'src/features/asistencia/PaseDeLista.tsx',
-    lines: '18-52',
-    symbol: 'PaseDeListaModal',
-    kind: 'Component',
-    language: 'typescript',
-    code: `export const PaseDeListaModal: React.FC<PaseProps> = ({ aulaId, grupo }) => {
-  const { registrarAsistencia, cargando } = useAsistenciaServicio(grupo.institucionId);
-  const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
-
-  const handleMarcado = async (estudianteId: string, estado: AsistenciaEstado) => {
-    await registrarAsistencia({ estudianteId, aulaId, estado, fecha: new Date() });
-  };
-
-  return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900/90 p-6">
-      <AsistenciaHeader grupo={grupo} />
-      <AsistenciaTable data={estudiantes} onStatusChange={handleMarcado} loading={cargando} />
-    </div>
-  );
-};`,
-    impactConsumers: [
-      { file: 'src/pages/DashboardProfesor.tsx', project: 'asistoya-web', risk: 'CRITICAL' },
-      { file: 'src/features/aulas/AulaDetalleView.tsx', project: 'asistoya-web', risk: 'WARNING' },
-      { file: 'src/routes/DocenteRoutes.tsx', project: 'asistoya-web', risk: 'INFO' },
-    ],
-    score: 96.8,
-    cacheHit: false,
-    latencyMs: 14.2,
-    tokensConsumed: 0,
-    cost: '$0.00',
-  },
-  {
-    id: 'impact-graph',
-    query: 'ImpactGraph',
-    project: 'syntaxrag-core',
-    file: 'impact.py',
-    lines: '32-68',
-    symbol: 'ImpactGraph',
-    kind: 'Class',
-    language: 'python',
-    code: `class ImpactGraph:
-    """Mapea la red de importaciones y llamadas entre módulos para prevenir código roto."""
-    def __init__(self, db_path: Path):
-        self.graph = nx.DiGraph()
-        self._load_dependency_matrix(db_path)
-
-    def find_consumers(self, symbol: str, file_path: str) -> list[ImpactWarning]:
-        node_key = f"{file_path}:{symbol}"
-        if node_key not in self.graph:
-            return []
-        dependents = list(self.graph.predecessors(node_key))
-        return [
-            ImpactWarning(
-                caller=dep,
-                risk="CRITICAL" if len(dependents) > 3 else "WARNING"
-            )
-            for dep in dependents
-        ]`,
-    impactConsumers: [
-      { file: 'server_mcp.py', project: 'syntaxrag-core', risk: 'CRITICAL' },
-      { file: 'cli.py', project: 'syntaxrag-core', risk: 'CRITICAL' },
-      { file: 'indexer.py', project: 'syntaxrag-core', risk: 'WARNING' },
-    ],
-    score: 98.1,
-    cacheHit: true,
-    latencyMs: 0.29,
-    tokensConsumed: 0,
-    cost: '$0.00',
-  },
-  {
-    id: 'auth-middleware',
-    query: 'authMiddleware',
-    project: 'asistoya-api',
-    file: 'src/middleware/auth.ts',
-    lines: '14-46',
-    symbol: 'verifySessionToken',
-    kind: 'Middleware',
-    language: 'typescript',
-    code: `export const verifySessionToken = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ error: 'No autorizado: Token ausente' });
-  }
-  
-  try {
-    const claims = await jwtVerifier.verify(token);
-    req.user = { id: claims.sub, rol: claims.rol, institucionId: claims.tenant };
-    next();
-  } catch (err) {
-    return res.status(403).json({ error: 'Token inválido o expirado' });
-  }
-};`,
-    impactConsumers: [
-      { file: 'src/routes/asistencias.ts', project: 'asistoya-api', risk: 'CRITICAL' },
-      { file: 'src/routes/alumnos.ts', project: 'asistoya-api', risk: 'CRITICAL' },
-      { file: 'src/routes/docentes.ts', project: 'asistoya-api', risk: 'CRITICAL' },
-      { file: 'src/routes/reportes.ts', project: 'asistoya-api', risk: 'WARNING' },
-    ],
-    score: 97.4,
-    cacheHit: false,
-    latencyMs: 16.8,
+    latencyMs: 0.31,
     tokensConsumed: 0,
     cost: '$0.00',
   }
@@ -204,91 +183,116 @@ export const ARCHITECTURE_PIPELINE = [
     id: 'agent',
     step: '01',
     name: 'Editor / Agente IA',
-    tech: 'Claude Code · Antigravity CLI · Cursor',
+    tech: 'Antigravity CLI · Claude Code · Herdr Hub',
     file: 'Entorno de Desarrollo',
-    role: 'Envía peticiones de búsqueda semántica o diagnóstico de código mediante MCP stdio.',
-    desc: 'El agente necesita conocer el contexto de una función o componente sin leer cientos de archivos ni saturar la ventana de contexto.',
+    role: 'Petición de búsqueda o contexto mediante protocolo MCP stdio.',
+    desc: 'El agente o programador consulta funciones sin leer archivos enteros ni desbordar la ventana de contexto.',
     badge: 'Consumidor',
-    color: '#89b4fa',
+    color: '#00E5FF',
   },
   {
     id: 'mcp',
     step: '02',
     name: 'Servidor MCP Stdio',
     tech: 'desktop-lancedb (JSON-RPC)',
-    file: 'server_mcp.py',
-    role: 'Punto de entrada de alta velocidad que expone search_desktop y list_projects.',
-    desc: 'Protocolo Model Context Protocol estándar. Gestiona llamadas atómicas, valida filtros de proyecto y entrega respuestas estructuradas al agente.',
+    file: '~/.gemini/antigravity/mcp/desktop-lancedb',
+    role: 'Exposición estándar de search_desktop y list_projects.',
+    desc: 'Protocolo nativo que conecta al agente con la base vectorial local a velocidad casi instantánea.',
     badge: 'Protocolo',
-    color: '#cba6f7',
+    color: '#58A6FF',
   },
   {
     id: 'cache',
     step: '03',
-    name: 'Caché Semántico Local',
+    name: 'Zero-Token Semantic Cache',
     tech: 'LanceDB query_cache (<1ms)',
     file: 'cache.py',
-    role: 'Evalúa si la consulta ya fue resuelta previamente.',
-    desc: 'Si hay coincidencia, retorna los fragmentos exactos en <1ms sin disparar re-indexación ni gastar un solo token ($0.00).',
+    role: 'Retorno instantáneo de consultas previas a costo $0.',
+    desc: 'Detecta consultas semánticamente equivalentes y responde en menos de 1ms, ahorrando 100% de tokens de API.',
     badge: '0 Tokens',
-    color: '#00e5ff',
+    color: '#7EE787',
   },
   {
     id: 'ast',
     step: '04',
     name: 'Tree-sitter AST Chunker',
-    tech: 'Gramáticas nativas TS, TSX, PY, Rust',
+    tech: 'Gramáticas nativas TS, TSX, JS, Python',
     file: 'chunker.py',
-    role: 'Extracción semántica quirúrgica de funciones, hooks, clases e interfaces.',
-    desc: 'A diferencia de los RAGs tradicionales que cortan texto por líneas arbitrarias, SyntaxRAG extrae únicamente bloques sintácticos íntegros.',
+    role: 'Extracción sintáctica de funciones, hooks, clases y tipos.',
+    desc: '0 fragmentos partidos a ciegas; conserva firmas completas, cuerpo de código y docstrings sin recortar.',
     badge: 'AST Native',
-    color: '#a6e3a1',
+    color: '#00E5FF',
   },
   {
     id: 'impact',
     step: '05',
-    name: 'Grafo de Impacto',
-    tech: 'NetworkX + LanceDB Edge Matrix',
+    name: 'Grafo de Impacto Bidireccional',
+    tech: 'NetworkX + Matriz de Dependencias (23,364 aristas)',
     file: 'impact.py',
-    role: 'Rastreo bidireccional de dependencias e importaciones.',
-    desc: 'Identifica qué archivos consumen el símbolo encontrado. Si el agente intenta refactorizar, SyntaxRAG inyecta advertencias de riesgo para evitar código roto.',
+    role: 'Mapeo estático de imports y dependientes.',
+    desc: 'Inyecta advertencias sobre qué archivos consumen el símbolo consultado para evitar roturas antes de editar.',
     badge: 'Prevención',
-    color: '#f38ba8',
+    color: '#FF7B72',
   },
   {
     id: 'vector',
     step: '06',
-    name: 'LanceDB Columnar Store',
-    tech: 'LanceDB 0.25 Columnar (~49.8 MB)',
+    name: 'LanceDB Hub Columnar Store',
+    tech: 'LanceDB 0.25 (Disco columnar ~49.8 MB)',
     file: 'indexer.py',
-    role: 'Base de datos vectorial y relacional local de ultra-baja latencia.',
-    desc: 'Almacena 95,597+ fragmentos con compresión columnar en disco, permitiendo búsquedas vectoriales y BM25 sin servidor externo ni consumo de RAM.',
+    role: 'Almacenamiento e indexación local ultra-rápida.',
+    desc: 'Almacena 95,502 fragmentos sintácticos con compresión columnar y búsqueda BM25 sin consumir memoria RAM.',
     badge: 'Storage',
-    color: '#fab387',
+    color: '#8B949E',
   },
   {
     id: 'ranker',
     step: '07',
-    name: 'Reranker FlashRank ONNX',
-    tech: 'ms-marco-TinyBERT-L-2-v2 (CPU)',
+    name: 'Reranker Neuronal FlashRank',
+    tech: 'ms-marco-TinyBERT-L-2-v2 en CPU (ONNX)',
     file: 'ranker.py',
-    role: 'Reordenamiento neural de alta precisión en CPU pura.',
-    desc: 'Aplica inferencia de modelos transformadores compactos en milisegundos directamente en el procesador, sin requerir GPUs dedicadas.',
+    role: 'Scoring continuo de relevancia en procesador local.',
+    desc: 'Reordena semánticamente los candidatos con modelos transformadores compactos en CPU sin requerir GPU.',
     badge: 'CPU Neural',
-    color: '#f9e2af',
+    color: '#00E5FF',
   },
 ];
 
 export const ECOSYSTEM_METRICS = [
-  { label: 'Archivos Indexados', value: '7,536+', unit: 'código fuente', icon: 'FileCode2', delta: '+100% monorepo' },
-  { label: 'Fragmentos AST', value: '95,597+', unit: 'funciones y hooks', icon: 'Code', delta: 'Bloques íntegros' },
-  { label: 'Vínculos de Impacto', value: '23,364+', unit: 'dependencias cruzadas', icon: 'GitFork', delta: 'Prevención de roturas' },
-  { label: 'Hot-Reload (Ctrl+S)', value: '~18 ms', unit: 'por guardado reactivo', icon: 'Zap', delta: 'Demonio systemd' },
-  { label: 'Caché Hit Latencia', value: '< 1 ms', unit: 'tiempo de respuesta', icon: 'Cpu', delta: '0 Tokens · $0.00' },
-  { label: 'Tamaño en Disco', value: '~49.8 MB', unit: 'LanceDB columnar', icon: 'HardDrive', delta: 'Cero overhead' },
+  { label: 'Fragmentos AST Indexados', value: '95,502', unit: 'bloques sintácticos íntegros', delta: 'Funciones, hooks y clases' },
+  { label: 'Latencia en Caché Semántica', value: '< 1 ms', unit: 'tiempo de respuesta local', delta: '0 Tokens · $0.00 gasto' },
+  { label: 'Ahorro de Cuota de API', value: '100% $0', unit: 'evitado en consultas repetidas', delta: 'Zero-Token Cache activo' },
+  { label: 'Aristas en Grafo de Impacto', value: '23,364', unit: 'dependencias mapeadas', delta: 'Prevención de roturas' },
+  { label: 'Hot-Reload por Guardado', value: '~18 ms', unit: 're-indexado reactivo (Ctrl+S)', delta: 'Demonio systemd activo' },
+  { label: 'Archivos Monitoreados', value: '7,536+', unit: 'código fuente en monorepo', delta: 'asistoya-web y satélites' },
+];
+
+export const PROYECTOS_DISTRIBUCION = [
+  { nombre: 'asistoya-web', chunks: 22923, porcentaje: 24.0, descripcion: 'Monorepo principal (Portal Web, Kiosco y Módulos)' },
+  { nombre: 'asistoya-local', chunks: 16157, porcentaje: 16.9, descripcion: 'Servicios de sincronización y base local' },
+  { nombre: 'respaldo-personal', chunks: 11075, porcentaje: 11.6, descripcion: 'Componentes y scripts de soporte' },
+  { nombre: 'jev-mario64', chunks: 10365, porcentaje: 10.8, descripcion: 'Ecosistema de juegos y gamificación' },
+  { nombre: 'AsistoYa', chunks: 7462, porcentaje: 7.8, descripcion: 'Servicios legados y librerías base' },
+  { nombre: 'asistoya-empresas', chunks: 5856, porcentaje: 6.1, descripcion: 'Portal de empresas y proveedores' },
+  { nombre: 'Vision-Humana', chunks: 3758, porcentaje: 3.9, descripcion: 'Motor de biometría y visión artificial' },
 ];
 
 export const CONFIG_SNIPPETS = {
+  synrag: `# Abrir el espacio de trabajo completo (Dark Mode + Live Stats)
+SYNRAG
+
+# Búsqueda semántica AST inteligente
+SYNRAG "asistenciaServicio"
+
+# Búsqueda acotada al monorepo de AsistoYA
+SYNRAG --project asistoya-web "reconocimientoFacial"
+
+# Ver métricas de ahorro y tokens evitados
+SYNRAG stats
+
+# Ver log reactivo ante Ctrl+S
+SYNRAG watch`,
+
   claude: `{
   "mcpServers": {
     "desktop-lancedb": {
@@ -299,6 +303,7 @@ export const CONFIG_SNIPPETS = {
     }
   }
 }`,
+
   antigravity: `{
   "mcpServers": {
     "desktop-lancedb": {
@@ -307,21 +312,10 @@ export const CONFIG_SNIPPETS = {
     }
   }
 }`,
-  cli: `# Búsqueda semántica AST directa
-syntaxrag "asistenciaServicio"
 
-# Filtrar por un proyecto del monorepo
-syntaxrag --project asistoya-web "paseDeLista"
-
-# Diagnóstico de arquitectura y métricas
-syntaxrag info
-syntaxrag stats
-
-# Monitor en vivo del demonio de guardado (Ctrl+S)
-syntaxrag watch`,
-  systemd: `# Estado del monitor reactivo en segundo plano
-systemctl --user status lancedb-watcher.service
-
-# Ver logs de eventos reactivos en tiempo real
-journalctl --user -u lancedb-watcher.service -f`,
+  fish: `# Abreviaturas rápidas en tu terminal Fish:
+srag "asistenciaServicio"    # Búsqueda rápida
+sstats                      # Métricas de ahorro
+swatch                      # Log en vivo
+sinfo                       # Dashboard de arquitectura`
 };

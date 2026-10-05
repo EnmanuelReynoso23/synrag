@@ -3,6 +3,8 @@ import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Metrics } from './components/Metrics';
 import { Playground } from './components/Playground';
+import { SavingsCalculator } from './components/SavingsCalculator';
+import { InteractiveTerminal } from './components/InteractiveTerminal';
 import { Architecture } from './components/Architecture';
 import { Features } from './components/Features';
 import { Comparison } from './components/Comparison';
@@ -12,7 +14,7 @@ import { Footer } from './components/Footer';
 
 export const App: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#cdd6f4] selection:bg-[#00e5ff]/30 selection:text-white">
+    <div className="min-h-screen bg-[#0D1117] text-white selection:bg-[#00E5FF]/25 selection:text-[#00E5FF] font-sans antialiased">
       {/* Top Navbar */}
       <Navbar />
 
@@ -26,6 +28,12 @@ export const App: React.FC = () => {
 
         {/* Interactive AST Search & Impact Graph Playground */}
         <Playground />
+
+        {/* Real Economic & Latency Savings Interactive Calculator */}
+        <SavingsCalculator />
+
+        {/* Live Developer Interactive Terminal Simulator */}
+        <InteractiveTerminal />
 
         {/* 7-Stage Architecture Flow */}
         <Architecture />
