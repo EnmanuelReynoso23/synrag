@@ -195,7 +195,7 @@ export const ARCHITECTURE_PIPELINE = [
     step: '02',
     name: 'Servidor MCP Stdio',
     tech: 'desktop-lancedb (JSON-RPC)',
-    file: '~/.gemini/antigravity/mcp/desktop-lancedb',
+    file: '~/.local/opt/lancedb-hub/server_mcp.py',
     role: 'Exposición estándar de search_desktop y list_projects.',
     desc: 'Protocolo nativo que conecta al agente con la base vectorial local a velocidad casi instantánea.',
     badge: 'Protocolo',
@@ -293,22 +293,26 @@ SYNRAG stats
 # Ver log reactivo ante Ctrl+S
 SYNRAG watch`,
 
-  claude: `{
+  claude: `// ~/.claude.json  (el instalador lo escribe solo con: SYNRAG configure)
+// Cambia TU_USUARIO por tu nombre de usuario.
+{
   "mcpServers": {
     "desktop-lancedb": {
-      "type": "stdio",
-      "command": "/home/reyno/.local/bin/lancedb-mcp",
-      "args": [],
-      "env": {}
+      "command": "/home/TU_USUARIO/.local/opt/lancedb-hub/.venv/bin/python",
+      "args": ["/home/TU_USUARIO/.local/opt/lancedb-hub/server_mcp.py"],
+      "env": { "PYTHONUNBUFFERED": "1" }
     }
   }
 }`,
 
-  antigravity: `{
+  antigravity: `// ~/.gemini/antigravity/mcp_config.json  (SYNRAG configure lo escribe solo)
+// Cambia TU_USUARIO por tu nombre de usuario.
+{
   "mcpServers": {
     "desktop-lancedb": {
-      "command": "/home/reyno/.local/bin/lancedb-mcp",
-      "args": []
+      "command": "/home/TU_USUARIO/.local/opt/lancedb-hub/.venv/bin/python",
+      "args": ["/home/TU_USUARIO/.local/opt/lancedb-hub/server_mcp.py"],
+      "env": { "PYTHONUNBUFFERED": "1" }
     }
   }
 }`,
