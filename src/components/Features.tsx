@@ -9,7 +9,7 @@ const INNOVACIONES = [
     icono: Code,
     descripcion: 'A diferencia de un RAG que parte el texto por líneas o tokens fijos, SyntaxRAG desciende al Árbol de Sintaxis Abstracta (AST) para extraer funciones, clases, hooks e interfaces completas.',
     beneficio: 'Conserva firmas, parámetros y docstrings; solo los bloques de más de 2.400 caracteres se dividen.',
-    lenguajes: 'TypeScript, TSX, JavaScript, JSX, Python, Rust, Go',
+    lenguajes: 'TypeScript, TSX, JavaScript, JSX, Python (Markdown y SQL por secciones y sentencias)',
   },
   {
     id: 'local-query-cache',

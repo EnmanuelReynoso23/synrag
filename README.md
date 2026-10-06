@@ -20,7 +20,7 @@ Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejem
 
 **SyntaxRAG (SYNRAG)** resuelve este problema analizando el árbol sintáctico abstracto (AST) del código en tu máquina local:
 
-- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases, tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript, Python, Rust y Go); los bloques de más de 2.400 caracteres se dividen.
+- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases, tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript y Python; Markdown se trocea por secciones y SQL por sentencias); los bloques de más de 2.400 caracteres se dividen.
 - **Búsqueda por palabras con reordenado neuronal:** Recupera candidatos con BM25 (Tantivy sobre LanceDB) y los reordena en CPU con un modelo TinyBERT local (FlashRank). Si la consulta no comparte palabras con el código, no lo encuentra. Mediana medida: ~90 ms por consulta nueva.
 - **Grafo de Impacto de Dependencias:** Guarda en una tabla de LanceDB qué archivos importan cada símbolo, para avisar a los agentes de qué depende de lo que van a editar. Detecta imports; no sigue llamadas dinámicas.
 - **Caché de consultas repetidas:** Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local (~9 ms). No es una caché semántica y se vacía al reindexar. La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo que los lee.
@@ -163,7 +163,7 @@ La web estará disponible en `http://localhost:5173`.
 ```
 synrag/
 ├── engine/                       # Motor Central de Inteligencia Local (Python)
-│   ├── chunker.py                # Tree-sitter AST Chunker (TS, TSX, JS, Python, Rust, Go)
+│   ├── chunker.py                # Tree-sitter AST Chunker (TS, TSX, JS y Python; también Markdown y SQL)
 │   ├── ranker.py                 # FlashRank ONNX Cross-Encoder Reranker
 │   ├── impact.py                 # Grafo de dependientes en LanceDB
 │   ├── cache.py                  # Caché de consultas repetidas (LanceDB)

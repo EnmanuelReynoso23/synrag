@@ -216,7 +216,7 @@ export const ARCHITECTURE_PIPELINE = [
     id: 'ast',
     step: '04',
     name: 'Tree-sitter AST Chunker',
-    tech: 'Gramáticas Tree-sitter: TS, TSX, JS, Python, Rust, Go',
+    tech: 'Gramáticas Tree-sitter: TS, TSX, JS, Python',
     file: 'chunker.py',
     role: 'Extracción sintáctica de funciones, hooks, clases y tipos.',
     desc: 'Conserva firmas completas, cuerpo de código y docstrings; solo los bloques de más de 2.400 caracteres se dividen.',

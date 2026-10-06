@@ -24,7 +24,7 @@ Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76
 |---|---|---|
 | 10 | Los candidatos se recuperan por palabras (BM25, Tantivy FTS sobre LanceDB) y se reordenan con FlashRank `ms-marco-TinyBERT-L-2-v2` | `engine/indexer.py` (`search_desktop`), `engine/ranker.py` |
 | 11 | La caché solo acierta con la misma consulta normalizada (minúsculas y espacios), con 4 horas de vigencia, y se vacía al reindexar. No es una caché semántica | `engine/cache.py`, `engine/indexer.py` |
-| 12 | El troceo es por AST para TypeScript, TSX/JSX, JavaScript, Python, Rust y Go; los bloques de más de 2.400 caracteres se dividen | `engine/chunker.py` (`LANG_MAP`, `MAX_CHUNK_CHARS`) |
+| 12 | El troceo es por AST para TypeScript, TSX/JSX, JavaScript y Python; Markdown se trocea por secciones y SQL por sentencias; los bloques de más de 2.400 caracteres se dividen | `engine/chunker.py` (`LANG_MAP`, `MAX_CHUNK_CHARS`) |
 | 13 | El grafo de impacto guarda qué archivos importan cada símbolo en una tabla de LanceDB; no usa NetworkX | `engine/impact.py` |
 | 14 | Se excluyen carpetas ocultas, archivos de más de 250 KB y archivos de credenciales, y se redactan patrones de secretos | `engine/indexer.py` |
 | 15 | El motor no hace llamadas de red | `grep -rniE "requests\|urllib\|httpx\|socket" engine/*.py` no devuelve nada |
@@ -41,6 +41,7 @@ Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76
 
 - **Ahorro de tokens o de dinero.** No hay una medición pública. `get_savings_report` muestra una referencia contrafactual (tamaño completo de los archivos devueltos), no un ahorro medido, y la web ya no promete ninguno. Los resultados de una búsqueda igualmente cuestan tokens al modelo que los lee. Una prueba pareada reproducible está pendiente.
 - **Calidad de la búsqueda** (qué porcentaje de las veces el resultado correcto está entre los primeros). No medida.
+- **Rust y Go.** El chunker trae sus gramáticas y devuelve fragmentos, pero sin nombre de símbolo (probado el 6-oct-2026) y `ALLOWED_EXTENSIONS` de `engine/indexer.py` no incluye `.rs` ni `.go`, así que esos archivos no se indexan. No están soportados.
 - **Compatibilidad** con Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS y Windows con WSL. Se configuran según su documentación, pero no se han probado.
 - **Las demos de la web** (explorador, terminal, observador) son simulaciones con datos de ejemplo.
 
