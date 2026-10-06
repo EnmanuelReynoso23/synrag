@@ -51,9 +51,9 @@ def search_desktop(query: str, limit: int = 5, project: str = "") -> str:
         query=query,
         results=results,
         elapsed_ms=elapsed_ms,
-        cache_hit=False,
+        cache_hit=getattr(indexer.search_desktop, "ultima_desde_cache", False),
         project=project,
-        agent="mcp-client"
+        agent=telemetry.detectar_cliente()
     )
 
     if not results:
@@ -208,23 +208,33 @@ def find_related_tests(file_or_symbol: str) -> str:
 @mcp.tool()
 def get_savings_report() -> str:
     """
-    Devuelve un registro de uso del buscador y una referencia (no es un ahorro medido).
+    Devuelve el registro de uso del buscador (consultas medidas por cliente y tokens devueltos)
+    y una referencia de tokens que no es un ahorro medido.
     """
     stats = telemetry.get_summary_stats()
     today = stats["today"]
     all_time = stats["all_time"]
+    por_agente = stats.get("por_agente", {})
+    excluidas = stats.get("excluidas", 0)
+    primera_fecha = stats.get("primera") or today.get("fecha", datetime.now().strftime("%Y-%m-%d"))
+
+    str_por_agente = " | ".join(f"{k}: {v}" for k, v in por_agente.items()) if por_agente else "(sin consultas registradas)"
 
     out = [
         "================================================================================",
-        "               REGISTRO DE USO DEL BUSCADOR Y REFERENCIA (SYNTAX RAG)          ",
+        "        REGISTRO DE USO DEL BUSCADOR (SYNTAX RAG)",
         "================================================================================",
-        f"Referencia de Hoy:   {today['tokens_saved']:,} tokens (referencia contrafactual, no medido)",
-        f"Consultas de Hoy:    {today['queries']} consultas (Latencia media: {today['avg_latency_ms']:.1f}ms)",
+        f"Hoy ({today.get('fecha', '')}):     {today['queries']} consultas | latencia media {today['avg_latency_ms']:.0f} ms | tokens devueltos {today.get('tokens_retrieved', 0):,}",
+        f"Medido desde {primera_fecha}: {all_time['queries']} consultas | tokens devueltos {all_time.get('tokens_retrieved', 0):,}",
+        f"Por cliente:          {str_por_agente}",
         "--------------------------------------------------------------------------------",
-        f"Referencia Total:    {all_time['tokens_saved']:,} tokens (referencia contrafactual, no medido)",
-        f"Consultas Totales:   {all_time['queries']} consultas atendidas localmente",
-        f"Costo en la nube:    $0.00 USD (Inferencia en CPU local)",
-        "================================================================================"
+        f"REFERENCIA (no es un ahorro medido): {all_time['tokens_saved']:,} tokens.",
+        "Es el tamaño completo de los archivos devueltos menos lo devuelto. Supone que sin",
+        "SyntaxRAG se habrian leido enteros todos esos archivos y no resta las lecturas",
+        "posteriores. Los resultados igualmente cuestan tokens al modelo que los lee.",
+        f"Filas excluidas por no ser mediciones (sembradas o importadas): {excluidas}",
+        "Costo de la busqueda en APIs de pago: $0.00",
+        "================================================================================",
     ]
     return "\n".join(out)
 

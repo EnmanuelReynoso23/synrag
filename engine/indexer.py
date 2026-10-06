@@ -344,6 +344,7 @@ def search_desktop(
     5. Guarda en caché para futuras consultas idénticas.
     """
     warnings.filterwarnings("ignore")
+    search_desktop.ultima_desde_cache = False
     db = get_db()
     if TABLE_NAME not in db.table_names():
         print("[AVISO] Aun sin indice. Ejecuta: ai-search --index")
@@ -352,6 +353,7 @@ def search_desktop(
     # 1. Caché de consultas
     cached = cache.get_cached_results(db, query, project=project)
     if cached is not None:
+        search_desktop.ultima_desde_cache = True
         return cached[:limit]
 
     tbl = db.open_table(TABLE_NAME)
@@ -412,6 +414,9 @@ def search_desktop(
         pass
 
     return reranked
+
+
+search_desktop.ultima_desde_cache = False
 
 
 if __name__ == "__main__":

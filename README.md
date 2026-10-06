@@ -136,6 +136,18 @@ SYNRAG claude
 SYNRAG agy
 ```
 
+### Telemetría local y bases de datos existentes
+
+SyntaxRAG registra el uso local en SQLite (`~/.local/share/lancedb-hub/telemetry.db`). Los datos separan las consultas medidas en tiempo real de filas que no corresponden a mediciones reales (columna `origen = 'medido'`).
+
+Si vienes de una base antigua con datos sembrados o de pruebas, puedes marcarlos para que no se sumen a las métricas del informe:
+
+```sql
+-- hacer antes una copia de seguridad de telemetry.db
+UPDATE telemetry_events SET origen = 'sembrado'
+WHERE tokens_retrieved = 631 AND tokens_original_file = 2500 AND results_count = 3 AND latency_ms = 6.2;
+```
+
 ---
 
 ## Web Dashboard & Simulador Interactivo
