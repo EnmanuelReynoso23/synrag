@@ -273,11 +273,11 @@ def install_fish_completions() -> bool:
 complete -c synrag -c SYNRAG -f
 
 # Subcomandos principales
-complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "stats" -d "Metricas de ahorro de tokens y latencia"
+complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "stats" -d "Uso del buscador, latencia y fragmentos"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "info" -d "Dashboard de arquitectura y rutas"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "index" -d "Reindexar repositorios con Tree-sitter"
-complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "watch" -d "Ver log del demonio reactivo"
-complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "outline" -d "Esquema sintactico de un archivo en ~50 tokens"
+complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "watch" -d "Ver el log del observador de cambios"
+complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "outline" -d "Esquema sintactico (firmas y rangos de linea)"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "impact" -d "Consultar grafo de impacto de un simbolo"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "configure" -d "Auto-configurar todas las IAs del sistema"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "claude" -d "Lanzar Claude Code con MCP integrado"

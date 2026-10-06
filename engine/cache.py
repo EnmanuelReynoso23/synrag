@@ -1,6 +1,7 @@
 """
-Caché Semántico y Rápido para LanceDB Hub
-Almacena resultados de consultas frecuentes para responder en <5ms a costo $0 y 0 tokens.
+Caché local de consultas repetidas. Guarda los resultados de una consulta
+(clave: el texto normalizado en minúsculas y sin espacios sobrantes, más el proyecto)
+y los devuelve sin recalcular el reordenado: ~9 ms. No es una caché semántica y se vacía al reindexar.
 """
 
 from typing import List, Dict, Any, Optional

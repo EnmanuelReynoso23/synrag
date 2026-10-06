@@ -1,9 +1,8 @@
 """
-Tree-sitter AST & Semantic Chunker + Dependency Extractor para LanceDB Hub
+Tree-sitter AST Chunker + Dependency Extractor para LanceDB Hub
 - Divide código en unidades sintácticas completas (funciones, clases, interfaces, hooks).
 - Extrae grafo de dependencias (imports y exports) para prevenir roturas de código.
 - Divide markdown por encabezados (# y ##).
-- 100% robusto y libre de fugas o conflictos de memoria C-API.
 """
 
 from pathlib import Path
@@ -52,7 +51,7 @@ RE_IMPORT_PY = re.compile(r"""(?:from\s+([A-Za-z0-9_.]+)\s+import\s+([^#\n]+)|im
 
 
 def extract_symbol_and_kind(node_text: str, ntype: str) -> Tuple[Optional[str], str]:
-    """Extrae el nombre del símbolo y clasifica su tipo semántico de forma 100% segura."""
+    """Extrae el nombre del símbolo y clasifica su tipo sintáctico."""
     name = None
     first_lines = "\n".join(node_text.splitlines()[:3])
 
@@ -129,7 +128,7 @@ def extract_imports_and_exports(text: str) -> Tuple[List[Dict[str, str]], List[D
 
 
 def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
-    """Trocea código con AST de Tree-sitter de forma ultrarrápida y 100% segura en memoria."""
+    """Trocea código con AST de Tree-sitter."""
     code_bytes = text.encode("utf-8", errors="ignore")
     try:
         parser = get_parser_for_lang(lang)

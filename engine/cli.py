@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 SyntaxRAG — Terminal UI & UX (v3.0)
-AST Semantic Code Search · FlashRank Neural Reranker · Dependency Impact Graph
-100% Local · 0 API Tokens · Sub-5ms Latency
+Búsqueda por palabras (BM25) con reordenado FlashRank · Grafo de impacto
+Búsqueda local · Sin APIs de pago
 """
 
 import sys
@@ -41,7 +41,7 @@ BANNER = """[#8B949E]      ╭──●     [/] [bold #FFFFFF]██████
 [#8B949E]     ╲    ╱    [/] [bold #FFFFFF]╚════██║  ╚██╔╝  ██║╚██╗██║[/] [bold #00E5FF]██╔══██╗ ██╔══██║ ██║   ██║[/]
 [#8B949E]      ╰──●     [/] [bold #FFFFFF]███████║   ██║   ██║ ╚████║[/] [bold #00E5FF]██║  ██║ ██║  ██║ ╚██████╔╝[/]
                [bold #FFFFFF]╚══════╝   ╚═╝   ╚═╝  ╚═══╝[/] [bold #00E5FF]╚═╝  ╚═╝ ╚═╝  ╚═╝  ╚═════╝ [/]
-                  [bold #8B949E]AST-NATIVE MCP ENGINE[/]  [dim #30363D]·[/]  [bold #00E5FF]ZERO-TOKEN CACHE[/]  [dim #30363D]·[/]  [bold #8B949E]IMPACT GRAPH[/]"""
+                  [bold #8B949E]AST-NATIVE MCP ENGINE[/]  [dim #30363D]·[/]  [bold #00E5FF]BÚSQUEDA LOCAL[/]  [dim #30363D]·[/]  [bold #8B949E]IMPACT GRAPH[/]"""
 
 
 def print_banner():
@@ -92,7 +92,7 @@ def format_search_ui(query: str, limit: int = 5, project: Optional[str] = None):
     print_banner()
 
     # Top search summary bar
-    cache_badge = "[bold #00E5FF]CACHE HIT (0 tokens · <1ms)[/]" if is_cache_hit else "[dim #8B949E]Tantivy BM25 + FlashRank ONNX[/]"
+    cache_badge = "[bold #00E5FF]ACIERTO DE CACHÉ (misma consulta)[/]" if is_cache_hit else "[dim #8B949E]BM25 (Tantivy) + reordenado FlashRank[/]"
     proj_badge = f" [dim #8B949E]en [bold #00E5FF]{project}[/][/]" if project else ""
     console.print(
         Panel(
@@ -194,7 +194,7 @@ def format_search_ui(query: str, limit: int = 5, project: Optional[str] = None):
         Panel(
             "[dim #8B949E][bold #FFFFFF]SYN[bold #00E5FF]RAG[/] · "
             "[#00E5FF]AST-Native Engine[/] · "
-            "[white]Zero-Token Cache & Hot-Reload Activos[/] · "
+            "[white]Búsqueda local, sin APIs de pago[/] · "
             "[bold #00E5FF]Modo Standalone Universal[/][/]",
             border_style="#30363D",
             box=box.ROUNDED,
@@ -244,16 +244,14 @@ def show_stats_ui():
     today_t = t_stats["today"]
     all_t = t_stats["all_time"]
 
-    savings_table = Table(title="[bold #a6e3a1]Métricas de Ahorro Real y Eficiencia (Persistente)[/]", box=box.ROUNDED, border_style="#a6e3a1")
-    savings_table.add_column("Métrica de Ahorro", style="bold white")
-    savings_table.add_column("Impacto", style="bold green", justify="right")
-    savings_table.add_row("Ahorro de Tokens (Hoy)", f"{today_t['tokens_saved']:,} tokens")
-    savings_table.add_row("Costo Evitado en API (Hoy)", f"${today_t['cost_saved_usd']:.2f} USD")
-    savings_table.add_row("Consultas Atendidas (Hoy)", f"{today_t['queries']} consultas (media: {today_t['avg_latency_ms']:.1f}ms)")
-    savings_table.add_row("Total Tokens Ahorrados (Histórico)", f"{all_t['tokens_saved']:,} tokens")
-    savings_table.add_row("Total Costo Evitado (Histórico)", f"${all_t['cost_saved_usd']:.2f} USD (100% $0)")
-    savings_table.add_row("Consultas Semánticas en Caché", f"{cache_entries:,}")
-    savings_table.add_row("Hits de Respuestas Instantáneas", f"{total_hits:,} veces (< 1 ms)")
+    savings_table = Table(title="[bold #a6e3a1]Uso del buscador y referencia (persistente)[/]", box=box.ROUNDED, border_style="#a6e3a1")
+    savings_table.add_column("Dato", style="bold white")
+    savings_table.add_column("Valor", style="bold green", justify="right")
+    savings_table.add_row("Consultas hoy", f"{today_t['queries']} (latencia media {today_t['avg_latency_ms']:.0f} ms)")
+    savings_table.add_row("Consultas registradas (histórico)", f"{all_t['queries']}")
+    savings_table.add_row("Referencia: tamaño de los archivos devueltos menos lo devuelto", f"{all_t['tokens_saved']:,} tokens (NO es un ahorro medido)")
+    savings_table.add_row("Entradas en la caché de consultas", f"{cache_entries:,}")
+    savings_table.add_row("Aciertos de caché registrados", f"{total_hits:,}")
     console.print(savings_table)
     console.print()
 
@@ -280,35 +278,35 @@ def show_info_ui():
 
     p1 = Panel(
         "[bold #FFFFFF]Tree-sitter AST Chunker[/]\n"
-        "[#8B949E]• Troceado semántico por funciones, clases, hooks y tipos\n"
+        "[#8B949E]• Troceado por AST: funciones, clases, hooks y tipos\n"
         "• Lenguajes: TypeScript, TSX, JavaScript, JSX, Python\n"
-        "• 0 fragmentos partidos a ciegas; conserva firmas y docstrings[/]",
+        "• Conserva firmas y docstrings; los bloques de más de 2.400 caracteres se dividen[/]",
         title="[bold #00E5FF]1. Parser Sintáctico AST[/]",
         border_style="#00E5FF",
         box=box.ROUNDED,
     )
     p2 = Panel(
-        "[bold #FFFFFF]Reactive Hot-Reload Watcher[/]\n"
+        "[bold #FFFFFF]Observador de cambios (opcional)[/]\n"
         "[#8B949E]• Demonio systemd: [bold #FFFFFF]lancedb-watcher.service[/]\n"
         "• Monitoreo in-memory con librería [bold #FFFFFF]watchdog[/]\n"
-        "• Al presionar Ctrl+S actualiza LanceDB en ~18ms sin reindexar[/]",
-        title="[bold #00E5FF]2. Hot-Reload Reactivo[/]",
+        "• Reindexa solo el archivo guardado: ~8 ms, tras 0,6 s de espera para agrupar guardados[/]",
+        title="[bold #00E5FF]2. Observador de Cambios[/]",
         border_style="#00E5FF",
         box=box.ROUNDED,
     )
     p3 = Panel(
-        "[bold #FFFFFF]Caché Semántico Local[/]\n"
+        "[bold #FFFFFF]Caché Local de Consultas[/]\n"
         "[#8B949E]• Tabla LanceDB: [bold #FFFFFF]query_cache[/]\n"
-        "• Respuestas idénticas o afines en <1ms\n"
-        "• Costo: $0.00 y 0 tokens gastados en APIs de LLM[/]",
-        title="[bold #00E5FF]3. Zero-Token Cache[/]",
+        "• La misma consulta (sin distinguir mayúsculas ni espacios) se responde en ~9 ms\n"
+        "• La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo[/]",
+        title="[bold #00E5FF]3. Caché de Consultas[/]",
         border_style="#00E5FF",
         box=box.ROUNDED,
     )
     p4 = Panel(
-        "[bold #FFFFFF]Grafo de Impacto Bidireccional[/]\n"
-        "[#8B949E]• Tabla LanceDB: [bold #FFFFFF]impact_graph[/] (23,364 aristas)\n"
-        "• Mapea imports/exports en todo el monorepo\n"
+        "[bold #FFFFFF]Grafo de Impacto de Dependencias[/]\n"
+        "[#8B949E]• Tabla LanceDB: [bold #FFFFFF]impact_graph[/] (relaciones símbolo ← archivo que lo importa)\n"
+        "• Mapea qué archivos importan cada símbolo\n"
         "• Previene bugs inyectando dependientes antes de editar código[/]",
         title="[bold #00E5FF]4. Prevención de Roturas[/]",
         border_style="#00E5FF",
@@ -318,17 +316,17 @@ def show_info_ui():
         "[bold #FFFFFF]Reranker Neuronal FlashRank[/]\n"
         "[#8B949E]• Motor ONNX optimizado en CPU (ms-marco-TinyBERT)\n"
         "• Rerankea los candidatos BM25 de Tantivy\n"
-        "• Precisión semántica con scoring continuo (0-100%)[/]",
+        "• Puntuación continua de relevancia (0-100%)[/]",
         title="[bold #00E5FF]5. Reranking Neural[/]",
         border_style="#00E5FF",
         box=box.ROUNDED,
     )
     p6 = Panel(
         "[bold #FFFFFF]Standalone Agent Hub[/]\n"
-        "[#8B949E]• Compatible con cualquier agente de IA o terminal\n"
+        "[#8B949E]• Probado con Claude Code y Antigravity; las demás IAs se configuran sin probar\n"
         "• CLI integrado: [bold #FFFFFF]SYNRAG agy[/] (Antigravity)\n"
         "• CLI integrado: [bold #FFFFFF]SYNRAG claude[/] (Claude Code)\n"
-        "• Protocolo MCP: [bold #FFFFFF]desktop-lancedb[/] (cero dependencias externas)[/]",
+        "• Protocolo MCP: [bold #FFFFFF]desktop-lancedb[/][/]",
         title="[bold #00E5FF]6. Entorno de Agentes Autónomo[/]",
         border_style="#00E5FF",
         box=box.ROUNDED,
@@ -348,8 +346,8 @@ def show_info_ui():
     paths_table.add_row("Wrapper MCP/Legacy", "~/.local/bin/ai-search", "Alias compatible con herramientas existentes")
     paths_table.add_row("Base de Datos", "~/.local/share/lancedb-hub/data", "LanceDB (chunks, impact_graph, query_cache)")
     paths_table.add_row("Código Central", "~/.local/opt/lancedb-hub/", "chunker.py, impact.py, cache.py, ranker.py, indexer.py")
-    paths_table.add_row("Servicio Watcher", "~/.config/systemd/user/lancedb-watcher.service", "Daemon activo de hot-reload reactivo (~18ms)")
-    paths_table.add_row("Servidor MCP", "~/.gemini/antigravity/mcp/desktop-lancedb", "Protocolo MCP para Antigravity IDE y Claude Code")
+    paths_table.add_row("Servicio Watcher", "~/.config/systemd/user/lancedb-watcher.service", "Observador opcional: reindexa el archivo guardado")
+    paths_table.add_row("Configuración MCP", "~/.gemini/config/mcp_config.json  (Claude Code: ~/.claude.json)", "Dónde Antigravity y Claude Code cargan el servidor MCP")
     paths_table.add_row("Antigravity CLI", "~/.local/bin/agy", "CLI oficial de Google Antigravity en CachyOS")
     paths_table.add_row("Claude Code CLI", "~/.local/bin/claude", "CLI oficial de Anthropic Claude Code en CachyOS")
 
@@ -373,11 +371,50 @@ def run_index_ui():
 def run_watch_ui():
     print_banner()
     import subprocess
-    console.print(Panel("[bold #00E5FF]Monitor de Demonio Reactivo (Hot-Reload AST)[/]\n[#8B949E]Vigilando cambios en tus proyectos. Cada Ctrl+S actualiza LanceDB en milisegundos.[/]", border_style="#00E5FF", box=box.ROUNDED))
+    console.print(Panel("[bold #00E5FF]Monitor del Observador de Cambios[/]\n[#8B949E]Vigilando cambios en tus proyectos. Cada archivo guardado se reindexa tras 0,6 s sin nuevos cambios.[/]", border_style="#00E5FF", box=box.ROUNDED))
     try:
         subprocess.run(["journalctl", "--user", "-u", "lancedb-watcher.service", "-f", "--no-pager"])
     except KeyboardInterrupt:
         console.print("\n[dim]Monitor finalizado.[/]")
+
+
+def _estado_observador() -> str:
+    import shutil, subprocess
+    if not shutil.which("systemctl"):
+        return "sin systemd"
+    try:
+        r = subprocess.run(["systemctl", "--user", "is-active", "lancedb-watcher.service"],
+                           capture_output=True, text=True, timeout=3)
+    except Exception:
+        return "desconocido"
+    return {"active": "activo", "inactive": "inactivo", "failed": "con fallo"}.get(r.stdout.strip(), "no instalado")
+
+
+def _contar_relaciones() -> int:
+    try:
+        db = indexer.get_db()
+        return db.open_table(impact.IMPACT_TABLE).count_rows() if impact.IMPACT_TABLE in db.table_names() else 0
+    except Exception:
+        return 0
+
+
+def _entradas_cache() -> int:
+    try:
+        db = indexer.get_db()
+        return db.open_table(cache.CACHE_TABLE).count_rows() if cache.CACHE_TABLE in db.table_names() else 0
+    except Exception:
+        return 0
+
+
+def _ias_con_synrag() -> list:
+    h = Path.home()
+    rutas = (("Claude Code", h / ".claude.json"),
+             ("Antigravity", h / ".gemini" / "config" / "mcp_config.json"),
+             ("Antigravity (ruta anterior)", h / ".gemini" / "antigravity" / "mcp_config.json"),
+             ("Gemini CLI", h / ".gemini" / "settings.json"), ("Cursor", h / ".cursor" / "mcp.json"),
+             ("Windsurf", h / ".codeium" / "windsurf" / "mcp_config.json"),
+             ("Zed", h / ".config" / "zed" / "settings.json"), ("Codex CLI", h / ".codex" / "config.toml"))
+    return [n for n, p in rutas if p.is_file() and "desktop-lancedb" in p.read_text(encoding="utf-8", errors="ignore")]
 
 
 def print_help_menu():
@@ -389,32 +426,32 @@ def print_help_menu():
     cmd_table.add_column("Ejemplo", style="#8B949E")
 
     cmd_table.add_row("SYNRAG", "Muestra este panel de control y resumen del motor", "SYNRAG")
-    cmd_table.add_row("SYNRAG <consulta>", "Búsqueda semántica AST + Reranking FlashRank", "SYNRAG asistenciaServicio")
+    cmd_table.add_row("SYNRAG <consulta>", "Búsqueda por palabras (BM25) + reordenado FlashRank", "SYNRAG asistenciaServicio")
     cmd_table.add_row("SYNRAG --project <p> <q>", "Filtrar por proyecto específico", "SYNRAG --project asistoya-web webhook")
-    cmd_table.add_row("SYNRAG outline <archivo>", "Esquema sintáctico en ~50 tokens (sin leer todo)", "SYNRAG outline asistencia.servicio.ts")
+    cmd_table.add_row("SYNRAG outline <archivo>", "Esquema sintáctico (firmas y rangos de línea)", "SYNRAG outline asistencia.servicio.ts")
     cmd_table.add_row("SYNRAG impact <símbolo>", "Radio de impacto y dependientes de una función", "SYNRAG impact asistenciaServicio")
     cmd_table.add_row("SYNRAG tests <símbolo>", "Localiza los tests asociados a un símbolo", "SYNRAG tests asistenciaServicio")
     cmd_table.add_row("SYNRAG configure", "Auto-configura todas las IAs del sistema (MCP)", "SYNRAG configure")
     cmd_table.add_row("SYNRAG uninstall", "Quita SYNRAG de todas tus IAs (no borra el motor)", "SYNRAG uninstall")
-    cmd_table.add_row("SYNRAG stats", "Métricas de Ahorro de Tokens, Latencia y Chunks", "SYNRAG stats")
+    cmd_table.add_row("SYNRAG stats", "Uso del buscador, latencia y fragmentos", "SYNRAG stats")
     cmd_table.add_row("SYNRAG info", "Dashboard de arquitectura, subsistemas y rutas", "SYNRAG info")
     cmd_table.add_row("SYNRAG index", "Reindexar repositorios con Tree-sitter AST", "SYNRAG index")
-    cmd_table.add_row("SYNRAG watch", "Ver log en vivo del demonio reactivo (Ctrl+S)", "SYNRAG watch")
+    cmd_table.add_row("SYNRAG watch", "Ver el log del observador de cambios (opcional)", "SYNRAG watch")
     cmd_table.add_row("SYNRAG agy | claude", "Lanzar Antigravity CLI o Claude Code directamente", "SYNRAG agy")
 
     console.print(cmd_table)
     console.print()
 
     status_panel = Panel(
-        "[bold #8B949E]Hot-Reload AST:[/] [bold #00E5FF]ACTIVO (~18ms ante Ctrl+S)[/]  ·  "
-        "[bold #8B949E]Caché Semántica:[/] [bold #00E5FF]ACTIVA (<1ms · 0 tokens)[/]\n"
-        "[bold #8B949E]Grafo de Impacto:[/] [bold #58A6FF]23,364 aristas mapeadas[/]  ·  "
-        "[bold #8B949E]Reranker Neuronal:[/] [bold #00E5FF]FlashRank ONNX en CPU[/]\n"
-        "[bold #8B949E]Integración Universal:[/] [bold #FFFFFF]Claude Code MCP  ·  Google Antigravity MCP  ·  Cursor  ·  Windsurf[/]",
-        title="[bold #00E5FF]● ESTADO OPERATIVO DEL SISTEMA[/]",
+        f"[bold #8B949E]Observador de cambios:[/] [bold #00E5FF]{_estado_observador()}[/]  ·  "
+        f"[bold #8B949E]Caché de consultas:[/] [bold #00E5FF]{_entradas_cache():,} entradas[/]\n"
+        f"[bold #8B949E]Grafo de Impacto:[/] [bold #58A6FF]{_contar_relaciones():,} relaciones[/]  ·  "
+        "[bold #8B949E]Reordenado:[/] [bold #00E5FF]FlashRank ONNX en CPU[/]\n"
+        f"[bold #8B949E]IAs con SYNRAG configurado:[/] [bold #FFFFFF]{', '.join(_ias_con_synrag()) or 'ninguna (ejecuta SYNRAG configure)'}[/]",
+        title="[bold #00E5FF]ESTADO DEL SISTEMA (comprobado ahora)[/]",
         border_style="#00E5FF",
         box=box.ROUNDED,
-        padding=(0, 1)
+        padding=(0, 1),
     )
     console.print(status_panel)
 

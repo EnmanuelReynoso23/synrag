@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-LanceDB Hub Reactive Watcher (v3 Hot-Reload Daemon)
-Vigila en tiempo real los proyectos de código y actualiza quirúrgicamente en LanceDB
-el AST, fragmentos y grafo de impacto en cuanto el usuario presiona Ctrl+S.
+LanceDB Hub Watcher (Observador de cambios)
+Vigila en tiempo real los proyectos de código y actualiza en LanceDB
+el AST, fragmentos y grafo de impacto al guardar archivos.
 """
 
 import sys
@@ -40,9 +40,9 @@ class ReactiveIndexHandler(FileSystemEventHandler):
                     rel = path.relative_to(Path.home())
                 except Exception:
                     rel = path.name
-                print(f"[HOT-RELOAD AST] Actualizado: ~/{rel} ({elapsed_ms}ms)", flush=True)
+                print(f"[OBSERVADOR AST] Actualizado: ~/{rel} ({elapsed_ms}ms)", flush=True)
         except Exception as e:
-            print(f"[ERROR] Error en hot-reload para {path}: {e}", flush=True)
+            print(f"[ERROR] Error al reindexar {path}: {e}", flush=True)
 
     def _schedule_update(self, path_str: str):
         path = Path(path_str)
@@ -85,7 +85,7 @@ class ReactiveIndexHandler(FileSystemEventHandler):
 
 
 def start_watcher():
-    print("[INFO] Iniciando demonio reactivo de LanceDB Hub (Hot-Reload AST)...", flush=True)
+    print("[INFO] Iniciando observador de cambios de LanceDB Hub...", flush=True)
     handler = ReactiveIndexHandler()
     observer = Observer()
     observed_count = 0
@@ -101,10 +101,10 @@ def start_watcher():
         return
 
     observer.start()
-    print("[OK] Demonio activo. El AST y LanceDB se actualizaran automaticamente con cada guardado.", flush=True)
+    print("[OK] Observador activo. LanceDB se actualizara con cada archivo guardado.", flush=True)
 
     def stop_signal(signum, frame):
-        print("\n[STOP] Deteniendo demonio reactivo...", flush=True)
+        print("\n[STOP] Deteniendo observador...", flush=True)
         observer.stop()
         observer.join()
         sys.exit(0)
