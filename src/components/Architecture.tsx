@@ -12,10 +12,10 @@ export const Architecture: React.FC = () => {
             Arquitectura de Sistema
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Pipeline de 7 Fases de Alta Velocidad
+            Pipeline de 7 Fases, Todo Local
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Flujo end-to-end desde que el agente o desarrollador solicita contexto hasta que se devuelve el bloque de código con scoring semántico y alertas de dependencias.
+            Flujo desde que el agente o desarrollador solicita contexto hasta que se devuelve el bloque de código con puntuación de relevancia y alertas de dependencias.
           </p>
         </div>
 
@@ -71,12 +71,12 @@ export const Architecture: React.FC = () => {
                 Inferencia Local en CPU sin dependencias de GPU
               </h4>
               <p className="text-xs text-[#8B949E] mt-0.5">
-                Todo el pipeline se ejecuta localmente en esta máquina (Linux / macOS). Sin llamadas de red lentas ni cuotas agotadas.
+                Todo el pipeline se ejecuta localmente (Linux; macOS y Windows con WSL sin probar). La búsqueda no hace llamadas de red; la primera vez se descarga el modelo del reordenado.
               </p>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0D1117] border border-[#30363D] text-xs font-mono font-bold text-[#00E5FF] shrink-0">
-            Latencia total: ~18ms
+            Consulta nueva: ~90 ms (mediana)
           </span>
         </div>
       </div>

@@ -9,9 +9,9 @@ interface CommandOutput {
 
 const PRESET_COMMANDS = [
   'SYNRAG "asistenciaServicio"',
-  'SYNRAG --stats',
-  'SYNRAG --graph "reconocimientoFacial"',
-  'SYNRAG --daemon',
+  'SYNRAG stats',
+  'SYNRAG impact reconocimientoFacial',
+  'SYNRAG watch',
   'help',
 ];
 
@@ -23,18 +23,18 @@ export const InteractiveTerminal: React.FC = () => {
       id: 'init-1',
       command: 'SYNRAG "asistenciaServicio"',
       output: [
-        '[SYNRAG v2.4] Consultando índice AST LanceDB local en ~/proyectos/mi-monorepo...',
-        '[OK] Árbol Tree-sitter parseado en 4.2ms | FlashRank ONNX Rerank: 98.4%',
+        '[SIMULACIÓN] Salida de ejemplo con datos ficticios; la tuya dependerá de tu índice.',
+        '[OK] Candidatos por palabras (BM25) reordenados con FlashRank | consulta nueva: ~90 ms (mediana medida)',
         '--------------------------------------------------------------------------------',
         'ARCHIVO: apps/web/src/modulos/asistencia/asistencia.servicio.ts:35-72',
         'SÍMBOLO: export const asistenciaServicio = { ... }',
-        'TOKENS: 172 tokens extraídos (ahorro: 94.6% vs archivo completo)',
+        'FRAGMENTO: función completa; el modelo lo lee y cuesta tokens como cualquier texto',
         '--------------------------------------------------------------------------------',
         'ALERTA DE GRAFO DE IMPACTO (Riesgo: CRITICAL):',
         '  → apps/web/src/modulos/kiosco/TerminalBiometrico.tsx:14 (importa registrarPase)',
         '  → apps/web/src/modulos/estudiantes/hooks/useEstudiantes.ts:8 (importa validarAsistencia)',
         '  → apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx:22 (importa asistenciaServicio)',
-        'Estado: Listo para inyección en MCP (~18ms total).',
+        'Costo de la búsqueda: $0.00 en APIs de pago.',
       ],
     },
   ]);
@@ -55,66 +55,60 @@ export const InteractiveTerminal: React.FC = () => {
       return;
     } else if (trimmed.toLowerCase() === 'help') {
       lines = [
-        'Comandos disponibles en SYNRAG CLI (Linux / macOS):',
-        '  SYNRAG "<query>"               Busca símbolo o función sintáctica con AST + FlashRank.',
-        '  SYNRAG --stats                 Muestra estadísticas de fragmentos, caché y consumo.',
-        '  SYNRAG --graph "<símbolo>"     Calcula el radio de explosión (blast radius) de dependencias.',
-        '  SYNRAG --daemon                Consulta el estado del demonio systemd reactivo.',
-        '  SYNRAG --clear-cache           Reinicia la memoria caché de microsegundos (<1ms).',
-        '  clear                          Limpia la pantalla de la terminal.',
+        '[SIMULACIÓN] Comandos reales de SYNRAG; en esta página solo se simulan:',
+        '  SYNRAG "<consulta>"                 Busca por palabras y reordena con FlashRank.',
+        '  SYNRAG --project <p> "<consulta>"   Limita la búsqueda a un proyecto.',
+        '  SYNRAG outline <archivo>            Esquema del archivo (firmas y rangos de línea).',
+        '  SYNRAG impact <símbolo>             Qué archivos importan ese símbolo.',
+        '  SYNRAG tests <archivo|símbolo>      Pruebas relacionadas.',
+        '  SYNRAG stats                        Estadísticas del índice y de las búsquedas.',
+        '  SYNRAG index                        Reindexa todo.',
+        '  SYNRAG watch                        Log del observador de cambios (opcional).',
+        '  SYNRAG configure                    Configura el MCP en tus IAs instaladas.',
+        '  clear                               Limpia la pantalla.',
       ];
-    } else if (trimmed.includes('--stats')) {
+    } else if (/\bstats\b|--stats/.test(trimmed)) {
       lines = [
-        '================================================================================',
-        '               MÉTRICAS DEL MOTOR SYNTAX RAG (LOCAL)                  ',
-        '================================================================================',
-        'Repositorios indexados:     mi-monorepo, notas-ia, proyectos',
-        'Fragmentos AST totales:     95,502 bloques de código sintáctico',
-        'Aristas en el grafo: 23,364 dependencias y llamadas mapeadas',
-        'Latencia promedio de caché: 0.8ms (<1ms Zero-Token)',
-        'Tokens ahorrados acumulados: 124,500,000 tokens',
-        'Costo en API de la nube:   $0.00 USD (Inferencia 100% en CPU local)',
-        'Uso de memoria residente:   12.3 MB RAM (Daemon watcher)',
-      ];
-    } else if (trimmed.includes('--daemon')) {
-      lines = [
-        '● lancedb-watcher.service - Daemon reactivo de indexación AST',
-        '     Loaded: loaded (~/.config/systemd/user/lancedb-watcher.service; enabled)',
-        '     Active: active (running) desde las 08:00:15 UTC',
-        '   Main PID: 3239 (python3 -m synrag.daemon)',
-        '      Tasks: 4 (limit: 18884)',
-        '     Memory: 12.3M',
-        '        CPU: 0.1% en reposo (~18ms pico al guardar con Ctrl+S)',
-        '     Status: "Vigilando 2,450 archivos en ~/proyectos/mi-monorepo"',
-      ];
-    } else if (trimmed.includes('--graph')) {
-      lines = [
-        'ANALIZANDO GRAFO DE IMPACTO DIRECTO:',
-        'Símbolo objetivo: reconocimientoFacial',
-        'Archivo origen: apps/web/src/modulos/reconocimiento-facial/reconocimiento.servicio.ts',
+        '[SIMULACIÓN] Formato aproximado, con cifras de ejemplo del autor (6-oct-2026).',
         '--------------------------------------------------------------------------------',
-        '[CRITICAL] apps/web/src/modulos/kiosco/TerminalBiometrico.tsx (Línea 29)',
-        '[CRITICAL] apps/web/src/modulos/asistencia/asistencia.hook.ts (Línea 44)',
-        '[WARNING]  apps/web/src/modulos/estudiantes/componentes/CredencialEstudiante.tsx (Línea 12)',
-        '[INFO]     apps/web/src/services/telemetria/biometriaAudit.ts (Línea 5)',
-        'Conclusión: Cualquier cambio en la firma de reconocimientoFacial afecta 4 archivos clave.',
+        'Proyectos indexados:        74',
+        'Fragmentos AST:             ~96 mil',
+        'Relaciones en el grafo:     23,704',
+        'Consulta nueva (mediana):   ~90 ms en CPU local',
+        'Consulta repetida:          ~9 ms (caché local)',
+        'Costo de la búsqueda:       $0.00 en APIs de pago',
+      ];
+    } else if (/\bwatch\b|--daemon/.test(trimmed)) {
+      lines = [
+        '[SIMULACIÓN] journalctl --user -u lancedb-watcher.service -f',
+        'Servicio opcional: reindexa el archivo guardado tras 0,6 s sin nuevos cambios.',
+        'Reindexar un archivo pequeño: ~8 ms (mediana medida por el autor).',
+        'Memoria del proceso en el equipo del autor: 300 MB o más de RAM.',
+      ];
+    } else if (/\bimpact\b|--graph/.test(trimmed)) {
+      lines = [
+        '[SIMULACIÓN] Archivos de ejemplo; el comando real lista los que importan el símbolo en tu índice.',
+        'Símbolo: reconocimientoFacial',
+        '--------------------------------------------------------------------------------',
+        '  apps/web/src/modulos/kiosco/TerminalBiometrico.tsx (línea 29)',
+        '  apps/web/src/modulos/asistencia/asistencia.hook.ts (línea 44)',
+        '  apps/web/src/modulos/estudiantes/componentes/CredencialEstudiante.tsx (línea 12)',
+        '  apps/web/src/services/telemetria/biometriaAudit.ts (línea 5)',
+        'Un cambio en la firma de reconocimientoFacial afectaría a esos 4 archivos.',
       ];
     } else if (trimmed.includes('--clear-cache')) {
       lines = [
-        'Vaciando tabla de caché de microsegundos en LanceDB...',
-        '[OK] 4,120 entradas purgadas.',
-        '[OK] Re-calentamiento completado en 14ms.',
-        'Zero-Token Cache lista para recibir consultas.',
+        '[SIMULACIÓN] Ese comando no existe en el CLI real. La caché se vacía sola al reindexar.',
       ];
     } else {
       lines = [
-        `[SYNRAG] Búsqueda AST para query: "${trimmed.replace(/^SYNRAG\s*/i, '').replace(/["']/g, '')}"`,
-        '[OK] Recuperados 3 fragmentos candidatos en 6.1ms vía LanceDB.',
-        '[OK] Reranker FlashRank TinyBERT ONNX aplicado (Relevancia: 95.8%).',
+        `[SIMULACIÓN] Búsqueda de ejemplo para: "${trimmed.replace(/^SYNRAG\s*/i, '').replace(/["']/g, '')}"`,
+        '[OK] Candidatos recuperados por palabras (BM25) y reordenados con FlashRank.',
+        'Consulta nueva: ~90 ms (mediana medida por el autor); si repites la misma consulta: ~9 ms.',
         '--------------------------------------------------------------------------------',
         'Coincidencia principal: apps/web/src/modulos/asistencia/asistencia.servicio.ts:35-72',
-        'Fragmento extraído: Función sintáctica completa (37 líneas, 168 tokens).',
-        'Consumo de red: 0 bytes | Cuota de tokens: $0.00 gastados.',
+        'Fragmento: función completa (37 líneas). El modelo lo lee y cuesta tokens como cualquier texto.',
+        'Costo de la búsqueda: $0.00 en APIs de pago.',
       ];
     }
 
@@ -165,7 +159,7 @@ export const InteractiveTerminal: React.FC = () => {
             Simulador de Terminal SYNRAG CLI
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Ejecuta comandos reales del motor en esta terminal interactiva. Experimenta la velocidad de respuesta, el parseo de árboles y las alertas del grafo de impacto como ocurren en tu equipo.
+            Esta terminal es una simulación en el navegador con datos ficticios: no ejecuta nada en tu equipo. Sirve para ver la forma de la salida de cada comando; las cifras que muestra son las medidas por el autor el 6-oct-2026.
           </p>
         </div>
 
@@ -265,7 +259,7 @@ export const InteractiveTerminal: React.FC = () => {
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Escribe un comando (ej: SYNRAG --stats o SYNRAG 'asistenciaServicio') y presiona Enter..."
+              placeholder="Escribe un comando (ej: SYNRAG stats o SYNRAG 'asistenciaServicio') y presiona Enter..."
               className="w-full bg-transparent text-xs sm:text-sm font-mono text-white placeholder-[#8B949E] focus:outline-none"
             />
             <button

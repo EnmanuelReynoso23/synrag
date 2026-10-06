@@ -57,7 +57,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     ],
     score: 99.2,
     cacheHit: true,
-    latencyMs: 0.38,
+    latencyMs: 8.7,
     tokensConsumed: 0,
     cost: '$0.00',
   },
@@ -95,7 +95,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     ],
     score: 98.7,
     cacheHit: true,
-    latencyMs: 0.45,
+    latencyMs: 9.1,
     tokensConsumed: 0,
     cost: '$0.00',
   },
@@ -136,7 +136,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     ],
     score: 97.9,
     cacheHit: false,
-    latencyMs: 16.4,
+    latencyMs: 91.3,
     tokensConsumed: 0,
     cost: '$0.00',
   },
@@ -172,7 +172,7 @@ export const SAMPLE_QUERIES: ASTResult[] = [
     ],
     score: 99.5,
     cacheHit: true,
-    latencyMs: 0.31,
+    latencyMs: 9.4,
     tokensConsumed: 0,
     cost: '$0.00',
   }
@@ -183,7 +183,7 @@ export const ARCHITECTURE_PIPELINE = [
     id: 'agent',
     step: '01',
     name: 'Editor / Agente IA',
-    tech: 'Claude Code · Antigravity · Codex · Cursor',
+    tech: 'Claude Code · Antigravity (probados) · otras IAs con MCP',
     file: 'Entorno de Desarrollo',
     role: 'Petición de búsqueda o contexto mediante protocolo MCP stdio.',
     desc: 'El agente o programador consulta funciones sin leer archivos enteros ni desbordar la ventana de contexto.',
@@ -197,37 +197,37 @@ export const ARCHITECTURE_PIPELINE = [
     tech: 'desktop-lancedb (JSON-RPC)',
     file: '~/.local/opt/lancedb-hub/server_mcp.py',
     role: 'Exposición estándar de search_desktop y list_projects.',
-    desc: 'Protocolo nativo que conecta al agente con la base vectorial local a velocidad casi instantánea.',
+    desc: 'Protocolo MCP por stdio que conecta al agente con el índice local.',
     badge: 'Protocolo',
     color: '#58A6FF',
   },
   {
     id: 'cache',
     step: '03',
-    name: 'Zero-Token Semantic Cache',
-    tech: 'LanceDB query_cache (<1ms)',
+    name: 'Caché Local de Consultas',
+    tech: 'LanceDB query_cache (misma consulta, ~9 ms)',
     file: 'cache.py',
-    role: 'Retorno instantáneo de consultas previas a costo $0.',
-    desc: 'Detecta consultas semánticamente equivalentes y responde en menos de 1ms, ahorrando 100% de tokens de API.',
-    badge: '0 Tokens',
+    role: 'Devuelve los resultados de consultas idénticas recientes.',
+    desc: 'Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde la tabla local sin recalcular; con otras palabras se vuelve a buscar. Se vacía al reindexar.',
+    badge: 'Sin APIs',
     color: '#7EE787',
   },
   {
     id: 'ast',
     step: '04',
     name: 'Tree-sitter AST Chunker',
-    tech: 'Gramáticas nativas TS, TSX, JS, Python',
+    tech: 'Gramáticas Tree-sitter: TS, TSX, JS, Python, Rust, Go',
     file: 'chunker.py',
     role: 'Extracción sintáctica de funciones, hooks, clases y tipos.',
-    desc: '0 fragmentos partidos a ciegas; conserva firmas completas, cuerpo de código y docstrings sin recortar.',
+    desc: 'Conserva firmas completas, cuerpo de código y docstrings; solo los bloques de más de 2.400 caracteres se dividen.',
     badge: 'AST Native',
     color: '#00E5FF',
   },
   {
     id: 'impact',
     step: '05',
-    name: 'Grafo de Impacto Bidireccional',
-    tech: 'Grafo de dependencias en memoria (23,364 aristas)',
+    name: 'Grafo de Impacto de Dependencias',
+    tech: 'Tabla impact_graph en LanceDB (23,704 relaciones)',
     file: 'impact.py',
     role: 'Mapeo estático de imports y dependientes.',
     desc: 'Inyecta advertencias sobre qué archivos consumen el símbolo consultado para evitar roturas antes de editar.',
@@ -238,10 +238,10 @@ export const ARCHITECTURE_PIPELINE = [
     id: 'vector',
     step: '06',
     name: 'LanceDB Hub Columnar Store',
-    tech: 'LanceDB 0.25 (Disco columnar ~49.8 MB)',
+    tech: 'LanceDB 0.39 (disco columnar ~65 MB en el índice del autor)',
     file: 'indexer.py',
-    role: 'Almacenamiento e indexación local ultra-rápida.',
-    desc: 'Almacena 95,502 fragmentos sintácticos con compresión columnar y búsqueda BM25 sin consumir memoria RAM.',
+    role: 'Almacenamiento e indexación local.',
+    desc: 'Almacena ~96 mil fragmentos con compresión columnar y búsqueda de texto BM25 (Tantivy).',
     badge: 'Storage',
     color: '#8B949E',
   },
@@ -252,19 +252,19 @@ export const ARCHITECTURE_PIPELINE = [
     tech: 'ms-marco-TinyBERT-L-2-v2 en CPU (ONNX)',
     file: 'ranker.py',
     role: 'Scoring continuo de relevancia en procesador local.',
-    desc: 'Reordena semánticamente los candidatos con modelos transformadores compactos en CPU sin requerir GPU.',
+    desc: 'Reordena los candidatos recuperados por palabras con un modelo transformador compacto en CPU, sin requerir GPU.',
     badge: 'CPU Neural',
     color: '#00E5FF',
   },
 ];
 
 export const ECOSYSTEM_METRICS = [
-  { label: 'Fragmentos AST Indexados', value: '95,502', unit: 'bloques sintácticos íntegros', delta: 'Funciones, hooks y clases' },
-  { label: 'Latencia en Caché Semántica', value: '< 1 ms', unit: 'tiempo de respuesta local', delta: '0 Tokens · $0.00 gasto' },
-  { label: 'Ahorro de Cuota de API', value: '100% $0', unit: 'evitado en consultas repetidas', delta: 'Zero-Token Cache activo' },
-  { label: 'Aristas en Grafo de Impacto', value: '23,364', unit: 'dependencias mapeadas', delta: 'Prevención de roturas' },
-  { label: 'Hot-Reload por Guardado', value: '~18 ms', unit: 're-indexado reactivo (Ctrl+S)', delta: 'Demonio systemd activo' },
-  { label: 'Archivos Monitoreados', value: '7,536+', unit: 'código fuente en monorepo', delta: 'mi-monorepo y satélites' },
+  { label: 'Fragmentos AST Indexados', value: '~96 mil', unit: 'bloques sintácticos', delta: 'Índice del autor, 6-oct-2026' },
+  { label: 'Consulta Nueva', value: '~90 ms', unit: 'mediana en CPU local', delta: 'p90 ~110 ms; primera consulta ~180 ms' },
+  { label: 'Consulta Repetida', value: '~9 ms', unit: 'misma consulta, caché local', delta: 'Sin APIs de pago' },
+  { label: 'Relaciones en Grafo de Impacto', value: '23,704', unit: 'dependencias mapeadas', delta: 'Qué archivos importan cada símbolo' },
+  { label: 'Reindexar un Archivo', value: '~8 ms', unit: 'archivo pequeño, tras 0,6 s de espera', delta: 'Observador opcional (300 MB o más de RAM)' },
+  { label: 'Proyectos Indexados', value: '~75', unit: 'carpetas de código y notas', delta: 'Equipo del autor' },
 ];
 
 export const PROYECTOS_DISTRIBUCION = [
@@ -281,13 +281,13 @@ export const CONFIG_SNIPPETS = {
   synrag: `# Abrir el espacio de trabajo completo (Dark Mode + Live Stats)
 SYNRAG
 
-# Búsqueda semántica AST inteligente
+# Búsqueda por palabras con reordenado neuronal (usa palabras que estén escritas en el código)
 SYNRAG "asistenciaServicio"
 
 # Búsqueda acotada a un proyecto del monorepo
 SYNRAG --project mi-monorepo "reconocimientoFacial"
 
-# Ver métricas de ahorro y tokens evitados
+# Ver estadísticas del índice y el registro de búsquedas
 SYNRAG stats
 
 # Ver log reactivo ante Ctrl+S
@@ -305,7 +305,7 @@ SYNRAG watch`,
   }
 }`,
 
-  antigravity: `// ~/.gemini/antigravity/mcp_config.json  (SYNRAG configure lo escribe solo)
+  antigravity: `// ~/.gemini/config/mcp_config.json  (SYNRAG configure lo escribe solo)
 // Cambia TU_USUARIO por tu nombre de usuario.
 {
   "mcpServers": {

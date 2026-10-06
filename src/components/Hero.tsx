@@ -26,23 +26,23 @@ export const Hero: React.FC = () => {
             {/* Eyebrow badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#161B22] border border-[#30363D] text-xs font-mono text-[#00E5FF] mb-5">
               <span className="flex h-2 w-2 rounded-full bg-[#00E5FF] animate-pulse"></span>
-              <span>AST-Native MCP Engine · Zero-Token Cache</span>
+              <span>AST-Native MCP Engine · Búsqueda de código local</span>
             </div>
 
             {/* Titular Principal */}
             <h1 className="text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[2.85rem] xl:text-[3.25rem]">
-              <span className="block">Búsqueda Semántica en Código</span>
+              <span className="block">Búsqueda de Código para IAs</span>
               <span className="block bg-gradient-to-r from-white via-[#00E5FF] to-[#58A6FF] bg-clip-text text-transparent">
-                con 0 Tokens de API
+                local y sin APIs de pago
               </span>
               <span className="block text-[#8B949E] text-2xl sm:text-3xl lg:text-3xl font-bold mt-1">
-                y respuesta local en &lt; 1 ms
+                ~90 ms por consulta en tu CPU
               </span>
             </h1>
 
             {/* Descripción técnica */}
             <p className="mt-5 max-w-2xl mx-auto lg:mx-0 text-sm leading-6 text-[#8B949E] sm:text-base sm:leading-7 font-normal">
-              Olvídate de partir funciones por la mitad o saturar ventanas de contexto. SyntaxRAG analiza quirúrgicamente el <strong className="font-bold text-white">Árbol de Sintaxis Abstracta (AST)</strong> con <strong className="font-bold text-[#00E5FF]">Tree-sitter</strong>, previene código roto con un <strong className="font-bold text-[#FF7B72]">Grafo de Impacto de dependencias</strong> y responde en milisegundos a costo <strong className="font-bold text-[#7EE787]">$0.00</strong> desde LanceDB local.
+              Olvídate de partir funciones por la mitad. SyntaxRAG trocea tu código por su <strong className="font-bold text-white">Árbol de Sintaxis Abstracta (AST)</strong> con <strong className="font-bold text-[#00E5FF]">Tree-sitter</strong>, busca por palabras y reordena los candidatos con un modelo neuronal en tu CPU, y avisa de qué archivos dependen de lo que vas a tocar con un <strong className="font-bold text-[#FF7B72]">Grafo de Impacto de dependencias</strong>. Todo en LanceDB local, con un costo de <strong className="font-bold text-[#7EE787]">$0.00</strong> en APIs por consulta.
             </p>
 
             {/* Botones de acción principales */}
@@ -83,16 +83,16 @@ export const Hero: React.FC = () => {
             {/* Badges de métricas inferiores */}
             <div className="mt-8 pt-6 border-t border-[#30363D] grid grid-cols-3 gap-4 text-center lg:text-left">
               <div>
-                <dt className="text-xl sm:text-2xl font-black text-white">95.5k</dt>
-                <dd className="text-xs font-bold text-[#8B949E]">Fragmentos AST (ejemplo)</dd>
+                <dt className="text-xl sm:text-2xl font-black text-white">96k</dt>
+                <dd className="text-xs font-bold text-[#8B949E]">Fragmentos AST (índice del autor)</dd>
               </div>
               <div>
-                <dt className="text-xl sm:text-2xl font-black text-[#00E5FF]">&lt; 1 ms</dt>
-                <dd className="text-xs font-bold text-[#8B949E]">Caché Semántica</dd>
+                <dt className="text-xl sm:text-2xl font-black text-[#00E5FF]">~90 ms</dt>
+                <dd className="text-xs font-bold text-[#8B949E]">Consulta nueva (mediana, CPU)</dd>
               </div>
               <div>
                 <dt className="text-xl sm:text-2xl font-black text-[#7EE787]">$0.00</dt>
-                <dd className="text-xs font-bold text-[#8B949E]">0 Tokens Gastados</dd>
+                <dd className="text-xs font-bold text-[#8B949E]">Costo de la búsqueda en APIs</dd>
               </div>
             </div>
           </div>
@@ -109,11 +109,11 @@ export const Hero: React.FC = () => {
                     <span className="w-3 h-3 rounded-full bg-[#27C93F]"></span>
                   </div>
                   <span className="ml-2 truncate font-mono text-xs font-bold text-[#8B949E]">
-                    mi-monorepo/asistencia.servicio.ts
+                    ejemplo / asistencia.servicio.ts
                   </span>
                 </div>
                 <span className="inline-flex shrink-0 items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-[#7EE787]/15 text-[#7EE787] border border-[#7EE787]/30">
-                  <Zap className="w-3 h-3" /> 0 Tokens
+                  <Zap className="w-3 h-3" /> Local, sin APIs
                 </span>
               </div>
 
@@ -206,18 +206,18 @@ export const Hero: React.FC = () => {
                   <div className="space-y-3 py-1">
                     <div className="grid grid-cols-2 gap-3 text-center">
                       <div className="p-3 rounded-xl bg-[#0D1117] border border-[#30363D]">
-                        <span className="text-xs font-bold text-[#8B949E] block">Latencia Media</span>
-                        <span className="text-xl font-black text-white">0.38 ms</span>
+                        <span className="text-xs font-bold text-[#8B949E] block">Misma consulta repetida</span>
+                        <span className="text-xl font-black text-white">~9 ms</span>
                       </div>
                       <div className="p-3 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/20">
-                        <span className="text-xs font-bold text-[#00E5FF] block">Tokens de API</span>
-                        <span className="text-xl font-black text-[#00E5FF]">0 Tokens</span>
+                        <span className="text-xs font-bold text-[#00E5FF] block">Consulta nueva</span>
+                        <span className="text-xl font-black text-[#00E5FF]">~90 ms</span>
                       </div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-[#7EE787]/10 border border-[#7EE787]/20 text-xs text-[#7EE787] font-medium">
-                      <p className="font-bold mb-1">Caché Semántica Vectorial:</p>
-                      <p className="text-slate-300">Consultas semánticamente equivalentes devuelven resultados idénticos sin recalcular ni llamar a OpenAI/Gemini.</p>
+                      <p className="font-bold mb-1">Caché de consultas repetidas:</p>
+                      <p className="text-slate-300">Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local sin recalcular; con otras palabras se vuelve a buscar. No llama a OpenAI ni a Gemini. Cifras medidas por el autor el 6-oct-2026 (mediana).</p>
                     </div>
                   </div>
                 )}

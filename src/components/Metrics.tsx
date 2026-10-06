@@ -9,13 +9,13 @@ export const Metrics: React.FC = () => {
         {/* Encabezado */}
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-[#00E5FF]">
-            Ejemplo medido · monorepo real
+            Ejemplo medido · equipo del autor · 6-oct-2026
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Así rinde en un monorepo grande
+            Así rinde en un índice grande
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Cifras medidas por el autor en su equipo con ~95 mil fragmentos indexados. En el tuyo variarán según el tamaño de tus proyectos y tu CPU.
+            Cifras medidas por el autor en su equipo, con 96 mil fragmentos de ~75 proyectos indexados (mediana de consultas de 2 a 4 palabras, por MCP, con el equipo en reposo; con la CPU saturada tarda el doble). En el tuyo variarán según el tamaño de tus proyectos y tu CPU.
           </p>
         </div>
 
@@ -23,49 +23,49 @@ export const Metrics: React.FC = () => {
         <dl className="mt-12 grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-8 lg:grid-cols-4 border-b border-[#30363D] pb-14">
           <div className="text-center sm:text-left">
             <dt className="text-4xl font-black tracking-tight text-[#00E5FF] sm:text-[2.75rem]">
-              95,502
+              ~96 mil
             </dt>
             <dd className="mt-2 text-base font-bold leading-snug text-white">
-              Fragmentos AST Únicos
+              Fragmentos AST
             </dd>
             <dd className="mt-1 text-xs text-[#8B949E] font-medium">
-              Funciones, clases y hooks troceados íntegramente
+              Funciones, clases y hooks; los bloques de más de 2.400 caracteres se dividen
             </dd>
           </div>
 
           <div className="text-center sm:text-left">
             <dt className="text-4xl font-black tracking-tight text-[#00E5FF] sm:text-[2.75rem]">
-              &lt; 1 ms
+              ~90 ms
             </dt>
             <dd className="mt-2 text-base font-bold leading-snug text-white">
-              Latencia en Caché
+              Consulta Nueva
             </dd>
             <dd className="mt-1 text-xs text-[#8B949E] font-medium">
-              Respuestas instantáneas en memoria sin red
+              Mediana en CPU en reposo, por MCP (p90 ~110 ms); la primera tras arrancar el servidor, ~180 ms. Repetir la misma consulta: ~9 ms
             </dd>
           </div>
 
           <div className="text-center sm:text-left">
             <dt className="text-4xl font-black tracking-tight text-[#7EE787] sm:text-[2.75rem]">
-              100% $0.00
+              $0.00
             </dt>
             <dd className="mt-2 text-base font-bold leading-snug text-white">
-              Ahorro de Cuota de API
+              Costo de la Búsqueda
             </dd>
             <dd className="mt-1 text-xs text-[#8B949E] font-medium">
-              0 tokens de LLM consumidos en re-búsquedas
+              Sin APIs de pago. Los resultados igualmente cuestan tokens al modelo que los lee
             </dd>
           </div>
 
           <div className="text-center sm:text-left">
             <dt className="text-4xl font-black tracking-tight text-[#58A6FF] sm:text-[2.75rem]">
-              23,364
+              23,704
             </dt>
             <dd className="mt-2 text-base font-bold leading-snug text-white">
-              Aristas de Dependencias
+              Relaciones de Dependencia
             </dd>
             <dd className="mt-1 text-xs text-[#8B949E] font-medium">
-              Mapeadas en el Grafo de Impacto bidireccional
+              Qué archivos importan cada símbolo, en el Grafo de Impacto
             </dd>
           </div>
         </dl>

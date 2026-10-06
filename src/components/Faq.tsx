@@ -7,7 +7,7 @@ const PREGUNTAS: { p: string; r: React.ReactNode }[] = [
   },
   {
     p: '¿Con qué IAs funciona?',
-    r: 'Claude Code, Google Antigravity, Gemini CLI, Codex CLI, Cursor, Windsurf, Cline / Roo Code y Zed. Cualquier otra que hable MCP puede usar el servidor desktop-lancedb.',
+    r: 'Probado en la práctica con Claude Code y Google Antigravity. El instalador también las configura para Gemini CLI, Codex CLI, Cursor, Windsurf, Cline / Roo Code y Zed según su documentación, pero esas no se han probado. Cualquier otra que hable MCP puede usar el servidor desktop-lancedb.',
   },
   {
     p: '¿Qué cambia en mi equipo?',
@@ -33,15 +33,15 @@ const PREGUNTAS: { p: string; r: React.ReactNode }[] = [
   },
   {
     p: '¿Cuánto cuesta?',
-    r: 'Nada. Es de código abierto con licencia MIT y no usa tokens de ninguna API.',
+    r: 'Nada: es de código abierto (licencia MIT) y la búsqueda no usa APIs de pago. Ojo: los resultados que recibe tu IA igualmente cuestan tokens al modelo que la alimenta.',
   },
   {
     p: '¿Funciona en Windows?',
-    r: 'Con WSL sí. El lanzador es un script bash, así que no hay versión nativa de Windows por ahora.',
+    r: 'Solo se ha probado en Linux. macOS y Windows con WSL deberían funcionar (el lanzador es un script bash), pero no están probados; no hay versión nativa de Windows.',
   },
   {
     p: '¿Las cifras de esta página son reales?',
-    r: 'Las métricas son un ejemplo medido por el autor en su propio monorepo (~95 mil fragmentos). El simulador, la terminal y el hot-reload son demostraciones con datos de ejemplo, no tu código. La calculadora estima el ahorro con los precios y el uso que tú ajustas: es una estimación, no una garantía.',
+    r: 'Las cifras marcadas como medidas (~90 ms por consulta nueva, ~9 ms si se repite, ~8 ms por archivo reindexado, 300 MB o más del observador, 96 mil fragmentos y 23,7 mil relaciones) las midió el autor en su equipo el 6-oct-2026, con ~75 proyectos indexados; en el tuyo variarán. El simulador, la terminal y el observador de la página son simulaciones con datos de ejemplo, no tu código. La calculadora es un escenario hipotético con supuestos que tú ajustas. Cada afirmación y cómo reproducirla está en CLAIMS.md del repositorio.',
   },
 ];
 
