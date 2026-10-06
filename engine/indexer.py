@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-LanceDB Desktop Memory & Indexer (v3 Supercharged, 4-oct-2026)
+LanceDB Desktop Memory & Indexer (v3, 6-oct-2026)
 
-Motor de Inteligencia de Código Local de Alto Rendimiento:
-  - Tree-sitter AST & Semantic Chunking: fragmentos por funciones, clases, hooks e interfaces completas.
-  - FlashRank ONNX Reranking: Cross-Encoder neural en CPU (<3ms) que puntúa intención semántica (0.0 a 1.0).
-  - Grafo de Impacto: mapeo de dependencias (imports/exports) para prevenir código roto al modificar funciones.
-  - Caché Semántico Local (query_cache): respuestas a 0 tokens y latencia de ~5ms para consultas frecuentes.
-  - Indexado Reactivo (Hot-Reload): actualización quirúrgica archivo por archivo vía Watchdog.
-  - Anonimización y seguridad estricta: redacta secretos y credenciales antes de indexar.
+Motor de código local:
+  - Troceo por AST: funciones, clases, hooks e interfaces completas.
+  - Reordenado FlashRank en CPU que puntúa la relevancia (0.0 a 1.0).
+  - Grafo de impacto: qué archivos importan cada símbolo.
+  - Caché de consultas repetidas (~9 ms).
+  - Observador opcional que reindexa solo el archivo guardado.
+  - Redacción de secretos: oculta patrones de secretos y credenciales antes de indexar.
 """
 
 import os
@@ -235,8 +235,8 @@ def index_desktop():
 
 def index_single_file(file_path: Path) -> bool:
     """
-    Indexación reactiva ("Hot-Reload"):
-    Actualiza de forma atómica y quirúrgica un único archivo modificado en <50ms.
+    Reindexado de un solo archivo:
+    Actualiza de forma atómica un único archivo modificado (~8 ms).
     """
     full = file_path.resolve()
     base_dir = None
@@ -336,10 +336,10 @@ def search_desktop(
     check_impact: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    Búsqueda híbrida de alta precisión:
-    1. Revisa query_cache (<5ms).
+    Búsqueda por palabras con reordenado:
+    1. Revisa la caché de consultas (~9 ms).
     2. Tantivy BM25 FTS sobre LanceDB para 25 candidatos brutos.
-    3. FlashRank Cross-Encoder en CPU para reordenar por intención semántica (<3ms).
+    3. FlashRank Cross-Encoder en CPU para reordenar por relevancia (0.0 a 1.0).
     4. Grafo de impacto para inyectar advertencias de dependencias.
     5. Guarda en caché para futuras consultas idénticas.
     """
@@ -349,7 +349,7 @@ def search_desktop(
         print("[AVISO] Aun sin indice. Ejecuta: ai-search --index")
         return []
 
-    # 1. Caché semántico local
+    # 1. Caché de consultas
     cached = cache.get_cached_results(db, query, project=project)
     if cached is not None:
         return cached[:limit]
@@ -429,6 +429,6 @@ if __name__ == "__main__":
     elif len(sys.argv) > 1 and sys.argv[1] == "--file":
         target = Path(sys.argv[2])
         ok = index_single_file(target)
-        print(f"Hot-reload para {target}: {'[OK] Exito' if ok else '[FAIL] Ignorado/Error'}")
+        print(f"Reindexado para {target}: {'[OK] Exito' if ok else '[FAIL] Ignorado/Error'}")
     else:
         index_desktop()

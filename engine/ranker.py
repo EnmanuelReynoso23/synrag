@@ -1,6 +1,6 @@
 """
 FlashRank Cross-Encoder Reranker para LanceDB Hub
-Puntúa la intención semántica del usuario frente al código en <3ms usando ONNX en CPU.
+Puntúa la relevancia de cada candidato BM25 frente a la consulta con ONNX en CPU.
 Filtra candidatos irrelevantes de BM25 y aísla los 3-5 bloques exactos.
 """
 
@@ -39,7 +39,7 @@ def rerank_snippets(
     score_threshold: float = 0.001
 ) -> List[Dict[str, Any]]:
     """
-    Toma candidatos brutos de Tantivy BM25 y los reordena por relevancia semántica real.
+    Toma candidatos brutos de Tantivy BM25 y los reordena por relevancia.
     Devuelve hasta top_k fragmentos con su score normalizado (0.0 a 1.0).
     """
     if not candidates:

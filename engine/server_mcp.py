@@ -2,11 +2,11 @@
 """
 SyntaxRAG Desktop Context MCP Server (Universal Edition)
 Motor AST nativo de código y memoria local para cualquier agente de IA.
-- search_desktop: busqueda semantica con AST + FlashRank neural en CPU.
-- get_file_outline: esquema sintactico de cualquier archivo en ~50 tokens.
+- search_desktop: busqueda por palabras (BM25) con reordenado FlashRank en CPU.
+- get_file_outline: esquema sintactico (firmas y rangos de linea) de un archivo.
 - get_impact_radius: calculo preventivo de dependencias y blast radius.
 - find_related_tests: mapeo directo de pruebas unitarias asociadas.
-- get_savings_report: metricas persistentes de tokens y costos ahorrados.
+- get_savings_report: registro de uso del buscador y una referencia (no es un ahorro medido).
 - list_projects & reindex_desktop: gestion del indice.
 """
 
@@ -35,12 +35,12 @@ SNIPPET = 800  # caracteres maximos por resultado en busqueda normal
 @mcp.tool()
 def search_desktop(query: str, limit: int = 5, project: str = "") -> str:
     """
-    Busca codigo o conceptos en todos los proyectos (AsistoYA incluido), memoria de
-    Claude y configuracion. Devuelve `ruta:linea_inicio-linea_fin` y un
-    bloque sintactico completo (funcion, hook, interface) con ranking neural FlashRank.
-    Si el simbolo encontrado tiene archivos dependientes, incluye una advertencia de
-    Grafo de Impacto para evitar roturas de codigo.
-    `project` filtra por proyecto (p. ej. "asistoya-web", "memoria-claude").
+    Busca por PALABRAS (BM25) en el codigo, la memoria de Claude y la configuracion de todos los
+    proyectos indexados, y reordena los candidatos con FlashRank. Usa palabras que esten escritas
+    (nombres de simbolos, textos de error, rutas): si la consulta no comparte palabras con el codigo,
+    no lo encuentra. Devuelve `ruta:linea_inicio-linea_fin` y el bloque sintactico completo (funcion,
+    hook, interface). Si el simbolo encontrado tiene archivos dependientes, incluye una advertencia de
+    Grafo de Impacto. `project` filtra por proyecto (p. ej. "asistoya-web", "memoria-claude").
     """
     t0 = time.time()
     results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None)
@@ -78,7 +78,7 @@ def get_file_outline(file_path: str, project: str = "") -> str:
     """
     Devuelve unicamente el esquema sintactico (firmas, nombres de funciones, tipos, clases
     y rangos de lineas) de un archivo sin volcar el codigo completo.
-    Consumo tipico: ~40-60 tokens (en lugar de 3,000+ tokens de leer el archivo entero).
+    Suele pesar mucho menos que leer el archivo entero.
     Usa esta herramienta cuando solo necesites saber que funciones o componentes existen en un archivo.
     """
     # Intentar resolver ruta absoluta o relativa en proyectos
@@ -208,8 +208,7 @@ def find_related_tests(file_or_symbol: str) -> str:
 @mcp.tool()
 def get_savings_report() -> str:
     """
-    Devuelve el reporte historico persistente de tokens y costos ahorrados por SyntaxRAG
-    en esta maquina (acumulado de hoy, semanal y global).
+    Devuelve un registro de uso del buscador y una referencia (no es un ahorro medido).
     """
     stats = telemetry.get_summary_stats()
     today = stats["today"]
@@ -217,14 +216,14 @@ def get_savings_report() -> str:
 
     out = [
         "================================================================================",
-        "               REPORTE HISTORICO DE AHORRO DE TOKENS (SYNTAX RAG)               ",
+        "               REGISTRO DE USO DEL BUSCADOR Y REFERENCIA (SYNTAX RAG)          ",
         "================================================================================",
-        f"Ahorro de Hoy:       {today['tokens_saved']:,} tokens ahorrados (USD ${today['cost_saved_usd']:.2f})",
+        f"Referencia de Hoy:   {today['tokens_saved']:,} tokens (referencia contrafactual, no medido)",
         f"Consultas de Hoy:    {today['queries']} consultas (Latencia media: {today['avg_latency_ms']:.1f}ms)",
         "--------------------------------------------------------------------------------",
-        f"Ahorro Acumulado:    {all_time['tokens_saved']:,} tokens ahorrados (USD ${all_time['cost_saved_usd']:.2f})",
+        f"Referencia Total:    {all_time['tokens_saved']:,} tokens (referencia contrafactual, no medido)",
         f"Consultas Totales:   {all_time['queries']} consultas atendidas localmente",
-        f"Costo en la nube:    $0.00 USD (Inferencia 100% en CPU local)",
+        f"Costo en la nube:    $0.00 USD (Inferencia en CPU local)",
         "================================================================================"
     ]
     return "\n".join(out)
