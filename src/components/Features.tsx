@@ -7,45 +7,45 @@ const INNOVACIONES = [
     titulo: 'Parser Sintáctico Tree-sitter',
     estado: 'activo',
     icono: Code,
-    descripcion: 'A diferencia de los RAG convencionales que parten texto por líneas arbitrarias o tokens fijos, SyntaxRAG desciende al Árbol de Sintaxis Abstracta (AST) para extraer únicamente funciones, clases, hooks e interfaces completas.',
-    beneficio: '0 fragmentos partidos por la mitad; conserva firmas, parámetros y docstrings.',
-    lenguajes: 'TypeScript, TSX, JavaScript, JSX, Python',
+    descripcion: 'A diferencia de un RAG que parte el texto por líneas o tokens fijos, SyntaxRAG desciende al Árbol de Sintaxis Abstracta (AST) para extraer funciones, clases, hooks e interfaces completas.',
+    beneficio: 'Conserva firmas, parámetros y docstrings; solo los bloques de más de 2.400 caracteres se dividen.',
+    lenguajes: 'TypeScript, TSX, JavaScript, JSX, Python, Rust, Go',
   },
   {
-    id: 'zero-token-cache',
-    titulo: 'Zero-Token Semantic Cache',
+    id: 'local-query-cache',
+    titulo: 'Caché Local de Consultas',
     estado: 'activo',
     icono: Zap,
-    descripcion: 'Almacena resultados en la tabla query_cache de LanceDB. Si tú o un agente realizan una consulta semánticamente equivalente, se responde en memoria en menos de 1 milisegundo a costo cero.',
-    beneficio: 'Ahorro del 100% de costos de cuota de API en tareas repetitivas de desarrollo.',
-    lenguajes: 'LanceDB local · < 1 ms',
+    descripcion: 'Guarda los resultados en la tabla query_cache de LanceDB. Si repites la misma consulta (sin distinguir mayúsculas ni espacios), se responde desde esa tabla sin recalcular el reordenado. Con otras palabras se vuelve a buscar, y la caché se vacía al reindexar.',
+    beneficio: 'La búsqueda no usa APIs de pago. Los resultados siguen costando tokens al modelo que los lee.',
+    lenguajes: 'LanceDB local · ~9 ms si se repite',
   },
   {
     id: 'reactive-watcher',
-    titulo: 'Hot-Reload Reactivo (~18ms)',
-    estado: 'activo',
+    titulo: 'Observador de Cambios (opcional)',
+    estado: 'opcional',
     icono: Cpu,
-    descripcion: 'Un demonio en segundo plano (lancedb-watcher.service) monitorea los archivos del monorepo. Cada vez que guardas con Ctrl+S en VSCode, Cursor o terminal, el archivo se re-parsea e indexa al vuelo.',
-    beneficio: 'Elimina las reindexaciones completas de 30 segundos. El índice siempre está al día.',
-    lenguajes: 'Demonio systemd in-memory',
+    descripcion: 'Un servicio opcional (lancedb-watcher.service) vigila tus proyectos y, tras 0,6 s sin nuevos guardados, vuelve a parsear e indexar solo el archivo modificado. Reindexar un archivo pequeño tarda ~8 ms (mediana medida).',
+    beneficio: 'Evita reindexar todo el proyecto en cada guardado. Consume memoria constante: 300 MB o más de RAM medidos en el equipo del autor.',
+    lenguajes: 'Servicio systemd de usuario (Linux)',
   },
   {
     id: 'impact-graph',
-    titulo: 'Grafo de Impacto Bidireccional',
+    titulo: 'Grafo de Impacto de Dependencias',
     estado: 'activo',
     icono: GitFork,
-    descripcion: 'Construye una red estática de dependencias con 23,364 aristas que mapea qué archivos importan y consumen cada componente o servicio del proyecto.',
-    beneficio: 'Alerta antes de modificar firmas exportadas, previniendo regresiones silenciosas.',
-    lenguajes: 'Grafo de dependencias en memoria',
+    descripcion: 'Guarda en una tabla de LanceDB qué archivos importan cada símbolo (23.704 relaciones en el índice del autor, 6-oct-2026), para avisar qué archivos dependen de lo que vas a modificar.',
+    beneficio: 'Avisa antes de modificar firmas exportadas. Detecta imports; no sigue llamadas dinámicas.',
+    lenguajes: 'Tabla impact_graph en LanceDB',
   },
   {
     id: 'flashrank-onnx',
     titulo: 'Reranker Neuronal FlashRank',
     estado: 'activo',
     icono: ShieldAlert,
-    descripcion: 'Reordena los candidatos recuperados por búsqueda BM25 de Tantivy usando un modelo transformador compacto (ms-marco-TinyBERT-L-2-v2) optimizado con ONNX Runtime.',
-    beneficio: 'Precisión semántica superior con scoring continuo (0-100%) sin requerir GPU dedicada.',
-    lenguajes: 'ONNX Runtime en CPU pura',
+    descripcion: 'Los candidatos se recuperan por palabras (búsqueda BM25 de Tantivy) y se reordenan con un modelo transformador compacto (ms-marco-TinyBERT-L-2-v2) en ONNX Runtime. Si la consulta no comparte palabras con el código, la búsqueda no lo encuentra.',
+    beneficio: 'Reordena en CPU, sin GPU. El modelo se descarga una vez la primera vez que se usa.',
+    lenguajes: 'ONNX Runtime en CPU',
   },
 ];
 
@@ -62,7 +62,7 @@ export const Features: React.FC = () => {
             Los 5 Pilares de Ingeniería de SyntaxRAG
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Diseñados para eliminar los cuellos de botella de indexación y saturación de contexto que sufren los desarrolladores y agentes de IA.
+            Diseñados para aliviar los cuellos de botella de indexación y de contexto que sufren los desarrolladores y los agentes de IA. Cada cifra de esta página indica si es medida o de ejemplo.
           </p>
         </div>
 
@@ -82,7 +82,7 @@ export const Features: React.FC = () => {
                     </div>
                     <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-mono font-bold uppercase tracking-wide bg-[#7EE787]/15 text-[#7EE787] border border-[#7EE787]/30">
                       <Check className="w-3 h-3" />
-                      Activo
+                      {item.estado === 'opcional' ? 'Opcional' : 'Activo'}
                     </span>
                   </div>
 

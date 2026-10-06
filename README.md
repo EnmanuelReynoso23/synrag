@@ -1,8 +1,8 @@
 # SyntaxRAG (SYNRAG)
 
-**AST-Native MCP Engine · Zero-Token Cache · Dependency Impact Graph**
+**AST-Native MCP Engine · Búsqueda de código local · Dependency Impact Graph**
 
-Motor de inteligencia de código local de alto rendimiento y arquitectura semántica universal para cualquier agente de IA (Claude Code, Google Antigravity, Cursor, Windsurf, Cline, VS Code, Zed).
+Motor local de búsqueda de código para agentes de IA, por el protocolo MCP. Probado con Claude Code y Google Antigravity; el instalador también lo configura para Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code y Zed (sin probar).
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
 [![LanceDB](https://img.shields.io/badge/LanceDB-Vector%20Store-00E5FF.svg)](https://lancedb.com/)
@@ -16,21 +16,21 @@ Motor de inteligencia de código local de alto rendimiento y arquitectura semán
 
 ## Que es SyntaxRAG (SYNRAG)
 
-El RAG tradicional (Retrieval-Augmented Generation) para código está roto: corta archivos en bloques ciegos de 500 tokens que parten funciones a la mitad, no entienden jerarquías de tipos y obligan a los modelos de lenguaje a gastar millones de tokens leyendo archivos completos solo para orientarse.
+Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejemplo, 500 tokens que pueden partir funciones a la mitad y no entienden jerarquías de tipos, y los agentes terminan leyendo archivos completos para orientarse. Otras herramientas modernas también trocean por AST; SyntaxRAG es una opción local y abierta, y publica cómo se mide cada cifra (ver `CLAIMS.md`).
 
 **SyntaxRAG (SYNRAG)** resuelve este problema analizando el árbol sintáctico abstracto (AST) del código en tu máquina local:
 
-- **Tree-sitter AST Chunker:** Trocea quirúrgicamente por funciones, hooks, clases, tipos y declaraciones completas.
-- **FlashRank ONNX Reranker:** Re-ordena los resultados semánticos en CPU en menos de 3 ms con modelos neurales TinyBERT locales.
-- **Grafo de Impacto de Dependencias (NetworkX):** Mapea imports y exports bidireccionales para advertir a los agentes si una edición rompería otros módulos.
-- **Zero-Token Cache:** Tabla de caché de microsegundos (<1 ms) con 0 consumo de tokens y $0 costo en APIs.
-- **Hot-Reload Reactivo (~18 ms):** Demonio systemd/launchd que actualiza LanceDB en memoria cada vez que guardas con Ctrl+S en tu editor.
+- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases, tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript, Python, Rust y Go); los bloques de más de 2.400 caracteres se dividen.
+- **Búsqueda por palabras con reordenado neuronal:** Recupera candidatos con BM25 (Tantivy sobre LanceDB) y los reordena en CPU con un modelo TinyBERT local (FlashRank). Si la consulta no comparte palabras con el código, no lo encuentra. Mediana medida: ~90 ms por consulta nueva.
+- **Grafo de Impacto de Dependencias:** Guarda en una tabla de LanceDB qué archivos importan cada símbolo, para avisar a los agentes de qué depende de lo que van a editar. Detecta imports; no sigue llamadas dinámicas.
+- **Caché de consultas repetidas:** Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local (~9 ms). No es una caché semántica y se vacía al reindexar. La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo que los lee.
+- **Observador de cambios (opcional):** Un servicio de systemd de usuario (`lancedb-watcher.service`) reindexa solo el archivo que guardas: ~8 ms por archivo pequeño (mediana medida), tras 0,6 s de espera para agrupar guardados. Usa 300 MB o más de RAM.
 
 ---
 
 ## Instalacion Universal en 1 Linea
 
-Funciona en **Linux (CachyOS, Arch, Ubuntu, Debian, Fedora), macOS y Windows con WSL**:
+Probado en **Linux (CachyOS)**. Debería funcionar en otras distribuciones, macOS y Windows con WSL, pero no están probados:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash
@@ -55,7 +55,7 @@ Al instalarse o al ejecutar `SYNRAG configure`, SyntaxRAG hace dos cosas en cada
 | Herramienta / Agente | MCP (servidor) | Instrucciones globales |
 |---|---|---|
 | **Claude Code** | `~/.claude.json` | `~/.claude/CLAUDE.md` |
-| **Google Antigravity** | `~/.gemini/antigravity/mcp_config.json` | `~/.gemini/GEMINI.md` |
+| **Google Antigravity** | `~/.gemini/config/mcp_config.json` (si ya existe `~/.gemini/antigravity/mcp_config.json`, también lo mantiene al día) | `~/.gemini/GEMINI.md` |
 | **Gemini CLI** | `~/.gemini/settings.json` | `~/.gemini/GEMINI.md` |
 | **Codex CLI** | `~/.codex/config.toml` | `~/.codex/AGENTS.md` |
 | **Cursor** | `~/.cursor/mcp.json` | (se añade a mano en Settings > Rules) |
@@ -65,13 +65,7 @@ Al instalarse o al ejecutar `SYNRAG configure`, SyntaxRAG hace dos cosas en cada
 
 Garantías del instalador: no crea la carpeta de una IA que no está instalada, hace una copia `.bak-AAAAMMDD-HHMMSS` antes de modificar un archivo existente, nunca sobrescribe un JSON que no pueda leer y es idempotente (ejecutarlo dos veces no duplica nada).
 
----|---|
-| **Claude Code** | `~/.claude.json` y `~/.claude/settings.json` |
-| **Google Antigravity** | `~/.gemini/antigravity/mcp/desktop-lancedb` |
-| **Cursor IDE** | `~/.cursor/mcp.json` / `globalStorage` |
-| **Windsurf / Codeium** | `~/.codeium/windsurf/mcp_config.json` |
-| **VS Code / Cline / Roo Code** | `cline_mcp_settings.json` / `~/.vscode/mcp.json` |
-| **Zed Editor** | `~/.config/zed/settings.json` |
+Estado de compatibilidad (6-oct-2026): **probado en la práctica con Claude Code y Google Antigravity.** Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code y Zed se configuran según su documentación, pero no se han probado. Si usas alguna, abre una incidencia con el resultado.
 
 ---
 
@@ -92,11 +86,11 @@ rm -rf ~/.local/opt/lancedb-hub   # opcional: borra tambien el motor y su indice
 
 Cualquier agente conectado a SyntaxRAG tiene acceso a 7 herramientas nativas:
 
-1. `search_desktop(query, limit, project)`: Búsqueda semántica AST con FlashRank neural en CPU y advertencia de impacto.
-2. `get_file_outline(file_path)`: Esquema sintáctico de un archivo en ~50 tokens (firmas y rangos de línea sin volcar el código fuente). Ahorro de 98% en contexto.
+1. `search_desktop(query, limit, project)`: Búsqueda por palabras (BM25) con reordenado neuronal en CPU y advertencia de impacto.
+2. `get_file_outline(file_path)`: Esquema sintáctico de un archivo (firmas y rangos de línea) sin volcar el código fuente. Suele pesar mucho menos que el archivo completo; el ahorro real depende de la tarea.
 3. `get_impact_radius(symbol)`: Cálculo del blast radius preventivo antes de editar una función.
 4. `find_related_tests(file_or_symbol)`: Mapeo de archivos `.test.ts`, `.spec.ts` asociados para correr solo las pruebas necesarias.
-5. `get_savings_report()`: Reporte persistente de ahorro acumulado en tokens y dólares.
+5. `get_savings_report()`: Registro de uso del buscador: tokens devueltos y una referencia contrafactual (tamaño completo de los archivos devueltos). La referencia no es un ahorro medido; ver `CLAIMS.md`.
 6. `list_projects()`: Resumen de proyectos indexados y recuento de fragmentos.
 7. `reindex_desktop()`: Re-indexación completa del árbol AST y grafo de impacto.
 
@@ -110,13 +104,13 @@ SyntaxRAG cuenta con un binario autónomo para terminal:
 # Panel de control y estado operativo
 SYNRAG
 
-# Búsqueda semántica AST instantánea
+# Búsqueda por palabras con reordenado neuronal
 SYNRAG "asistenciaServicio"
 
 # Búsqueda filtrada por proyecto
 SYNRAG --project asistoya-web "useEstudiantes"
 
-# Esquema sintáctico de un archivo en ~50 tokens
+# Esquema sintáctico de un archivo (firmas y rangos de línea)
 SYNRAG outline apps/web/src/modulos/asistencia/asistencia.servicio.ts
 
 # Radio de impacto y archivos dependientes
@@ -125,7 +119,7 @@ SYNRAG impact asistenciaServicio
 # Localizar tests asociados
 SYNRAG tests asistenciaServicio
 
-# Métricas persistentes de ahorro histórico y tokens
+# Estadísticas del índice y registro de búsquedas
 SYNRAG stats
 
 # Re-escanear y auto-configurar todas las IAs instaladas
@@ -149,9 +143,9 @@ SYNRAG agy
 El repositorio incluye la aplicación web oficial (`synrag-web`), diseñada bajo el tema Dark Mode (`#0D1117`) y Neón Cyan (`#00E5FF`):
 
 - **Simulador AST en Vivo:** Visualización en 3 modos: Código fuente, Árbol jerárquico Tree-sitter y Grafo de Dependencias SVG interactivo.
-- **Calculadora de Ahorro Económico:** Deslizadores en tiempo real para proyectar ahorro en dólares y tokens según tarifas de Claude 3.5 Sonnet, GPT-4o o Gemini.
-- **Simulador de Terminal CLI:** Consola interactiva en el navegador que emula comandos de terminal CachyOS en vivo.
-- **Métricas Reales del Monorepo:** 95,502 fragmentos AST, <1 ms de latencia y 23,364 aristas en el grafo de impacto.
+- **Calculadora de Escenarios de Tokens:** Deslizadores para estimar un escenario hipotético con supuestos que tú ajustas; no es una medición ni una promesa de ahorro.
+- **Simulador de Terminal CLI:** Simulación en el navegador, con datos ficticios, de la salida de los comandos de SYNRAG.
+- **Métricas medidas por el autor (6-oct-2026, ~75 proyectos indexados):** ~96 mil fragmentos AST, ~90 ms por consulta nueva (mediana en reposo; p90 ~110 ms), ~9 ms si se repite la consulta y 23.704 relaciones en el grafo de impacto.
 
 ### Levantar la Web en Desarrollo
 
@@ -169,16 +163,16 @@ La web estará disponible en `http://localhost:5173`.
 ```
 synrag/
 ├── engine/                       # Motor Central de Inteligencia Local (Python)
-│   ├── chunker.py                # Tree-sitter AST Chunker (TS, JS, PY, SQL, MD)
+│   ├── chunker.py                # Tree-sitter AST Chunker (TS, TSX, JS, Python, Rust, Go)
 │   ├── ranker.py                 # FlashRank ONNX Cross-Encoder Reranker
-│   ├── impact.py                 # Grafo de dependencias e impacto (NetworkX)
-│   ├── cache.py                  # Zero-Token Cache (<1ms en LanceDB)
+│   ├── impact.py                 # Grafo de dependientes en LanceDB
+│   ├── cache.py                  # Caché de consultas repetidas (LanceDB)
 │   ├── telemetry.py              # Telemetría persistente en SQLite
 │   ├── server_mcp.py             # Servidor MCP 2.0 (FastMCP / MCPServer)
 │   ├── indexer.py                # Indexador incremental de repositorios
 │   ├── installer.py              # Auto-configurador multi-IA multiplataforma
 │   ├── cli.py                    # Interfaz rica de terminal (Rich + Dark Mode)
-│   └── watcher.py                # Demonio reactivo in-memory (Watchdog)
+│   └── watcher.py                # Observador opcional de cambios (Watchdog)
 ├── src/                          # Aplicación Web y Simulador (React 19 + Tailwind 4)
 │   ├── components/               # Hero, Playground, Calculator, Terminal, Metrics...
 │   ├── data/mockData.ts          # Modelos de datos del ecosistema

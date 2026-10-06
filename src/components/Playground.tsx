@@ -350,7 +350,7 @@ export const Playground: React.FC = () => {
             {/* Barra de métricas inferiores */}
             <div className="p-4 bg-[#0D1117] border-t border-[#30363D] flex flex-wrap items-center justify-between text-xs font-mono font-bold text-[#8B949E] gap-3">
               <div className="flex items-center gap-2">
-                <span>Score Neuronal FlashRank:</span>
+                <span>Puntuación FlashRank (ejemplo):</span>
                 <span className="text-[#00E5FF]">{selectedResult.score}%</span>
                 <div className="w-16 bg-[#21262D] rounded-full h-1.5 overflow-hidden">
                   <div className="bg-[#00E5FF] h-1.5 rounded-full" style={{ width: `${selectedResult.score}%` }} />
@@ -358,10 +358,10 @@ export const Playground: React.FC = () => {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[#7EE787] bg-[#7EE787]/10 px-2 py-0.5 rounded border border-[#7EE787]/20">
-                  {selectedResult.cacheHit ? 'Zero-Token (<1ms)' : `${selectedResult.latencyMs}ms`}
+                  {`${selectedResult.latencyMs} ms${selectedResult.cacheHit ? ' (caché)' : ''}`}
                 </span>
                 <span className="text-[#8B949E]">
-                  Costo: $0.00 USD
+                  Costo de la búsqueda: $0.00
                 </span>
               </div>
             </div>
@@ -421,8 +421,8 @@ export const Playground: React.FC = () => {
               </ul>
 
               <div className="mt-4 pt-3 border-t border-[#30363D] flex items-center justify-between text-xs font-mono text-[#8B949E]">
-                <span>Total aristas en grafo:</span>
-                <span className="text-white font-bold">23,364 aristas mapeadas</span>
+                <span>Relaciones en el índice del autor:</span>
+                <span className="text-white font-bold">23,704 (6-oct-2026)</span>
               </div>
             </div>
           </div>

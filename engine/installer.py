@@ -42,6 +42,13 @@ if not VENV_PYTHON.exists():
 
 SERVER_MCP_PY = BASE_DIR / "server_mcp.py"
 SERVER_NAME = "desktop-lancedb"
+
+# Archivo donde Antigravity lee sus servidores MCP. La ruta vigente es ~/.gemini/config/mcp_config.json:
+# esta escrita en el binario de su servidor de lenguaje y en el del CLI `agy`, y alli tenia cargado el MCP
+# un `server_mcp.py` hijo del servidor de lenguaje (comprobado el 6-oct-2026). La ruta anterior,
+# ~/.gemini/antigravity/mcp_config.json, solo se mantiene al dia si el archivo ya existe.
+ANTIGRAVITY_MCP = HOME / ".gemini" / "config" / "mcp_config.json"
+ANTIGRAVITY_MCP_ANTERIOR = HOME / ".gemini" / "antigravity" / "mcp_config.json"
 DRY_RUN = "--dry-run" in sys.argv
 STAMP = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -54,7 +61,7 @@ MCP_SERVER_CONFIG: Dict[str, Any] = {
 BLOQUE_INI = "<!-- SYNRAG:BEGIN -->"
 BLOQUE_FIN = "<!-- SYNRAG:END -->"
 BLOQUE_INSTRUCCIONES = f"""{BLOQUE_INI}
-## SyntaxRAG (SYNRAG): buscar codigo sin gastar tokens
+## SyntaxRAG (SYNRAG): buscar codigo en el indice local
 - Para ubicar codigo, notas o configuracion usa PRIMERO la herramienta MCP `search_desktop`
   (servidor `{SERVER_NAME}`). Devuelve `ruta:linea` y el bloque sintactico completo. Despues lee
   SOLO ese tramo. No listes arboles de carpetas ni leas archivos enteros para "orientarte".
@@ -180,12 +187,15 @@ def configure_claude_code() -> List[str]:
 
 
 def configure_antigravity() -> List[str]:
-    # Antigravity lee ~/.gemini/antigravity/mcp_config.json (clave mcpServers).
+    # Antigravity lee ~/.gemini/config/mcp_config.json (clave mcpServers); ver ANTIGRAVITY_MCP.
     if not _instalada(dirs=[HOME / ".gemini" / "antigravity"], binarios=["antigravity", "agy"]):
         return []
-    r = _registrar_json(HOME / ".gemini" / "antigravity" / "mcp_config.json")
+    destinos = [ANTIGRAVITY_MCP]
+    if ANTIGRAVITY_MCP_ANTERIOR.is_file():
+        destinos.append(ANTIGRAVITY_MCP_ANTERIOR)
+    resultados = [_registrar_json(d) for d in destinos]
     i = _inyectar_instrucciones(HOME / ".gemini" / "GEMINI.md")
-    return ["Google Antigravity"] if OK in (r, i) or YA in (r, i) else []
+    return ["Google Antigravity"] if any(x in (OK, YA) for x in [*resultados, i]) else []
 
 
 def configure_gemini_cli() -> List[str]:
@@ -355,7 +365,8 @@ def run_uninstall() -> None:
     cline = HOME / ".config" / "Code" / "User" / "globalStorage"
     for ruta, raiz in (
         (HOME / ".claude.json", "mcpServers"),
-        (HOME / ".gemini" / "antigravity" / "mcp_config.json", "mcpServers"),
+        (ANTIGRAVITY_MCP, "mcpServers"),
+        (ANTIGRAVITY_MCP_ANTERIOR, "mcpServers"),
         (HOME / ".gemini" / "settings.json", "mcpServers"),
         (HOME / ".cursor" / "mcp.json", "mcpServers"),
         (HOME / ".codeium" / "windsurf" / "mcp_config.json", "mcpServers"),

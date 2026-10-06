@@ -16,7 +16,7 @@ const INITIAL_LOGS: WatcherLog[] = [
     time: '08:04:12',
     file: 'apps/web/src/modulos/asistencia/asistencia.servicio.ts',
     project: 'mi-monorepo',
-    latencyMs: 18.2,
+    latencyMs: 8.1,
     chunksUpdated: 6,
   },
   {
@@ -24,7 +24,7 @@ const INITIAL_LOGS: WatcherLog[] = [
     time: '08:04:38',
     file: 'apps/web/src/modulos/reconocimiento-facial/reconocimiento.servicio.ts',
     project: 'mi-monorepo',
-    latencyMs: 17.5,
+    latencyMs: 8.4,
     chunksUpdated: 4,
   },
   {
@@ -32,7 +32,7 @@ const INITIAL_LOGS: WatcherLog[] = [
     time: '08:05:02',
     file: 'apps/web/src/modulos/profesor/componentes/PaseDeLista.tsx',
     project: 'mi-monorepo',
-    latencyMs: 19.1,
+    latencyMs: 8.9,
     chunksUpdated: 3,
   },
 ];
@@ -56,7 +56,7 @@ export const DaemonStatus: React.FC = () => {
       time: timeStr,
       file: pick.file,
       project: pick.project,
-      latencyMs: +(16 + Math.random() * 4).toFixed(1),
+      latencyMs: +(8 + Math.random() * 2).toFixed(1),
       chunksUpdated: Math.floor(Math.random() * 5) + 1,
     };
 
@@ -73,13 +73,13 @@ export const DaemonStatus: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00E5FF] flex items-center justify-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] animate-pulse"></span>
-            DEMONIO REACTIVO · SYSTEMD WATCHER
+            OBSERVADOR DE CAMBIOS · OPCIONAL · DEMOSTRACIÓN
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Hot-Reload AST (~18 ms)
+            Reindexado por archivo (~8 ms medidos)
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Cada vez que guardas con <kbd className="px-2 py-0.5 rounded bg-[#161B22] border border-[#30363D] text-[#00E5FF] font-mono text-xs">Ctrl+S</kbd> en tu editor, el servicio <strong className="text-white font-semibold">lancedb-watcher.service</strong> detecta la modificación y re-parsea quirúrgicamente el archivo afectado en memoria.
+            Con el servicio opcional <strong className="text-white font-semibold">lancedb-watcher.service</strong> activo, cada archivo que guardas con <kbd className="px-2 py-0.5 rounded bg-[#161B22] border border-[#30363D] text-[#00E5FF] font-mono text-xs">Ctrl+S</kbd> se vuelve a parsear e indexar tras 0,6 s sin nuevos cambios. Esta página lo muestra con una simulación; los ~8 ms son la mediana medida por el autor con archivos pequeños.
           </p>
         </div>
 
@@ -89,14 +89,13 @@ export const DaemonStatus: React.FC = () => {
           <div className="p-4 sm:p-5 bg-[#161B22] border-b border-[#30363D] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7EE787] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#7EE787]"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#8B949E]"></span>
               </span>
               <span className="font-mono text-xs sm:text-sm font-bold text-white">
                 lancedb-watcher.service
               </span>
-              <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#238636]/20 border border-[#238636]/50 text-[#7EE787]">
-                Active · Running
+              <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#30363D]/40 border border-[#30363D] text-[#8B949E]">
+                Simulación
               </span>
             </div>
 
@@ -124,7 +123,7 @@ export const DaemonStatus: React.FC = () => {
                   <span className="text-[#6E7681]">[{log.time}]</span>
                   <span className="text-[#00E5FF] font-bold flex items-center gap-1">
                     <Zap className="w-3 h-3 fill-[#00E5FF]" />
-                    HOT-RELOAD AST
+                    REINDEXADO AST
                   </span>
                   <span className="text-white font-semibold truncate max-w-xs sm:max-w-md">
                     {log.file}
@@ -141,7 +140,7 @@ export const DaemonStatus: React.FC = () => {
           <div className="p-4 bg-[#161B22] border-t border-[#30363D] flex flex-wrap items-center justify-between text-xs text-[#8B949E] font-medium gap-3">
             <div className="flex items-center gap-2">
               <Check className="w-4 h-4 text-[#7EE787]" />
-              <span>Memoria del daemon: <strong className="text-white">12.3 MB RAM</strong> (CPU: 0.1% reposo)</span>
+              <span>Memoria medida del observador: <strong className="text-white">300 MB o más de RAM</strong> (CPU ~0,3 % de media)</span>
             </div>
             <div className="flex items-center gap-1.5 font-mono text-[#58A6FF]">
               <Terminal className="w-3.5 h-3.5" />

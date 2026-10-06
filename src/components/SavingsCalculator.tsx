@@ -8,10 +8,10 @@ interface AIModel {
 }
 
 const AI_MODELS: AIModel[] = [
-  { name: 'Claude 3.5 Sonnet', provider: 'Anthropic', costPerMillionTokens: 3.0 },
-  { name: 'Claude 3 Opus', provider: 'Anthropic', costPerMillionTokens: 15.0 },
-  { name: 'GPT-4o', provider: 'OpenAI', costPerMillionTokens: 2.5 },
-  { name: 'Gemini 1.5 Pro', provider: 'Google', costPerMillionTokens: 3.5 },
+  { name: 'Económico', provider: 'precio de ejemplo', costPerMillionTokens: 1.0 },
+  { name: 'Medio', provider: 'precio de ejemplo', costPerMillionTokens: 3.0 },
+  { name: 'Alto', provider: 'precio de ejemplo', costPerMillionTokens: 5.0 },
+  { name: 'Premium', provider: 'precio de ejemplo', costPerMillionTokens: 15.0 },
 ];
 
 export const SavingsCalculator: React.FC = () => {
@@ -22,8 +22,8 @@ export const SavingsCalculator: React.FC = () => {
   const selectedModel = AI_MODELS[selectedModelIdx];
 
   const calculations = useMemo(() => {
-    // Estimacion de tokens:
-    // Lectura completa tradicional: archivo completo + archivos importados (~3.5x lineas) * ~4 tokens por linea
+    // Escenario hipotetico (NO es una medicion). Supuesto: sin SynRAG se leeria el archivo completo
+    // mas sus importaciones (~3.5x las lineas) a ~3.8 tokens por linea.
     const tokensPerTraditionalQuery = Math.round(avgFileLines * 3.5 * 3.8);
     // SyntaxRAG: solo el fragmento sintactico AST exacto (~45 lineas promedio) * ~3.8 tokens
     const tokensPerSynragQuery = Math.round(45 * 3.8);
@@ -35,10 +35,6 @@ export const SavingsCalculator: React.FC = () => {
     const monthlyDollarsSaved = (monthlyTokensSaved / 1_000_000) * selectedModel.costPerMillionTokens;
     const yearlyDollarsSaved = monthlyDollarsSaved * 12;
 
-    // Latencia: 3.8s por lectura de archivo completa vs 0.018s (18ms) con SyntaxRAG
-    const secondsSavedMonthly = monthlyQueries * 3.6;
-    const hoursSavedMonthly = +(secondsSavedMonthly / 3600).toFixed(1);
-
     const tokenReductionPercent = Math.round((tokensSavedPerQuery / tokensPerTraditionalQuery) * 100);
 
     return {
@@ -47,7 +43,6 @@ export const SavingsCalculator: React.FC = () => {
       monthlyTokensSaved,
       monthlyDollarsSaved: monthlyDollarsSaved.toFixed(2),
       yearlyDollarsSaved: yearlyDollarsSaved.toFixed(2),
-      hoursSavedMonthly,
       tokenReductionPercent,
     };
   }, [dailyQueries, avgFileLines, selectedModel]);
@@ -62,13 +57,13 @@ export const SavingsCalculator: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-[#00E5FF] flex items-center justify-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00E5FF] animate-pulse" />
-            ECONOMIA DE TOKENS & LATENCIA LOCAL
+            ESCENARIO HIPOTÉTICO · SUPUESTOS EDITABLES
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            Calculadora de Ahorro Real en Desarrollo
+            Calculadora de Escenarios de Tokens
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Mide el impacto económico y el tiempo que recuperas al alimentar tus agentes de IA (Claude Code, Google Antigravity) con fragmentos AST quirúrgicos en lugar de volcar archivos enteros al contexto.
+            Estima un escenario con supuestos que tú ajustas: cuántos tokens leería tu IA con archivos enteros y cuántos con fragmentos AST. No es una medición ni una promesa de ahorro: el resultado real depende de cuántas lecturas evite SyntaxRAG en tu trabajo.
           </p>
         </div>
 
@@ -81,7 +76,7 @@ export const SavingsCalculator: React.FC = () => {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                   <Zap className="w-4 h-4 text-[#00E5FF]" />
-                  Consultas semánticas a la IA por día:
+                  Consultas de código a la IA por día:
                 </label>
                 <span className="font-mono text-sm sm:text-base font-black text-[#00E5FF] px-2.5 py-0.5 rounded-lg bg-[#0D1117] border border-[#30363D]">
                   {dailyQueries} consultas/día
@@ -133,7 +128,7 @@ export const SavingsCalculator: React.FC = () => {
             {/* Control 3: Modelo de IA */}
             <div>
               <label className="text-xs sm:text-sm font-bold text-white mb-2.5 block">
-                Modelo de IA del agente de codificación:
+                Precio por millón de tokens (de ejemplo; revisa el de tu proveedor):
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {AI_MODELS.map((model, idx) => (
@@ -164,7 +159,7 @@ export const SavingsCalculator: React.FC = () => {
 
               <div>
                 <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-[#FF7B72]">RAG Tradicional / Lectura Completa:</span>
+                  <span className="text-[#FF7B72]">Supuesto: archivo completo y sus importaciones:</span>
                   <span className="font-bold text-[#FF7B72]">{calculations.tokensPerTraditionalQuery.toLocaleString()} tokens</span>
                 </div>
                 <div className="w-full bg-[#0D1117] rounded-full h-2.5 overflow-hidden border border-[#30363D]">
@@ -174,7 +169,7 @@ export const SavingsCalculator: React.FC = () => {
 
               <div>
                 <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-[#00E5FF]">SyntaxRAG (Fragmento AST Quirúrgico):</span>
+                  <span className="text-[#00E5FF]">Supuesto con SyntaxRAG (fragmento AST de ~45 líneas):</span>
                   <span className="font-bold text-[#00E5FF]">{calculations.tokensPerSynragQuery.toLocaleString()} tokens</span>
                 </div>
                 <div className="w-full bg-[#0D1117] rounded-full h-2.5 overflow-hidden border border-[#30363D]">
@@ -197,7 +192,7 @@ export const SavingsCalculator: React.FC = () => {
 
               <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-[#00E5FF]">
                 <TrendingUp className="w-4 h-4" />
-                Ahorro Económico Estimado
+                Escenario: costo evitado (hipotético)
               </div>
 
               <div className="mt-3 flex items-baseline gap-2">
@@ -208,18 +203,18 @@ export const SavingsCalculator: React.FC = () => {
               </div>
 
               <div className="mt-1 text-xs font-mono text-[#7EE787]">
-                Equivalente a <strong className="font-bold">${calculations.yearlyDollarsSaved} USD</strong> ahorrados al año.
+                Equivale a <strong className="font-bold">${calculations.yearlyDollarsSaved} USD</strong> al año en este escenario.
               </div>
 
               <div className="mt-5 pt-4 border-t border-[#30363D] grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-[11px] font-mono text-[#8B949E]">Tokens reducidos:</div>
+                  <div className="text-[11px] font-mono text-[#8B949E]">Tokens menos (supuesto):</div>
                   <div className="text-sm font-mono font-bold text-white mt-0.5">
                     {(calculations.monthlyTokensSaved / 1_000_000).toFixed(1)}M / mes
                   </div>
                 </div>
                 <div>
-                  <div className="text-[11px] font-mono text-[#8B949E]">Eficiencia de contexto:</div>
+                  <div className="text-[11px] font-mono text-[#8B949E]">Reducción supuesta:</div>
                   <div className="text-sm font-mono font-bold text-[#00E5FF] mt-0.5">
                     -{calculations.tokenReductionPercent}% tokens
                   </div>
@@ -234,14 +229,14 @@ export const SavingsCalculator: React.FC = () => {
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-mono text-[#8B949E]">Horas de Espera Ahorradas:</div>
+                  <div className="text-xs font-mono text-[#8B949E]">Latencia local medida por el autor:</div>
                   <div className="text-lg font-black font-mono text-white">
-                    {calculations.hoursSavedMonthly} horas / mes
+                    ~90 ms por consulta nueva
                   </div>
                 </div>
               </div>
               <p className="mt-3 text-xs text-[#8B949E] leading-relaxed">
-                Al evitar lecturas de disco masivas y procesamiento de tokens en la nube, el agente responde en microsegundos vía caché LanceDB local.
+                Mediana de 14 consultas de 2 a 4 palabras por MCP, con el equipo en reposo (6-oct-2026); ~9 ms si repites la misma consulta. Con la CPU saturada tarda el doble. La calculadora no estima tiempo ahorrado: no hay medición de cuánto tardaría una lectura completa.
               </p>
             </div>
 
@@ -252,14 +247,14 @@ export const SavingsCalculator: React.FC = () => {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-mono text-[#8B949E]">Protección de Ventana de Contexto:</div>
+                  <div className="text-xs font-mono text-[#8B949E]">Lo que esta calculadora no mide:</div>
                   <div className="text-sm font-black text-white">
-                    100% libre de saturación de ventana
+                    Depende de tu forma de trabajar
                   </div>
                 </div>
               </div>
               <p className="mt-2 text-xs text-[#8B949E] leading-relaxed">
-                Los prompts se mantienen compactos. La IA nunca sufre de alucinaciones por agotamiento de contexto ni alcanza el límite de TPM (tokens por minuto).
+                Supone que sin SyntaxRAG se leería cada archivo completo más sus importaciones. Si tu agente ya lee fragmentos acotados, el ahorro será menor. Los resultados de una búsqueda igualmente cuestan tokens. Mide tu consumo real antes de decidir; los resultados medidos están en CLAIMS.md del repositorio.
               </p>
             </div>
           </div>

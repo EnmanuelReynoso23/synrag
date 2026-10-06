@@ -4,39 +4,39 @@ import { Check, X } from 'lucide-react';
 const CRITERIOS = [
   {
     criterio: 'Estrategia de Troceado',
-    tradicional: 'Ventanas fijas (ej. 500 tokens o 50 líneas ciegas)',
-    synrag: 'Parser AST sintáctico (Tree-sitter por nodos reales)',
-    ventaja: 'Nunca parte una función ni corta parámetros de hooks',
+    tradicional: 'Ventanas fijas (ej. 500 tokens o 50 líneas)',
+    synrag: 'Troceo por AST (Tree-sitter, por nodos reales)',
+    ventaja: 'Prioriza funciones y clases completas; solo se dividen los bloques de más de 2.400 caracteres',
   },
   {
     criterio: 'Integridad del Contexto',
-    tradicional: 'Fragmentos huérfanos sin firma completa ni tipos',
-    synrag: 'Bloques íntegros con docstrings, firmas e interfaces',
-    ventaja: 'El agente o desarrollador entiende la función sin releer el archivo',
+    tradicional: 'Fragmentos sin la firma completa ni los tipos',
+    synrag: 'Bloques con docstrings, firmas e interfaces',
+    ventaja: 'Suele bastar para entender la función sin abrir el archivo completo',
   },
   {
-    criterio: 'Tiempo de Re-indexación',
-    tradicional: 'Re-escaneo global pesado (30 a 90 segundos)',
-    synrag: 'Hot-Reload reactivo in-memory (~18 ms ante Ctrl+S)',
-    ventaja: 'Cada guardado en el editor actualiza LanceDB instantáneamente',
+    criterio: 'Actualización del Índice',
+    tradicional: 'Reescaneo global del proyecto',
+    synrag: 'Reindexado completo programado (timer) y observador opcional por archivo (~8 ms por archivo pequeño, tras 0,6 s de espera)',
+    ventaja: 'Cifra medida por el autor el 6-oct-2026; el observador usa 300 MB o más de RAM',
   },
   {
-    criterio: 'Costo de Consultas Repetidas',
-    tradicional: 'Llamada externa a embeddings o LLM ($$$ y cuota agotable)',
-    synrag: 'Zero-Token Semantic Cache local ($0.00 y 0 tokens)',
-    ventaja: 'Respuestas semánticas idénticas o afines en < 1 ms',
+    criterio: 'Costo por Consulta',
+    tradicional: 'Embeddings o LLM por API en cada consulta ($ y cuota)',
+    synrag: 'Búsqueda y reordenado en CPU local, sin APIs de pago; caché local para la misma consulta (~9 ms)',
+    ventaja: 'Los resultados igualmente cuestan tokens al modelo que los lee',
   },
   {
     criterio: 'Seguridad de Modificación',
-    tradicional: 'Ninguna noción de dependencias o impacto de imports',
-    synrag: 'Grafo de Impacto bidireccional (23,364 aristas)',
-    ventaja: 'Advierte qué archivos consumen la función antes de editar',
+    tradicional: 'Sin noción de qué archivos dependen de un símbolo',
+    synrag: 'Grafo de impacto de dependientes (23.704 relaciones en el índice del autor)',
+    ventaja: 'Avisa qué archivos importan el símbolo antes de editarlo',
   },
   {
     criterio: 'Dependencia de Infraestructura',
-    tradicional: 'Servidores remotos, vector DBs en la nube, GPUs caras',
-    synrag: '100% Local en CPU (LanceDB columnar + TinyBERT ONNX)',
-    ventaja: 'Opera offline sin internet y sin gastar RAM del sistema',
+    tradicional: 'Servicios remotos, vector DB en la nube o GPU',
+    synrag: 'Todo local en CPU (LanceDB + TinyBERT ONNX)',
+    ventaja: 'Necesita internet solo para instalar y descargar el modelo la primera vez',
   },
 ];
 
@@ -47,13 +47,13 @@ export const Comparison: React.FC = () => {
         {/* Encabezado */}
         <div className="text-center max-w-3xl mx-auto">
           <p className="text-xs font-mono font-bold uppercase tracking-[0.18em] text-[#00E5FF]">
-            Benchmark Comparativo
+            Comparación de Enfoques
           </p>
           <h2 className="mt-3 text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-            RAG Tradicional vs SyntaxRAG
+            RAG Clásico vs SyntaxRAG
           </h2>
           <p className="mt-3 text-sm sm:text-base text-[#8B949E]">
-            Descubre por qué las herramientas de RAG genéricas fallan en código de monorepos y cómo el enfoque AST-Native supera cada limitación.
+            Compara el enfoque de SyntaxRAG con un RAG genérico de ventanas fijas. No es un benchmark contra otras herramientas: otras también usan AST. Las cifras de SyntaxRAG las midió el autor en su equipo.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export const Comparison: React.FC = () => {
               <thead className="bg-[#0D1117] border-b border-[#30363D] text-white font-bold">
                 <tr>
                   <th className="py-4 px-5 sm:px-6">Capacidad Técnica</th>
-                  <th className="py-4 px-5 sm:px-6 text-[#8B949E]">RAG Tradicional (Líneas fijas)</th>
+                  <th className="py-4 px-5 sm:px-6 text-[#8B949E]">RAG clásico (ventanas fijas)</th>
                   <th className="py-4 px-5 sm:px-6 text-[#00E5FF] bg-[#00E5FF]/5">SyntaxRAG (AST Native)</th>
                 </tr>
               </thead>

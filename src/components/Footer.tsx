@@ -23,7 +23,7 @@ export const Footer: React.FC = () => {
             </div>
 
             <p className="text-xs sm:text-sm text-[#8B949E] leading-relaxed max-w-sm">
-              Motor de inteligencia de código sintáctico local y búsqueda semántica AST con cero consumo de tokens, diseñado para potenciar Claude Code, Google Antigravity y flujos de desarrollo de alto rendimiento en tu equipo.
+              Motor local de búsqueda de código para IAs: troceo por AST, búsqueda por palabras con reordenado neuronal y grafo de impacto, sin APIs de pago. Probado con Claude Code y Google Antigravity.
             </p>
 
             <div className="flex items-center gap-3 pt-2">
@@ -44,7 +44,7 @@ export const Footer: React.FC = () => {
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">LanceDB Columnar Store</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">FlashRank TinyBERT ONNX</li>
               <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Grafo de Impacto de dependencias</li>
-              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Zero-Token Cache (<span className="text-[#7EE787] font-bold">&lt;1ms</span>)</li>
+              <li className="hover:text-[#00E5FF] transition-colors cursor-pointer">Caché local de consultas (<span className="text-[#7EE787] font-bold">~9 ms</span>)</li>
             </ul>
           </div>
 

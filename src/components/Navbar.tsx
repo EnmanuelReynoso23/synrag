@@ -60,10 +60,9 @@ export const Navbar: React.FC = () => {
         <div className="hidden sm:flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161B22] border border-[#30363D] text-xs font-mono text-[#7EE787]">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#7EE787] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#7EE787]"></span>
             </span>
-            <span className="text-[#8B949E]">Watcher:</span> ~18ms reactivo
+            <span className="text-[#8B949E]">Reindexar un archivo:</span> ~8 ms (medido)
           </div>
 
           <button
@@ -110,7 +109,7 @@ export const Navbar: React.FC = () => {
             onClick={() => setMobileMenuOpen(false)}
             className="block py-2 text-sm font-semibold text-[#8B949E] hover:text-[#00E5FF]"
           >
-            Calculadora de Ahorro
+            Calculadora de Escenarios
           </a>
           <a
             href="#terminal-cli"
