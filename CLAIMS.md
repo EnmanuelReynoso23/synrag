@@ -23,10 +23,10 @@ Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76
 | # | Afirmación | Dónde |
 |---|---|---|
 | 10 | Los candidatos se recuperan por palabras (BM25, Tantivy FTS sobre LanceDB) y se reordenan con FlashRank `ms-marco-TinyBERT-L-2-v2` | `engine/indexer.py` (`search_desktop`), `engine/ranker.py` |
-| 11 | La caché solo acierta con la misma consulta normalizada (minúsculas y espacios), con 4 horas de vigencia, y se vacía al reindexar. No es una caché semántica | `engine/cache.py`, `engine/indexer.py` |
+| 11 | La caché solo acierta con la misma consulta normalizada (minúsculas y espacios), con 4 horas de vigencia, y se vacía al reindexar. No es una caché semántica | `engine/cache.py`, `engine/indexer.py`; probado en `engine/tests/test_cache.py` |
 | 12 | El troceo es por AST para TypeScript, TSX/JSX, JavaScript y Python; Markdown se trocea por secciones y SQL por sentencias; los bloques de más de 2.400 caracteres se dividen | `engine/chunker.py` (`LANG_MAP`, `MAX_CHUNK_CHARS`) |
 | 13 | El grafo de impacto guarda qué archivos importan cada símbolo en una tabla de LanceDB; no usa NetworkX | `engine/impact.py` |
-| 14 | Se excluyen carpetas ocultas, archivos de más de 250 KB y archivos de credenciales, y se redactan patrones de secretos | `engine/indexer.py` |
+| 14 | Se excluyen carpetas ocultas, archivos de más de 250 KB y archivos de credenciales, y se redactan patrones de secretos | `engine/indexer.py`; probado en `engine/tests/test_secretos.py` y `engine/tests/test_busqueda.py` |
 | 15 | El motor no hace llamadas de red | `grep -rniE "requests\|urllib\|httpx\|socket" engine/*.py` no devuelve nada |
 | 16 | Siete herramientas MCP: `search_desktop`, `get_file_outline`, `get_impact_radius`, `find_related_tests`, `get_savings_report`, `list_projects`, `reindex_desktop` | `engine/server_mcp.py` |
 
@@ -35,7 +35,7 @@ Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76
 | # | Afirmación | Cómo |
 |---|---|---|
 | 17 | Con Claude Code y Antigravity el MCP queda cargado | En el equipo del autor hay un proceso `server_mcp.py` hijo de cada IA; Antigravity lee `~/.gemini/config/mcp_config.json` (la ruta está en su binario y en el del CLI `agy`) |
-| 18 | El instalador funciona en un equipo limpio, es idempotente, conserva servidores ajenos y se desinstala | Probado con un `HOME` falso el 6-oct-2026: instalación, segunda pasada, ruta anterior de Antigravity y `--uninstall` |
+| 18 | El instalador funciona en un equipo limpio, es idempotente, conserva servidores ajenos y se desinstala | Probado con un `HOME` falso el 6-oct-2026: instalación, segunda pasada, ruta anterior de Antigravity y `--uninstall`; automatizado en `engine/tests/test_instalador.py` |
 
 ## No afirmado
 
