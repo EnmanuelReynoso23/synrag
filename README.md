@@ -86,15 +86,6 @@ rm -rf ~/.local/opt/lancedb-hub   # opcional: borra tambien el motor y su indice
 
 ---
 
-## Publicar la web en Vercel
-
-1. En Vercel: **Add New > Project** e importa este repositorio.
-2. Framework **Vite** (se detecta solo): comando `pnpm build`, carpeta de salida `dist`.
-3. Opcional: define `VITE_SITE_URL` (por ejemplo `https://synrag.dev`) para las etiquetas de compartir (Open Graph). Sin ella se usa `VERCEL_PROJECT_PRODUCTION_URL`.
-4. `vercel.json` ya trae cabeceras de seguridad, cache de `/assets` y el tipo correcto para `/install.sh`.
-
-La imagen para compartir es `public/og.png` (1200x630).
-
 ---
 
 ## Herramientas MCP para Agentes de IA
