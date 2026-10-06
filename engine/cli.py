@@ -243,13 +243,25 @@ def show_stats_ui():
     t_stats = telemetry.get_summary_stats()
     today_t = t_stats["today"]
     all_t = t_stats["all_time"]
+    por_agente = t_stats.get("por_agente", {})
+    excluidas = t_stats.get("excluidas", 0)
+    primera_fecha = t_stats.get("primera") or today_t.get("fecha", "")
 
     savings_table = Table(title="[bold #a6e3a1]Uso del buscador y referencia (persistente)[/]", box=box.ROUNDED, border_style="#a6e3a1")
     savings_table.add_column("Dato", style="bold white")
     savings_table.add_column("Valor", style="bold green", justify="right")
     savings_table.add_row("Consultas hoy", f"{today_t['queries']} (latencia media {today_t['avg_latency_ms']:.0f} ms)")
+    savings_table.add_row("Tokens devueltos hoy", f"{today_t.get('tokens_retrieved', 0):,}")
     savings_table.add_row("Consultas registradas (histórico)", f"{all_t['queries']}")
+    if primera_fecha:
+        savings_table.add_row("Medido desde", primera_fecha)
+    savings_table.add_row("Tokens devueltos (histórico)", f"{all_t.get('tokens_retrieved', 0):,}")
+    if por_agente:
+        str_agentes = " | ".join(f"{k}: {v}" for k, v in por_agente.items())
+        savings_table.add_row("Por cliente", str_agentes)
     savings_table.add_row("Referencia: tamaño de los archivos devueltos menos lo devuelto", f"{all_t['tokens_saved']:,} tokens (NO es un ahorro medido)")
+    if excluidas > 0:
+        savings_table.add_row("Filas excluidas (no medidas)", f"{excluidas:,}")
     savings_table.add_row("Entradas en la caché de consultas", f"{cache_entries:,}")
     savings_table.add_row("Aciertos de caché registrados", f"{total_hits:,}")
     console.print(savings_table)
