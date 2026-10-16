@@ -14,7 +14,8 @@ set -euo pipefail
 REPO_RAW="${SYNRAG_RAW_URL:-https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main}"
 INSTALL_DIR="${SYNRAG_HOME:-$HOME/.local/opt/lancedb-hub}"
 PYTHON_CMD="${PYTHON_CMD:-python3}"
-ENGINE_FILES=(cache.py chunker.py cli.py impact.py indexer.py installer.py ranker.py server_mcp.py telemetry.py watcher.py)
+ENGINE_FILES=(argon.py cache.py chunker.py cli.py conciso.py empaquetar.py filtro.py hook_filtro.py impact.py indexer.py installer.py mapa.py ranker.py server_mcp.py telemetry.py watcher.py
+              tools/__init__.py tools/context_tools.py tools/inspect_tools.py tools/patch_tools.py tools/runner_tools.py tools/safety_tools.py)
 DEPENDENCIAS=(lancedb rich tree-sitter tree-sitter-language-pack flashrank mcp watchdog pandas)
 
 fallo() { echo "[ERROR] $*" >&2; exit 1; }
@@ -30,7 +31,7 @@ command -v "$PYTHON_CMD" >/dev/null 2>&1 || fallo "no encuentro $PYTHON_CMD. Ins
 "$PYTHON_CMD" -c 'import venv, ensurepip' 2>/dev/null \
     || fallo "falta el modulo venv. En Debian/Ubuntu: sudo apt install python3-venv"
 
-mkdir -p "$INSTALL_DIR" "$HOME/.local/bin"
+mkdir -p "$INSTALL_DIR/tools" "$HOME/.local/bin"
 
 # --- 1. Motor: desde el repo clonado o descargado ----------------------------
 ORIGEN=""

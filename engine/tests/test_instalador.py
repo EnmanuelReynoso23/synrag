@@ -108,3 +108,21 @@ def test_instalador_dry_run_no_escribe_nada(casa, monkeypatch):
         # Restaurar sys.argv y reload de installer
         monkeypatch.setattr(sys, "argv", ["pytest"])
         importlib.reload(installer)
+
+
+RAIZ_REPO = Path(__file__).resolve().parents[2]
+
+
+def test_la_web_sirve_el_mismo_instalador():
+    """public/install.sh (lo que sirve la web en /install.sh) debe ser igual a install.sh."""
+    assert (RAIZ_REPO / "public" / "install.sh").read_bytes() == (RAIZ_REPO / "install.sh").read_bytes()
+
+
+def test_el_instalador_copia_todo_el_motor():
+    """Cada .py del motor debe estar en ENGINE_FILES; si falta uno, el MCP no arranca en un equipo nuevo."""
+    import re
+    texto = (RAIZ_REPO / "install.sh").read_text(encoding="utf-8")
+    lista = set(re.search(r"ENGINE_FILES=\(([^)]*)\)", texto).group(1).split())
+    motor = RAIZ_REPO / "engine"
+    archivos = {p.relative_to(motor).as_posix() for p in [*motor.glob("*.py"), *motor.glob("tools/*.py")]}
+    assert archivos - lista == set()
