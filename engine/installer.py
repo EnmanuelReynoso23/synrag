@@ -246,6 +246,226 @@ def configure_zed() -> List[str]:
     return ["Zed"] if _registrar_json(HOME / ".config" / "zed" / "settings.json", "context_servers", entrada) in (OK, YA) else []
 
 
+def configure_filtro() -> str:
+    """Configura el hook PreToolUse en ~/.claude/settings.json de forma idempotente."""
+    target = HOME / ".claude" / "settings.json"
+    hook_cmd = f'"{VENV_PYTHON}" "{BASE_DIR / "hook_filtro.py"}"'
+
+    try:
+        datos: Dict[str, Any] = {}
+        if target.is_file():
+            try:
+                datos = json.loads(target.read_text(encoding="utf-8"))
+            except Exception as e:  # noqa: BLE001
+                _log(OMITIDO, str(target), f"JSON ilegible ({e}); anade el hook a mano")
+                return OMITIDO
+        if not isinstance(datos, dict):
+            datos = {}
+
+        hooks = datos.setdefault("hooks", {})
+        if not isinstance(hooks, dict):
+            hooks = datos["hooks"] = {}
+
+        pre_tool_use = hooks.setdefault("PreToolUse", [])
+        if not isinstance(pre_tool_use, list):
+            pre_tool_use = hooks["PreToolUse"] = []
+
+        # Buscar si ya existe el matcher Bash
+        for entrada in pre_tool_use:
+            if isinstance(entrada, dict) and entrada.get("matcher") == "Bash":
+                sub_hooks = entrada.setdefault("hooks", [])
+                if isinstance(sub_hooks, list):
+                    for h in sub_hooks:
+                        if isinstance(h, dict) and "hook_filtro.py" in str(h.get("command", "")):
+                            _log(YA, f"hook de filtro en {target}")
+                            return YA
+                    sub_hooks.append({"type": "command", "command": hook_cmd})
+                    _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+                    _log(OK, f"hook de filtro anadido a {target}", "simulado" if DRY_RUN else "")
+                    return OK
+
+        # Si no existia matcher Bash
+        pre_tool_use.append({
+            "matcher": "Bash",
+            "hooks": [
+                {"type": "command", "command": hook_cmd}
+            ]
+        })
+        _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+        _log(OK, f"hook de filtro configurado en {target}", "simulado" if DRY_RUN else "")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(target), str(e))
+        return ERROR
+
+
+def uninstall_filtro() -> str:
+    """Quita el hook PreToolUse de ~/.claude/settings.json conservando otros hooks y configuraciones."""
+    target = HOME / ".claude" / "settings.json"
+    if not target.is_file():
+        _log(YA, f"hook de filtro no estaba (no existe {target})")
+        return YA
+
+    try:
+        datos = json.loads(target.read_text(encoding="utf-8"))
+        if not isinstance(datos, dict):
+            return YA
+        hooks = datos.get("hooks")
+        if not isinstance(hooks, dict):
+            return YA
+        pre_tool_use = hooks.get("PreToolUse")
+        if not isinstance(pre_tool_use, list):
+            return YA
+
+        modificado = False
+        nuevas_entradas = []
+        for entrada in pre_tool_use:
+            if isinstance(entrada, dict) and entrada.get("matcher") == "Bash":
+                sub_hooks = entrada.get("hooks", [])
+                if isinstance(sub_hooks, list):
+                    nuevos_sub = [
+                        h for h in sub_hooks
+                        if not (isinstance(h, dict) and "hook_filtro.py" in str(h.get("command", "")))
+                    ]
+                    if len(nuevos_sub) != len(sub_hooks):
+                        modificado = True
+                    if nuevos_sub:
+                        entrada["hooks"] = nuevos_sub
+                        nuevas_entradas.append(entrada)
+                else:
+                    nuevas_entradas.append(entrada)
+            else:
+                nuevas_entradas.append(entrada)
+
+        if not modificado:
+            _log(YA, f"hook de filtro no estaba en {target}")
+            return YA
+
+        if nuevas_entradas:
+            hooks["PreToolUse"] = nuevas_entradas
+        else:
+            del hooks["PreToolUse"]
+            if not hooks:
+                del datos["hooks"]
+
+        _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+        _log(OK, f"hook de filtro quitado de {target}", "simulado" if DRY_RUN else "")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(target), str(e))
+        return ERROR
+
+
+def configure_filtro_largas() -> str:
+    """Configura el hook PostToolUse para filtrar salidas largas en ~/.claude/settings.json de forma idempotente."""
+    target = HOME / ".claude" / "settings.json"
+    hook_cmd = f'"{VENV_PYTHON}" "{BASE_DIR / "hook_filtro.py"}"'
+
+    try:
+        datos: Dict[str, Any] = {}
+        if target.is_file():
+            try:
+                datos = json.loads(target.read_text(encoding="utf-8"))
+            except Exception as e:  # noqa: BLE001
+                _log(OMITIDO, str(target), f"JSON ilegible ({e}); anade el hook a mano")
+                return OMITIDO
+        if not isinstance(datos, dict):
+            datos = {}
+
+        hooks = datos.setdefault("hooks", {})
+        if not isinstance(hooks, dict):
+            hooks = datos["hooks"] = {}
+
+        post_tool_use = hooks.setdefault("PostToolUse", [])
+        if not isinstance(post_tool_use, list):
+            post_tool_use = hooks["PostToolUse"] = []
+
+        # Buscar si ya existe el matcher Bash
+        for entrada in post_tool_use:
+            if isinstance(entrada, dict) and entrada.get("matcher") == "Bash":
+                sub_hooks = entrada.setdefault("hooks", [])
+                if isinstance(sub_hooks, list):
+                    for h in sub_hooks:
+                        if isinstance(h, dict) and "hook_filtro.py" in str(h.get("command", "")):
+                            _log(YA, f"hook de filtro largas en {target}")
+                            return YA
+                    sub_hooks.append({"type": "command", "command": hook_cmd})
+                    _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+                    _log(OK, f"hook de filtro largas anadido a {target}", "simulado" if DRY_RUN else "")
+                    return OK
+
+        # Si no existia matcher Bash en PostToolUse
+        post_tool_use.append({
+            "matcher": "Bash",
+            "hooks": [
+                {"type": "command", "command": hook_cmd}
+            ]
+        })
+        _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+        _log(OK, f"hook de filtro largas configurado en {target}", "simulado" if DRY_RUN else "")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(target), str(e))
+        return ERROR
+
+
+def uninstall_filtro_largas() -> str:
+    """Quita el hook PostToolUse de ~/.claude/settings.json conservando otros hooks y configuraciones."""
+    target = HOME / ".claude" / "settings.json"
+    if not target.is_file():
+        _log(YA, f"hook de filtro largas no estaba (no existe {target})")
+        return YA
+
+    try:
+        datos = json.loads(target.read_text(encoding="utf-8"))
+        if not isinstance(datos, dict):
+            return YA
+        hooks = datos.get("hooks")
+        if not isinstance(hooks, dict):
+            return YA
+        post_tool_use = hooks.get("PostToolUse")
+        if not isinstance(post_tool_use, list):
+            return YA
+
+        modificado = False
+        nuevas_entradas = []
+        for entrada in post_tool_use:
+            if isinstance(entrada, dict) and entrada.get("matcher") == "Bash":
+                sub_hooks = entrada.get("hooks", [])
+                if isinstance(sub_hooks, list):
+                    nuevos_sub = [
+                        h for h in sub_hooks
+                        if not (isinstance(h, dict) and "hook_filtro.py" in str(h.get("command", "")))
+                    ]
+                    if len(nuevos_sub) != len(sub_hooks):
+                        modificado = True
+                    if nuevos_sub:
+                        entrada["hooks"] = nuevos_sub
+                        nuevas_entradas.append(entrada)
+                else:
+                    nuevas_entradas.append(entrada)
+            else:
+                nuevas_entradas.append(entrada)
+
+        if not modificado:
+            _log(YA, f"hook de filtro largas no estaba en {target}")
+            return YA
+
+        if nuevas_entradas:
+            hooks["PostToolUse"] = nuevas_entradas
+        else:
+            del hooks["PostToolUse"]
+            if not hooks:
+                del datos["hooks"]
+
+        _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+        _log(OK, f"hook de filtro largas quitado de {target}", "simulado" if DRY_RUN else "")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(target), str(e))
+        return ERROR
+
+
 def install_cli_binaries() -> bool:
     """Crea los binarios globales SYNRAG y synrag en ~/.local/bin."""
     local_bin = HOME / ".local" / "bin"
@@ -259,6 +479,15 @@ exec "{VENV_PYTHON}" "{BASE_DIR / 'cli.py'}" "$@"
     for name in ["SYNRAG", "synrag", "syntaxrag"]:
         target = local_bin / name
         target.write_text(synrag_script, encoding="utf-8")
+        target.chmod(0o755)
+
+    filtrar_script = f"""#!/usr/bin/env bash
+# SyntaxRAG Terminal Filter Launcher
+exec "{VENV_PYTHON}" "{BASE_DIR / 'cli.py'}" filtrar "$@"
+"""
+    for name in ["synrag-filtrar", "SYNRAG-filtrar"]:
+        target = local_bin / name
+        target.write_text(filtrar_script, encoding="utf-8")
         target.chmod(0o755)
 
     return True
@@ -280,6 +509,7 @@ complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "watch" -d "Ver el lo
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "outline" -d "Esquema sintactico (firmas y rangos de linea)"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "impact" -d "Consultar grafo de impacto de un simbolo"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "configure" -d "Auto-configurar todas las IAs del sistema"
+complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "filtrar" -d "Filtrar salida de terminal ruidosa"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "claude" -d "Lanzar Claude Code con MCP integrado"
 complete -c synrag -c SYNRAG -n "__fish_use_subcommand" -a "agy" -d "Lanzar Antigravity CLI con MCP integrado"
 
@@ -383,10 +613,16 @@ def run_uninstall() -> None:
         HOME / ".codeium" / "windsurf" / "memories" / "global_rules.md",
     ):
         _quitar_bloque(ruta)
+    uninstall_filtro()
+    uninstall_filtro_largas()
     if not DRY_RUN:
         for nombre in ("SYNRAG", "synrag", "syntaxrag"):
             lanzador = HOME / ".local" / "bin" / nombre
             if lanzador.is_file() and "SyntaxRAG Universal CLI Launcher" in lanzador.read_text(encoding="utf-8", errors="ignore"):
+                lanzador.unlink()
+        for nombre in ("synrag-filtrar", "SYNRAG-filtrar"):
+            lanzador = HOME / ".local" / "bin" / nombre
+            if lanzador.is_file() and "SyntaxRAG Terminal Filter Launcher" in lanzador.read_text(encoding="utf-8", errors="ignore"):
                 lanzador.unlink()
         for nombre in ("synrag.fish", "SYNRAG.fish"):
             comp = HOME / ".config" / "fish" / "completions" / nombre
@@ -434,7 +670,24 @@ def run_full_installation() -> None:
 
 
 if __name__ == "__main__":
-    if "--uninstall" in sys.argv:
+    if "--conciso" in sys.argv:
+        import conciso
+        if "--uninstall" in sys.argv or "uninstall" in sys.argv:
+            conciso.desactivar()
+        else:
+            conciso.activar()
+    elif "--filtro-largas" in sys.argv:
+        if "--uninstall" in sys.argv or "uninstall" in sys.argv:
+            uninstall_filtro_largas()
+        else:
+            configure_filtro_largas()
+    elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
+        if "--uninstall" in sys.argv or "uninstall" in sys.argv:
+            uninstall_filtro()
+        else:
+            configure_filtro()
+    elif "--uninstall" in sys.argv:
         run_uninstall()
     else:
         run_full_installation()
+

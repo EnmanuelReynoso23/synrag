@@ -13,7 +13,9 @@ sys.path.insert(0, str(MOTOR))
 def casa(tmp_path, monkeypatch):
     """HOME temporal. Devuelve la ruta; los modulos del motor quedan recargados con ese HOME."""
     monkeypatch.setenv("HOME", str(tmp_path))
-    for nombre in ("indexer", "cache", "impact", "telemetry", "installer"):
+    for var in ("SYNRAG_DB_PATH", "SYNRAG_CARPETAS", "XDG_CONFIG_HOME", "XDG_CACHE_HOME"):
+        monkeypatch.delenv(var, raising=False)
+    for nombre in ("indexer", "cache", "impact", "telemetry", "installer", "mapa", "empaquetar", "filtro"):
         if nombre in sys.modules:
             importlib.reload(sys.modules[nombre])
         else:
@@ -35,3 +37,9 @@ def crear_proyecto(casa: Path, nombre: str, archivos: Dict[str, str]) -> Path:
 def helper_crear_proyecto():
     """Fixture que expone crear_proyecto a los tests."""
     return crear_proyecto
+
+
+@pytest.fixture(autouse=True)
+def _estado_aislado(tmp_path, monkeypatch):
+    """Los respaldos de las herramientas de edicion no deben caer en el ~/.local/state real."""
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "estado"))

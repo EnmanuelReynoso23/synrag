@@ -1,0 +1,346 @@
+{
+  "timestamp": "2026-10-15T15:04:29Z",
+  "total_tareas": 10,
+  "total_tokens_normal": 5941,
+  "total_tokens_caveman": 1367,
+  "ahorro_total_pct": 77.0,
+  "tareas": [
+    {
+      "id": "traceback_keyerror",
+      "titulo": "Explicar error con traceback",
+      "prompt": "Explica el siguiente traceback de Python, que lo causa y como solucionarlo:\nTraceback (most recent call last):\n  File \"app.py\", line 42, in process_user\n    role = user_data['profile']['role']\nKeyError: 'role'",
+      "normal": {
+        "tokens": 578,
+        "latencia_s": 9.91,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "acceso_anidado",
+          "clave_inexistente",
+          "solucion_get_o_in"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "¡Claro! Analicemos este traceback de Python en detalle.\n\n---\n\n### El Traceback:\n\n```\nTraceback (most recent call last):\n  File \"app.py\", line 42, in process_user\n    role = user_data['profile']['role']\nKeyError: 'role'\n```\n\n---\n\n### 1. Explicación del Traceback\n\nEste traceback nos está diciendo lo siguiente:\n\n*   **`Traceback (most recent call last):`**: Es el encabezado estándar que indica el inicio de un informe de error. Muestra la secuencia de llamadas a funciones que llevaron al error, empezando por la más reciente.\n*   **`File \"app.py\", line 42, in process_user`**: Esta línea nos indica la ubicación exacta del error:\n    *   **`File \"app.py\"`**: El error ocurrió en el archivo llamado `app.py`.\n    *   **`line 42`**: Específicamente en la línea 42 de ese archivo.\n    *   **`in process_user`**: Dentro de la función o método llamado `process_user`.\n*   **`role = user_data['profile']['role']`**: Esta es la línea de código que causó el problema. Aquí, el programa está intentando acceder a un valor.\n*   **`KeyError: 'role'`**: Esta es la parte más importante. Es el tipo de error y el mensaje específico:\n    *   **`KeyError`**: Significa que intentaste acceder a una clave en un diccionario que no existe.\n    *   **`'role'`**: La clave específica que no se pudo encontrar.\n\n---\n\n### 2. ¿Qué lo Causa?\n\nEl error `KeyError: 'role'` en la línea `role = user_data['profile']['role']` significa que:\n\n1.  Tienes una variable `user_data` que es un diccionario.\n2.  Dentro de `user_data`, existe una clave llamada `'profile'`.\n3.  El valor asociado a la clave `'profile'` es *también* un diccionario.\n4.  **El problema es que, dentro de ese diccionario anidado (`user_data['profile']`), no existe una clave llamada `'role'`.**\n\n**Ejemplo de `user_data` que causaría este error:**\n\n```python\nuser_data = {\n    'id': 123,\n    'username': 'john_doe',\n    'email': 'john@example.com',\n    'profile': {\n        'age': 30,\n        'city': 'New York',"
+      },
+      "caveman": {
+        "tokens": 212,
+        "latencia_s": 6.51,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "acceso_anidado",
+          "clave_inexistente",
+          "solucion_get_o_in"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "**Solución:**\nModifica la línea 42 en `app.py` para usar el método `dict.get()` con un valor predeterminado, o un bloque `try-except`.\n\n**Opción 1: `dict.get()` (Recomendado para valores opcionales)**\n```python\nrole = user_data['profile'].get('role', 'guest') # 'guest' es el valor predeterminado si 'role' no existe\n```\n\n**Opción 2: `try-except` (Para manejo de errores explícito)**\n```python\ntry:\n    role = user_data['profile']['role']\nexcept KeyError:\n    role = 'guest' # Asigna un valor predeterminado o maneja el error\n```\n\n**Causa:**\nEl `KeyError: 'role'` indica que el diccionario `user_data['profile']` no contiene la clave `'role'`. Se intentó acceder a una clave inexistente en un diccionario."
+      },
+      "ahorro_tokens_pct": 63.3
+    },
+    {
+      "id": "arreglo_zerodivision",
+      "titulo": "Proponer arreglo con codigo",
+      "prompt": "Esta funcion falla con ZeroDivisionError si la lista esta vacia o no tiene numeros positivos. Propon el arreglo con el codigo corregido completo:\ndef calcular_promedio_positivos(valores: list[float]) -> float:\n    positivos = [v for v in valores if v > 0]\n    return sum(positivos) / len(positivos)",
+      "normal": {
+        "tokens": 249,
+        "latencia_s": 9.77,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "1/3",
+        "hechos_lista": [
+          "causa_zerodivision"
+        ],
+        "codigo_valido": false,
+        "codigo_detalle": "sintaxis python invalida o truncada",
+        "texto": "El error `ZeroDivisionError` ocurre porque `len(positivos)` puede ser cero si la lista `valores` está vacía o si no contiene ningún número positivo.\n\nPara corregirlo, debemos añadir una verificación antes de realizar la división. Si la lista `positivos` está vacía, podemos retornar un valor predeterminado (como `0.0`) o lanzar una excepción más específica si se considera un error que no haya números positivos. En este caso, retornar `0.0` es una solución común y pragmática.\n\nAquí tienes el código corregido completo:\n\n```python\ndef calcular_promedio_positivos(valores: list[float]) -> float:\n    \"\"\"\n    Calcula el promedio de los números positivos en una lista.\n\n    Si la lista está vacía o no contiene números positivos,\n    retorna 0.0 para evitar ZeroDivisionError.\n\n    Args:\n        valores: Una lista de números flotantes.\n\n    Returns:\n        El promedio de los números positivos, o 0.0 si no hay positivos.\n    \"\"\"\n    positivos = [v for v in valores if v > 0]\n\n    # Ver"
+      },
+      "caveman": {
+        "tokens": 67,
+        "latencia_s": 2.45,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "causa_zerodivision",
+          "guard_clause_o_if",
+          "retorno_seguro"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "```python\ndef calcular_promedio_positivos(valores: list[float]) -> float:\n    positivos = [v for v in valores if v > 0]\n    if not positivos:\n        return 0.0\n    return sum(positivos) / len(positivos)\n```"
+      },
+      "ahorro_tokens_pct": 73.1
+    },
+    {
+      "id": "resumir_diff",
+      "titulo": "Resumir un diff de git",
+      "prompt": "Resume este diff de git explicando el cambio y la razon de seguridad:\ndiff --git a/auth.py b/auth.py\n--- a/auth.py\n+++ b/auth.py\n@@ -10,3 +10,4 @@ def verify_token(token: str) -> bool:\n-    if token == SECRET_KEY:\n+    if hmac.compare_digest(token, SECRET_KEY):\n+        log_auth_success()\n         return True",
+      "normal": {
+        "tokens": 789,
+        "latencia_s": 9.67,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "cambio_hmac",
+          "timing_attacks",
+          "auditoria_log"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "n/a",
+        "texto": "Este diff introduce un cambio crucial de seguridad en la función `verify_token` del archivo `auth.py`.\n\n### Explicación del Cambio:\n\n1.  **Línea Eliminada (`-`):**\n    ```diff\n    -    if token == SECRET_KEY:\n    ```\n    Se eliminó la comparación directa de cadenas utilizando el operador de igualdad `==` entre el `token` proporcionado y la `SECRET_KEY` almacenada.\n\n2.  **Líneas Añadidas (`+`):**\n    ```diff\n    +    if hmac.compare_digest(token, SECRET_KEY):\n    +        log_auth_success()\n    ```\n    *   Se reemplazó la comparación directa por `hmac.compare_digest(token, SECRET_KEY)`. Esta función realiza una comparación de cadenas de \"tiempo constante\".\n    *   Se añadió una llamada a `log_auth_success()` justo después de una autenticación exitosa, lo que permite registrar estos eventos.\n\n### Razón de Seguridad:\n\nLa razón principal de este cambio es **mitigar un tipo de ataque conocido como \"ataque de tiempo\" (timing attack)**.\n\n1.  **Vulnerabilidad del `==` (antes del cambio):**\n    El operador de igualdad `==` en Python (y en muchos otros lenguajes) para comparar cadenas suele ser una operación de \"cortocircuito\". Esto significa que la comparación se detiene tan pronto como se encuentra el primer carácter diferente.\n    *   Por ejemplo, si `SECRET_KEY` es \"password123\" y un atacante envía \"a\", la comparación falla inmediatamente.\n    *   Si envía \"p\", la comparación tarda un poco más porque el primer carácter coincide.\n    *   Si envía \"pa\", tarda aún más.\n\n    Un atacante puede enviar repetidamente diferentes tokens y **medir el tiempo de respuesta** del servidor. Si el servidor tarda un poco más en responder cuando los primeros caracteres del token coinciden con la `SECRET_KEY`, el atacante puede inferir, carácter por carácter, cuál es la clave secreta. Esta diferencia de tiempo, aunque sea de microsegundos, puede ser detectable y explotable en un entorno de red.\n\n2.  **Solución con `hmac.compare_digest` (después del cambio):**\n    La función `hmac.compare_digest()` está diseñada específicamente para prevenir ataques de tiempo. Garantiza que la comparación de dos cadenas de igual longitud **siempre tome la misma cantidad de tiempo**, independientemente de dónde se encuentren las diferencias entre las cadenas. Esto se logra comparando todos los caracteres de ambas cadenas, incluso si se encuentra una discrepancia al principio. Al eliminar la variación de tiempo, se elimina la \"señal\" que un atacante podría usar para inferir la clave.\n\n3.  **Beneficio de `log_auth_success()`:**\n    Aunque no es una corrección de una vulnerabilidad directa, añadir `log_auth_success()` es una buena práctica de seguridad. Permite:\n    *   **Auditoría:** Registrar cuándo y posiblemente quién (si se añade más contexto al log) se autenticó exitosamente.\n    *   **Monitoreo:** Detectar patrones de acceso inusuales o intentos de autenticación legítimos que podrían ser seguidos por actividades sospechosas.\n    *   **Análisis Forense:** Tener un registro de accesos exitosos en caso de una brecha de seguridad.\n\nEn resumen, el cambio principal mejora significativamente la seguridad al proteger la `SECRET_KEY` contra ataques de tiempo, mientras que la adición del log mejora la capacidad de auditoría y monitoreo del sistema."
+      },
+      "caveman": {
+        "tokens": 95,
+        "latencia_s": 3.01,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "cambio_hmac",
+          "timing_attacks",
+          "auditoria_log"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "n/a",
+        "texto": "Cambio: La comparación de `token` con `SECRET_KEY` ahora usa `hmac.compare_digest()` en lugar de `==`. Se añadió `log_auth_success()` tras la verificación exitosa.\nRazón de seguridad: `hmac.compare_digest()` realiza una comparación de tiempo constante, mitigando ataques de tiempo (timing attacks) que podrían revelar información sobre `SECRET_KEY` si se usara una comparación no constante."
+      },
+      "ahorro_tokens_pct": 88.0
+    },
+    {
+      "id": "arquitectura_sse_vs_ws",
+      "titulo": "Pregunta de arquitectura (SSE vs WS)",
+      "prompt": "Cuando conviene usar Server-Sent Events (SSE) en lugar de WebSockets en una aplicacion web?",
+      "normal": {
+        "tokens": 816,
+        "latencia_s": 10.81,
+        "modelo": "gemini-2.5-flash",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "unidireccional_vs_bidireccional",
+          "sobre_http_reconexion",
+          "casos_uso_adecuados"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "n/a",
+        "texto": "Tanto Server-Sent Events (SSE) como WebSockets son tecnologías que permiten al servidor enviar datos en tiempo real al cliente en una aplicación web. Sin embargo, están diseñadas para diferentes escenarios y tienen características distintas que las hacen más adecuadas para ciertos casos.\n\nAquí te explico cuándo conviene usar SSE en lugar de WebSockets:\n\n### Cuando conviene usar Server-Sent Events (SSE):\n\n1.  **Comunicación Unidireccional (Servidor a Cliente):**\n    *   **Escenario principal:** Si tu aplicación solo necesita que el servidor envíe actualizaciones al cliente y el cliente no necesita enviar mensajes en tiempo real de vuelta al servidor (o las respuestas del cliente pueden manejarse a través de solicitudes HTTP tradicionales).\n    *   **Ejemplos:**\n        *   **Actualizaciones de precios en tiempo real:** Como un ticker de bolsa o precios de criptomonedas.\n        *   **Notificaciones de noticias o feeds de actividad:** Cuando se publica un nuevo artículo o hay una nueva actividad en un feed.\n        *   **Dashboards de monitoreo:** Mostrar métricas del sistema, logs en tiempo real, progreso de tareas de larga duración.\n        *   **Resultados deportivos en vivo:** Actualizaciones de puntuaciones o eventos del partido.\n        *   **Actualizaciones de estado:** Por ejemplo, el estado de un pedido o el progreso de una descarga.\n\n2.  **Simplicidad y Facilidad de Implementación:**\n    *   SSE se basa en el protocolo HTTP existente. Esto significa que es más fácil de implementar tanto en el cliente (usando la API `EventSource` de JavaScript) como en el servidor (simplemente enviando datos con el tipo de contenido `text/event-stream`).\n    *   No requiere un protocolo de \"handshake\" especial como WebSockets (que actualiza la conexión de HTTP a WS).\n\n3.  **Reconexión Automática Nativa:**\n    *   Una de las mayores ventajas de SSE es que el navegador maneja automáticamente la reconexión cuando la conexión se interrumpe. Esto simplifica enormemente el código del cliente, ya que no tienes que implementar tu propia lógica de reconexión.\n\n4.  **Compatibilidad con Infraestructura HTTP Existente:**\n    *   Dado que SSE utiliza HTTP, funciona sin problemas con la mayoría de los proxies, firewalls y balanceadores de carga HTTP existentes sin necesidad de configuraciones especiales. WebSockets, al ser un protocolo diferente (aunque se inicia sobre HTTP), a veces puede requerir configuraciones específicas en la infraestructura de red.\n\n5.  **Menor Overhead (para el caso de uso unidireccional):**\n    *   Aunque SSE envía encabezados HTTP en cada mensaje (a diferencia de los frames más ligeros de WebSockets una vez establecida la conexión), para el caso de uso unidireccional donde el cliente no envía datos, la simplicidad y la compatibilidad con HTTP pueden resultar en una solución más ligera y fácil de mantener.\n\n### Cuando conviene usar WebSockets:\n\n1.  **Comunicación Bidireccional (Cliente y Servidor):**\n    *   **Escenario principal:** Si tu aplicación necesita que tanto el cliente como el servidor puedan enviar mensajes en tiempo real entre sí de forma interactiva.\n    *   **Ejemplos:**\n        *   **Aplicaciones de chat:** Los usuarios envían y reciben mensajes.\n        *   **Juegos multijugador en línea:** Acciones del jugador (cliente a servidor) y actualizaciones del estado del juego (servidor a cliente).\n        *   **Edición colaborativa en tiempo real:** Múltiples usuarios editando un documento simultáneamente.\n        *   **Notificaciones interactivas:** Donde la acción del usuario en una notificación puede desencadenar una respuesta inmediata del servidor o de otros clientes.\n\n2.  **Baja Latencia y Alta F"
+      },
+      "caveman": {
+        "tokens": 137,
+        "latencia_s": 1.29,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "unidireccional_vs_bidireccional",
+          "sobre_http_reconexion",
+          "casos_uso_adecuados"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "n/a",
+        "texto": "Usar Server-Sent Events (SSE) cuando solo se requiere flujo de datos unidireccional (del servidor al cliente) y se prefiere simplicidad sobre HTTP estándar.\n\nJustificación técnica:\n- Protocolo: HTTP estándar (TCP simple), sin necesidad de cambiar a protocolo WebSocket.\n- Reconexión: Automática nativa en la API del navegador (`EventSource`).\n- Tráfico: Ideal para notificaciones, feeds de noticias o telemetría donde el cliente no necesita enviar datos continuos por el mismo canal.\n- Infraestructura: Compatible de forma nativa con proxies HTTP, balanceadores de carga y HTTP/2 sin configuraciones especiales."
+      },
+      "ahorro_tokens_pct": 83.2
+    },
+    {
+      "id": "revision_fetch_concurrencia",
+      "titulo": "Revisar funcion asincrona",
+      "prompt": "Revisa la siguiente funcion TypeScript y senala los problemas principales:\nasync function fetchUsers(ids: string[]) {\n    const results = [];\n    for (const id of ids) {\n        const res = await fetch(`/api/users/${id}`);\n        results.push(await res.json());\n    }\n    return results;\n}",
+      "normal": {
+        "tokens": 768,
+        "latencia_s": 3.72,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "llamadas_secuenciales",
+          "falta_res_ok",
+          "falta_manejo_errores"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "Aquí tienes una revisión de la función TypeScript, señalando sus problemas principales y cómo solucionarlos:\n\n### 1. Problemas Principales\n\n*   **Rendimiento deficiente (Ejecución secuencial):** El bucle `for...of` espera a que cada petición `fetch` termine antes de iniciar la siguiente. Si pasas un array de 10 IDs, las peticiones se harán una por una, sumando todos los tiempos de espera. Esto se conoce como el anti-patrón *Waterfall* (cascada).\n*   **Falta de manejo de errores:** Si **una** sola petición falla (por ejemplo, el servidor devuelve un 404, 500 o hay un fallo de red), la función lanzará una excepción y **todo el proceso fallará**, perdiendo los datos de los usuarios que sí se pudieron obtener.\n*   **Falta de tipado (Type Safety):** \n    *   El parámetro `ids` está bien tipado como `string[]`.\n    *   Pero `results` se infiere como `any[]` (o `unknown[]`), y la función no especifica qué tipo de dato retorna. Esto pierde los beneficios principales de TypeScript.\n\n---\n\n### 2. Código Mejorado (Solución recomendada)\n\nAquí tienes una versión optimizada que resuelve todos los problemas anteriores:\n\n```typescript\n// Define una interfaz para el usuario (reemplaza esto con tu tipo real)\ninterface User {\n    id: string;\n    name: string;\n    email: string;\n}\n\nasync function fetchUsers(ids: string[]): Promise<User[]> {\n    // 1. Usar Promise.all para ejecutar todas las peticiones en paralelo\n    const promises = ids.map(async (id) => {\n        try {\n            const res = await fetch(`/api/users/${id}`);\n            \n            // 2. Manejar errores HTTP (fetch no lanza error en 404/500 por sí solo)\n            if (!res.ok) {\n                console.error(`Error al obtener el usuario ${id}: ${res.statusText}`);\n                return null; // o puedes lanzar un error si prefieres fallar todo\n            }\n            \n            return (await res.json()) as User;\n        } catch (error) {\n            // 3. Capturar errores de red\n            console.error(`Fallo de red para el usuario ${id}:`, error);\n            return null;\n        }\n    });\n\n    const results = await Promise.all(promises);\n\n    // Filtrar los nulos en caso de que alguna petición haya fallado\n    return results.filter((user): user is User => user !== null);\n}\n```\n\n### Resumen de mejoras aplicadas:\n1.  **Paralelismo (`Promise.all` + `.map`):** Todas las peticiones se envían al mismo tiempo, reduciendo drásticamente el tiempo de carga total.\n2.  **Mapeo de errores robusto:** Si un usuario falla, devolvemos `null` (o manejamos el error individualmente) para que los demás usuarios sigan cargando.\n3.  **Validación de `res.ok`:** `fetch` en JavaScript/TypeScript no rechaza la promesa ante códigos de error HTTP (como 404 o 500), por lo que es obligatorio verificar `res.ok`.\n4.  **Tipado fuerte:** La función ahora promete retornar `Promise<User[]>` en lugar de un arreglo sin tipar."
+      },
+      "caveman": {
+        "tokens": 227,
+        "latencia_s": 2.69,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "llamadas_secuenciales",
+          "falta_res_ok",
+          "falta_manejo_errores"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "Problemas principales:\n\n1. Ejecucion secuencial bloqueante (`for...of` con `await` en cada iteracion).\n2. Falta de manejo de errores de red o parseo.\n\nSolucion corregida:\n```typescript\nasync function fetchUsers(ids: string[]) {\n    try {\n        const promises = ids.map(async (id) => {\n            const res = await fetch(`/api/users/${id}`);\n            if (!res.ok) {\n                throw new Error(`Error HTTP: ${res.status} al obtener usuario ${id}`);\n            }\n            return res.json();\n        });\n        return await Promise.all(promises);\n    } catch (error) {\n        console.error(\"Fallo en fetchUsers:\", error);\n        throw error;\n    }\n}\n```\n\nJustificacion:\n`Promise.all` ejecuta las solicitudes en paralelo reduciendo el tiempo total de espera. El manejo de errores evita que una sola peticion fallida rompa toda la operacion sin dejar rastro."
+      },
+      "ahorro_tokens_pct": 70.4
+    },
+    {
+      "id": "optimizar_n_mas_uno",
+      "titulo": "Optimizar consulta BD (N+1)",
+      "prompt": "En Django ORM, la siguiente vista tarda segundos porque ejecuta decenas de consultas:\nlibros = Libro.objects.all()\nfor l in libros:\n    print(l.autor.nombre)\nCual es la causa exacta y como se optimiza en una sola linea de codigo?",
+      "normal": {
+        "tokens": 284,
+        "latencia_s": 3.79,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "problema_n_mas_uno",
+          "tecnica_select_related",
+          "linea_optimizada"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "La causa exacta es el problema conocido como **N+1 queries** (o consultas N+1). \n\n### La causa exacta:\n1. `Libro.objects.all()` ejecuta **1 consulta** SQL para obtener todos los libros.\n2. Luego, al iterar sobre cada libro y acceder a `l.autor`, Django realiza **una consulta adicional a la base de datos por cada libro** para traer la información del autor relacionado (porque por defecto las relaciones ForeignKey son *lazy* o perezosas).\nSi tienes 50 libros, Django ejecutará 1 consulta inicial + 50 consultas adicionales = **51 consultas en total**, lo cual satura la red y la base de datos, causando que la vista tarde segundos.\n\n---\n\n### La solución en una sola línea de código:\nSe soluciona utilizando **`select_related()`**, que realiza un `SQL JOIN` para traer los datos del autor en la misma consulta inicial.\n\n```python\nlibros = Libro.objects.select_related(\"autor\").all()\n```\n\n### Explicación:\nCon `select_related(\"autor\")`, Django trae todos los libros y sus respectivos autores ejecutando **exactamente 1 sola consulta SQL** (usando un `INNER JOIN` o `LEFT OUTER JOIN`), reduciendo el tiempo de carga a milisegundos."
+      },
+      "caveman": {
+        "tokens": 50,
+        "latencia_s": 0.78,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "problema_n_mas_uno",
+          "tecnica_select_related",
+          "linea_optimizada"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "Causa: Problema N+1. Cada iteración de `l.autor.nombre` ejecuta una consulta SQL independiente a la tabla relacionada.\n\nOptimización:\n`libros = Libro.objects.select_related('autor')`"
+      },
+      "ahorro_tokens_pct": 82.4
+    },
+    {
+      "id": "diagnostico_jwt",
+      "titulo": "Diagnosticar error JWT",
+      "prompt": "Un microservicio lanza 'jwt.exceptions.InvalidSignatureError: Signature verification failed' al validar un token. Cuales son las 3 causas mas habituales y como verificarlas?",
+      "normal": {
+        "tokens": 949,
+        "latencia_s": 4.38,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "clave_incorrecta",
+          "algoritmo_discordante",
+          "token_alterado"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "n/a",
+        "texto": "El error `jwt.exceptions.InvalidSignatureError` (común en librerías como PyJWT de Python) significa que **el contenido del token fue alterado** o que **la clave utilizada para verificarlo no coincide con la que se usó para firmarlo**.\n\nAquí tienes las 3 causas más habituales y cómo verificarlas:\n\n---\n\n### 1. Desajuste de Claves (Secret/Key Mismatch)\nEs la causa número uno. El microservicio que valida el token está usando una clave secreta (simétrica como HS256) o una clave pública (asimétrica como RS256) **diferente** a la que usó el microservicio (o Auth Server) que generó el token.\n\n*   **Cómo verificarlo:**\n    1.  **Revisa las variables de entorno:** Comprueba los archivos `.env` o la configuración de Kubernetes/Docker en ambos servicios. Asegúrate de que `JWT_SECRET` o `JWT_PUBLIC_KEY` sean exactamente idénticos.\n    2.  **Problemas de formato (muy común con RSA):** Si usas claves públicas/privadas (RSA), a menudo hay problemas con los saltos de línea (`\\n`). Si la clave se cargó como una sola línea o se escaparon mal los caracteres, la firma fallará. Imprime los primeros y últimos caracteres de la clave cargada en memoria en ambos servicios para asegurar que coinciden byte a byte.\n\n---\n\n### 2. Algoritmo Incorrecto (Algorithm Mismatch)\nEl servicio emisor firmó el token con un algoritmo (ej. `HS256`), pero el servicio validador está esperando otro (ej. `RS256`), o la librería está intentando usar un algoritmo por defecto que no coincide. También ocurre a veces si se fuerza un algoritmo vulnerable (ataque de confusión de clave).\n\n*   **Cómo verificarlo:**\n    1.  **Decodifica el token sin verificar:** Usa una herramienta como [jwt.io](https://jwt.io/) o un script rápido para ver la cabecera (*header*) del token.\n        ```python\n        import jwt\n        # Decodificar sin verificar firma para leer el header\n        unverified_header = jwt.get_unverified_header(token)\n        print(unverified_header)  # Busca el campo \"alg\" (ej: \"HS256\", \"RS256\")\n        ```\n    2.  **Compara con la configuración:** Asegúrate de que en el código de validación estés pasando explícitamente el algoritmo correcto. Ejemplo:\n        ```python\n        jwt.decode(token, secret, algorithms=[\"HS256\"]) # ¡El parámetro algorithms es crucial!\n        ```\n\n---\n\n### 3. El Token fue Alterado (Payload o Header corruptos)\nAlguien (o algo, como un proxy mal configurado, un cliente HTTP o un portapapeles) modificó accidentalmente el token en tránsito. Un solo carácter cambiado en el *payload* o en la firma invalida toda la firma criptográfica.\n\n*   **Cómo verificarlo:**\n    1.  **Inspecciona el tráfico de red:** Usa herramientas como Wireshark, los logs de API Gateway o el inspector de la red del navegador para ver si el token llega completo. A veces, gateways (como Nginx o Kong) truncan headers muy largos (como los JWT) si superan el tamaño por defecto (`large_client_header_buffers` en Nginx).\n    2.  **Compara el token original vs recibido:** Toma el token justo antes de ser enviado por el cliente y compáralo con el que recibe la función de validación en el microservicio mediante un log. Si difieren en un solo punto, hay un intermediario corrompiéndolo.\n\n---\n\n### 💡 Consejo extra para debugging rápido:\nCopia el token que está dando problemas y pégalo en [jwt.io](https://jwt.io/). \n*   Pega tu clave secreta/pública en la sección inferior derecha.\n*   Si la página te marca **\"Invalid Signature\"**, el problema es 100% la clave o que el token está corrupto.\n*   Si la página te marca **\"Signature Verified\"**, el problema es que el microservicio está leyendo mal las variables de entorno o usa una clave distinta a la que tú crees."
+      },
+      "caveman": {
+        "tokens": 165,
+        "latencia_s": 1.46,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "clave_incorrecta",
+          "algoritmo_discordante",
+          "token_alterado"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "n/a",
+        "texto": "1. Clave secreta o publica incorrecta.\nVerificacion: Comparar variable de entorno `JWT_SECRET` o `JWT_PUBLIC_KEY` en servicio emisor y receptor.\n\n2. Algoritmo de firma desalineado.\nVerificacion: Imprimir encabezado decodificado del token con `jwt.get_unverified_header(token)` y revisar campo `alg`, debe coincidir exactamente con el configurado en `jwt.decode(token, key, algorithms=[\"HS256\"])`.\n\n3. Token alterado o manipulado en tránsito.\nVerificacion: Copiar token crudo desde logs del receptor y decodificarlo en entorno local controlado con la misma clave para aislar problemas de transporte HTTP (codificacion URL o truncamiento de headers)."
+      },
+      "ahorro_tokens_pct": 82.6
+    },
+    {
+      "id": "refactorizar_guard_clauses",
+      "titulo": "Refactorizar con guard clauses",
+      "prompt": "Refactoriza esta funcion en Python eliminando el anidamiento profundo con clausulas de guarda (guard clauses). Devuelve el codigo corregido completo:\ndef procesar_pago(usuario, monto):\n    if usuario is not None:\n        if usuario.is_active:\n            if monto > 0:\n                if usuario.saldo >= monto:\n                    usuario.saldo -= monto\n                    return True\n    return False",
+      "normal": {
+        "tokens": 122,
+        "latencia_s": 1.04,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "guard_clauses",
+          "eliminacion_anidamiento",
+          "preservacion_saldo"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "Aquí tienes el código refactorizado utilizando cláusulas de guarda (guard clauses) para eliminar el anidamiento profundo:\n\n```python\ndef procesar_pago(usuario, monto):\n    if usuario is None:\n        return False\n        \n    if not usuario.is_active:\n        return False\n        \n    if monto <= 0:\n        return False\n        \n    if usuario.saldo < monto:\n        return False\n\n    # Lógica principal si todas las validaciones son exitosas\n    usuario.saldo -= monto\n    return True\n```"
+      },
+      "caveman": {
+        "tokens": 95,
+        "latencia_s": 6.38,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "2/3",
+        "hechos_lista": [
+          "guard_clauses",
+          "preservacion_saldo"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "```python\ndef procesar_pago(usuario, monto):\n    if usuario is None:\n        return False\n    if not usuario.is_active:\n        return False\n    if monto <= 0:\n        return False\n    if usuario.saldo < monto:\n        return False\n\n    usuario.saldo -= monto\n    return True\n```\nJustificacion: Inversion de condiciones para salir anticipadamente y aplanar la estructura."
+      },
+      "ahorro_tokens_pct": 22.1
+    },
+    {
+      "id": "implementar_debounce",
+      "titulo": "Implementar debounce en TypeScript",
+      "prompt": "Implementa una funcion `debounce` en TypeScript que posponga la llamada a una funcion `fn` hasta que pasen `delay` milisegundos sin nuevas invocaciones. Muestra el codigo completo con tipos.",
+      "normal": {
+        "tokens": 829,
+        "latencia_s": 7.91,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "clear_set_timeout",
+          "clausura_timer",
+          "paso_de_argumentos"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "Aquí tienes una implementación completa y robusta de la función `debounce` en TypeScript. \n\nIncluye el tipado correcto para aceptar cualquier función con cualquier número de argumentos, y además añade un método `.cancel()` por si necesitas cancelar la ejecución pendiente.\n\n```typescript\n/**\n * Crea una función debounced que pospone la ejecución de `fn` \n * hasta que hayan pasado `delay` milisegundos desde la última vez que se invocó.\n * \n * @param fn La función que se quiere retrasar.\n * @param delay El tiempo de espera en milisegundos.\n * @returns Una nueva función con la lógica de debounce y un método .cancel().\n */\nfunction debounce<T extends (...args: any[]) => any>(\n  fn: T,\n  delay: number\n): (...args: Parameters<T>) => void {\n  let timeoutId: ReturnType<typeof setTimeout> | null = null;\n\n  const debounced = function (...args: Parameters<T>) {\n    // Si ya habia un temporizador corriendo, lo cancelamos\n    if (timeoutId !== null) {\n      clearTimeout(timeoutId);\n    }\n\n    // Iniciamos un nuevo temporizador\n    timeoutId = setTimeout(() => {\n      fn(...args);\n      timeoutId = null;\n    }, delay);\n  };\n\n  // Añadimos un método opcional para cancelar el debounce manualmente\n  debounced.cancel = function () {\n    if (timeoutId !== null) {\n      clearTimeout(timeoutId);\n      timeoutId = null;\n    }\n  };\n\n  return debounced as (...args: Parameters<T>) => void & { cancel: () => void };\n}\n\n// ==========================================\n// EJEMPLO DE USO:\n// ==========================================\n\n// 1. Definimos una función de ejemplo\nconst buscarEnApi = (termino: string) => {\n  console.log(`Buscando resultados para: \"${termino}\" a las ${new Date().toLocaleTimeString()}`);\n};\n\n// 2. Creamos la versión debounced (espera 500ms)\nconst buscarConDebounce = debounce(buscarEnApi, 500);\n\n// 3. Simulamos múltiples pulsaciones de teclado rápidas\nconsole.log(\"Escribiendo 'T'...\");\nbuscarConDebounce(\"T\");\n\nsetTimeout(() => {\n  console.log(\"Escribiendo 'Ty'...\");\n  buscarConDebounce(\"Ty\");\n}, 100);\n\nsetTimeout(() => {\n  console.log(\"Escribiendo 'Typ'...\");\n  buscarConDebounce(\"Typ\");\n}, 200);\n\nsetTimeout(() => {\n  console.log(\"Escribiendo 'TypeScript'...\");\n  buscarConDebounce(\"TypeScript\");\n}, 300);\n\n// Resultado esperado en consola:\n// Solo se ejecutará una vez \"Buscando resultados para: 'TypeScript'\" \n// medio segundo después de la última llamada (300ms + 500ms = 800ms aprox).\n```\n\n### Explicación de los tipos:\n1. `<T extends (...args: any[]) => any>`: Usamos un genérico `T` que extiende cualquier función. Esto asegura que TypeScript preserve los tipos de los argumentos y el contexto de la función original.\n2. `Parameters<T>`: Es un tipo condicional nativo de TypeScript que extrae una tupla con los tipos de los parámetros de la función `T`. Esto garantiza que la función `debounced` exija exactamente los mismos argumentos que la función original.\n3. `ReturnType<typeof setTimeout>`: Asegura que sea compatible tanto si se ejecuta en Node.js (donde devuelve un objeto `Timeout`) como en el navegador (donde devuelve un `number`)."
+      },
+      "caveman": {
+        "tokens": 169,
+        "latencia_s": 7.07,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "clear_set_timeout",
+          "clausura_timer",
+          "paso_de_argumentos"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "```typescript\nfunction debounce<T extends (...args: any[]) => any>(\n  fn: T,\n  delay: number\n): (...args: Parameters<T>) => void {\n  let timeoutId: ReturnType<typeof setTimeout> | null = null;\n\n  return function (this: any, ...args: Parameters<T>): void {\n    if (timeoutId !== null) {\n      clearTimeout(timeoutId);\n    }\n\n    timeoutId = setTimeout(() => {\n      fn.apply(this, args);\n    }, delay);\n  };\n}\n```\n\nUsa `setTimeout` y `clearTimeout` para reiniciar el temporizador en cada nueva invocacion. El tipo `Parameters<T>` asegura la tipificacion estricta de los argumentos de `fn`."
+      },
+      "ahorro_tokens_pct": 79.6
+    },
+    {
+      "id": "typescript_strict_null",
+      "titulo": "Resolver error strictNullChecks",
+      "prompt": "En TypeScript con strictNullChecks: const apiKey: string = process.env.API_KEY da el error 'Type string | undefined is not assignable to type string'. Explica por que ocurre y muestra las 3 formas habituales de resolverlo en codigo.",
+      "normal": {
+        "tokens": 557,
+        "latencia_s": 2.37,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "variable_undefined_en_env",
+          "incompatibilidad_de_tipos",
+          "tres_soluciones"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "Con la opción `strictNullChecks` habilitada en TypeScript, el sistema de tipos es mucho más estricto con los valores `null` y `undefined`. \n\n### ¿Por qué ocurre el error?\n\n`process.env` en Node.js es un objeto donde cualquier propiedad (como `API_KEY`) puede existir o no. Por lo tanto, TypeScript infiere que `process.env.API_KEY` es de tipo **`string | undefined`**. \n\nEl error `'Type string | undefined is not assignable to type string'` ocurre porque estás intentando asignar un valor que podría ser `undefined` a una variable (`apiKey`) que has definido estrictamente como `string`, lo cual rompería la seguridad de tipos si en runtime `API_KEY` no estuviera definida.\n\n---\n\n### Las 3 formas habituales de resolverlo\n\nAquí tienes las soluciones más comunes, ordenadas de la más recomendada a la menos recomendada:\n\n#### 1. Validación en tiempo de ejecución (Recomendada)\nEsta es la mejor opción para producción. Verificas si la variable existe antes de usarla, lo que lanza un error claro si falta, protegiendo tu aplicación.\n\n```typescript\nconst apiKey = process.env.API_KEY;\n\nif (!apiKey) {\n  throw new Error(\"La variable de entorno API_KEY es obligatoria.\");\n}\n\n// A partir de aquí, TypeScript sabe que apiKey es de tipo 'string'\nconst myApiKey: string = apiKey; \n```\n\n#### 2. Aserción de tipo con el operador `!` (Non-null assertion operator)\nLe dices a TypeScript: *\"Confía en mí, sé que esta variable no va a ser `undefined`\"*. \n\n*⚠️ **Precaución:** Si `API_KEY` realmente es `undefined` en runtime, tu código fallará más adelante cuando intentes usarla.*\n\n```typescript\n// El signo '!' al final le indica a TypeScript que ignore el 'undefined'\nconst apiKey: string = process.env.API_KEY!;\n```\n\n#### 3. Operador de fusión nula (`??`) para proveer un valor por defecto\nSi la variable de entorno no está definida, puedes asignarle un valor de respaldo (fallback). \n\n*⚠️ **Precaución:** Úsalo solo si tu aplicación puede funcionar con un valor por defecto (por ejemplo, en entornos de desarrollo).*\n\n```typescript\n// Si process.env.API_KEY es undefined, se asigna el string vacío \"\" (o un valor mock)\nconst apiKey: string = process.env.API_KEY ?? \"\";\n```"
+      },
+      "caveman": {
+        "tokens": 150,
+        "latencia_s": 1.46,
+        "modelo": "gemini-3.5-flash-lite",
+        "hechos_conservados": "3/3",
+        "hechos_lista": [
+          "variable_undefined_en_env",
+          "incompatibilidad_de_tipos",
+          "tres_soluciones"
+        ],
+        "codigo_valido": true,
+        "codigo_detalle": "valido",
+        "texto": "`process.env.API_KEY` devuelve `string | undefined`. Asignarlo a tipo `string` viola `strictNullChecks`.\n\nFormas de resolverlo:\n\n1. Asercion de tipo:\n```typescript\nconst apiKey: string = process.env.API_KEY as string;\n```\n\n2. Validacion condicional:\n```typescript\nconst apiKey: string = process.env.API_KEY ?? \"default_key\";\n```\n\n3. Verificacion previa:\n```typescript\nif (!process.env.API_KEY) {\n    throw new Error(\"API_KEY no definida\");\n}\nconst apiKey: string = process.env.API_KEY;\n```"
+      },
+      "ahorro_tokens_pct": 73.1
+    }
+  ]
+}

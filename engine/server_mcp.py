@@ -12,6 +12,7 @@ Motor AST nativo de código y memoria local para cualquier agente de IA.
 
 import os
 import sys
+import re
 import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -27,26 +28,48 @@ import indexer
 import impact
 import chunker
 import telemetry
+import mapa
 
 mcp = MCPServer("desktop-lancedb")
-SNIPPET = 800  # caracteres maximos por resultado en busqueda normal
 
 
-@mcp.tool()
-def search_desktop(query: str, limit: int = 5, project: str = "") -> str:
-    """
-    Busca por PALABRAS (BM25) en el codigo, la memoria de Claude y la configuracion de todos los
-    proyectos indexados, y reordena los candidatos con FlashRank. Usa palabras que esten escritas
-    (nombres de simbolos, textos de error, rutas): si la consulta no comparte palabras con el codigo,
-    no lo encuentra. Devuelve `ruta:linea_inicio-linea_fin` y el bloque sintactico completo (funcion,
-    hook, interface). Si el simbolo encontrado tiene archivos dependientes, incluye una advertencia de
-    Grafo de Impacto. `project` filtra por proyecto (p. ej. "asistoya-web", "memoria-claude").
-    """
+def herramienta():
+    """Registra una herramienta sin outputSchema: todas devuelven texto, y ese esquema repetido
+    costaba ~170 caracteres por herramienta en cada sesion del agente."""
+    try:
+        return mcp.tool(structured_output=False)
+    except TypeError:  # versiones del SDK sin ese parametro
+        return mcp.tool()
+SNIPPET = 800  # caracteres maximos por resultado con detalle=true
+SNIPPET_PRIMERO = 2400  # el primer resultado va completo (un bloque AST mide como mucho 2.400)
+SNIPPET_EXACTO = 8000  # definicion exacta unida desde varios trozos: entera salvo que sea enorme
+
+
+def _firma(contenido: str) -> str:
+    """Primera linea de codigo del bloque (sin JSDoc ni comentarios), recortada."""
+    for linea in chunker._sin_comentarios_iniciales(contenido).splitlines():
+        if linea.strip():
+            return linea.strip()[:110]
+    return ""
+
+
+def _ubicacion(r: dict) -> str:
+    ini = r.get("line", "?")
+    fin = r.get("end_line", ini)
+    rango = f"{ini}-{fin}" if fin != ini else f"{ini}"
+    sym = f" {r['symbol_kind']} {r['symbol_name']}" if r.get("symbol_name") else ""
+    ruta = str(r.get("rel_path", ""))
+    ruta = ruta if ruta.startswith("/") else f"~/{ruta}"  # rel_path es relativa al HOME salvo fuera de el
+    return f"{ruta}:{rango}{sym}"
+
+
+@herramienta()
+def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool = False, tipo: str = "") -> str:
+    """Localiza codigo, notas o config por palabras. Con un nombre de simbolo exacto da su definicion primero y entera; el resto sale como `ruta:lineas tipo nombre | firma`. detalle=true trae el codigo de todos. project filtra; tipo filtra por 'docs' o 'codigo'."""
     t0 = time.time()
-    results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None)
+    results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None, tipo=tipo)
     elapsed_ms = (time.time() - t0) * 1000
 
-    # Registrar evento en telemetria persistente
     telemetry.record_search_event(
         query=query,
         results=results,
@@ -57,52 +80,55 @@ def search_desktop(query: str, limit: int = 5, project: str = "") -> str:
     )
 
     if not results:
-        return f"[SyntaxRAG] Sin resultados para '{query}'" + (f" en el proyecto '{project}'." if project else ".")
+        donde = f" en '{project}'" if project else ""
+        return (f"Sin resultados para '{query}'{donde}. Solo encuentra palabras escritas en el codigo: "
+                "prueba con un nombre de simbolo o usa grep; repetir variantes rara vez ayuda.")
 
-    out = [f"[SyntaxRAG] {len(results)} resultado(s) para '{query}' (AST + FlashRank ONNX):"]
-    for r in results:
-        sym_info = f" [{r['symbol_kind']} {r['symbol_name']}]" if r.get('symbol_name') else ""
-        score_info = f" (relevancia: {r['score']:.2f})" if 'score' in r else ""
-        start_l = r.get('line', '?')
-        end_l = r.get('end_line', start_l)
-        range_str = f"{start_l}-{end_l}" if end_l != start_l else f"{start_l}"
-        out.append(f"\n▸ {r.get('rel_path')}:{range_str}  [{r.get('project')}]{sym_info}{score_info}")
-        out.append(r.get("content", "").strip()[:SNIPPET])
-        if r.get("impact_warning"):
-            out.append(r["impact_warning"])
+    out = []
+    for i, r in enumerate(results):
+        if i == 0 or detalle:
+            out.append(("\n" if i else "") + _ubicacion(r))
+            tope = (SNIPPET_EXACTO if r.get("exacto") else SNIPPET_PRIMERO) if i == 0 else SNIPPET
+            texto = r.get("content", "").strip()
+            out.append(texto[:tope])
+            if len(texto) > tope:
+                out.append(f"[... recortado; el bloque llega hasta la linea {r.get('end_line')}]")
+            deps = r.get("dependents") or []
+            if deps and i == 0:
+                out.append(f"(importado en {len(deps)} archivo(s); detalles: get_impact_radius)")
+            if not detalle and len(results) > 1:
+                out.append("\nOtros:")
+        else:
+            out.append(f"- {_ubicacion(r)} | {_firma(r.get('content', ''))}")
     return "\n".join(out)
 
 
-@mcp.tool()
+RE_MIEMBRO = re.compile(
+    r"^(\s+)(?:public\s+|private\s+|protected\s+|static\s+|readonly\s+|override\s+)*(?:async\s+)?(?:get\s+|set\s+)?"
+    r"\*?([A-Za-z_$][A-Za-z0-9_$]*)\s*(?:\(|:\s*(?:async\s*)?(?:function\b|\([^)]*\)?\s*(?::[^=]*)?=>|[A-Za-z0-9_$]+\s*=>)|=\s*(?:async\s*)?\()"
+)
+NO_MIEMBRO = {"if", "for", "while", "switch", "catch", "return", "function", "await", "new", "typeof"}
+
+
+def _miembros(lineas: list, ini: int, fin: int) -> list:
+    """Metodos y funciones de primer nivel dentro de un objeto o clase (lineas ini..fin, 1-based)."""
+    hallados = []
+    for n in range(ini, min(fin, len(lineas))):
+        m = RE_MIEMBRO.match(lineas[n])
+        if m and m.group(2) not in NO_MIEMBRO:
+            hallados.append((len(m.group(1).expandtabs(4)), n + 1, m.group(2)))
+    if not hallados:
+        return []
+    nivel = min(h[0] for h in hallados)
+    return [(ln, nombre) for ind, ln, nombre in hallados if ind == nivel][:60]
+
+
+@herramienta()
 def get_file_outline(file_path: str, project: str = "") -> str:
-    """
-    Devuelve unicamente el esquema sintactico (firmas, nombres de funciones, tipos, clases
-    y rangos de lineas) de un archivo sin volcar el codigo completo.
-    Suele pesar mucho menos que leer el archivo entero.
-    Usa esta herramienta cuando solo necesites saber que funciones o componentes existen en un archivo.
-    """
-    # Intentar resolver ruta absoluta o relativa en proyectos
-    resolved_path: Optional[Path] = None
-    target_p = Path(file_path).expanduser()
-
-    if target_p.is_file():
-        resolved_path = target_p
-    else:
-        # Buscar en SCAN_DIRECTORIES
-        for base, proj_name in indexer.SCAN_DIRECTORIES:
-            candidate = base / file_path
-            if candidate.is_file():
-                resolved_path = candidate
-                break
-            # buscar por subruta
-            if not resolved_path:
-                matches = list(base.glob(f"**/{file_path}"))
-                if matches and matches[0].is_file():
-                    resolved_path = matches[0]
-                    break
-
-    if not resolved_path or not resolved_path.is_file():
-        return f"[SyntaxRAG Outline] No se encontro el archivo '{file_path}' en los proyectos indexados."
+    """Esquema de un archivo: simbolos con sus lineas y los metodos de objetos/clases grandes, sin el codigo. Acepta ruta o solo el nombre del archivo."""
+    resolved_path, otras = indexer.resolver_archivo(file_path, project or None)
+    if not resolved_path:
+        return f"No se encontro '{file_path}' en los proyectos indexados" + (f" ('{project}')." if project else ".")
 
     try:
         content = resolved_path.read_text(encoding="utf-8", errors="replace")
@@ -113,14 +139,25 @@ def get_file_outline(file_path: str, project: str = "") -> str:
         for ch in chunks:
             s_name = ch.get("symbol_name") or ch.get("title") or "bloque"
             s_kind = ch.get("symbol_kind") or "code"
-            s_line = ch.get("line", 1)
+            texto = ch.get("content", "")
+            # linea de la declaracion, no la del JSDoc que la precede
+            s_line = ch.get("line", 1) + len(texto.splitlines()) - len(chunker._sin_comentarios_iniciales(texto).splitlines())
             s_end = ch.get("end_line", s_line)
-            symbols.append(f"  - L{s_line}-{s_end} [{s_kind}] {s_name}")
+            if symbols and symbols[-1][2] == s_name and s_name != "bloque":
+                symbols[-1][1] = s_end  # trozos de un mismo bloque largo: un solo rango
+                continue
+            symbols.append([s_line, s_end, s_name, s_kind])
+        lineas_archivo = content.splitlines()
+        salida_sym = []
+        for a, b, n, k in symbols:
+            salida_sym.append(f"  L{a}-{b} {k} {n}")
+            if k in ("class", "variable") and b - a > 30:  # objeto o clase grande: sus metodos
+                salida_sym.extend(f"    L{ln} {m}" for ln, m in _miembros(lineas_archivo, a, b))
+        symbols = salida_sym
 
-        out = [
-            f"[SyntaxRAG Outline] {resolved_path.name} ({total_lines} lineas, {len(symbols)} simbolos detectados):",
-            f"Ruta: {resolved_path}"
-        ]
+        out = [f"{resolved_path} ({total_lines} lineas, {len(symbols)} simbolos)"]
+        if otras:
+            out.append("Otros archivos con ese nombre: " + ", ".join(otras) + " (usa `project` o la ruta completa)")
         if symbols:
             out.extend(symbols)
         else:
@@ -130,13 +167,9 @@ def get_file_outline(file_path: str, project: str = "") -> str:
         return f"[SyntaxRAG Outline] Error al parsear archivo: {e}"
 
 
-@mcp.tool()
+@herramienta()
 def get_impact_radius(symbol: str, project: str = "") -> str:
-    """
-    Calcula el radio de impacto (blast radius) de un simbolo o funcion antes de editarlo.
-    Devuelve la lista de archivos que dependen directamente o importan este simbolo,
-    con su nivel de criticidad (CRITICAL, WARNING, INFO).
-    """
+    """Archivos que importan un simbolo (que se rompe si lo cambias)."""
     try:
         db = indexer.get_db()
         if impact.IMPACT_TABLE not in db.table_names():
@@ -175,12 +208,9 @@ def get_impact_radius(symbol: str, project: str = "") -> str:
         return f"[SyntaxRAG Grafo] Error al consultar dependencias: {e}"
 
 
-@mcp.tool()
+@herramienta()
 def find_related_tests(file_or_symbol: str) -> str:
-    """
-    Localiza los archivos de pruebas unitarias o de integracion asociados a un archivo o simbolo.
-    Permite correr exclusivamente los tests relevantes tras modificar una funcion sin ejecutar toda la suite.
-    """
+    """Pruebas asociadas a un archivo o simbolo."""
     stem = Path(file_or_symbol).stem.replace(".test", "").replace(".spec", "")
     try:
         db = indexer.get_db()
@@ -205,12 +235,9 @@ def find_related_tests(file_or_symbol: str) -> str:
         return f"[SyntaxRAG Tests] Error al buscar pruebas: {e}"
 
 
-@mcp.tool()
+@herramienta()
 def get_savings_report() -> str:
-    """
-    Devuelve el registro de uso del buscador (consultas medidas por cliente y tokens devueltos)
-    y una referencia de tokens que no es un ahorro medido.
-    """
+    """Uso registrado del buscador por cliente (no es un ahorro medido)."""
     stats = telemetry.get_summary_stats()
     today = stats["today"]
     all_time = stats["all_time"]
@@ -239,9 +266,9 @@ def get_savings_report() -> str:
     return "\n".join(out)
 
 
-@mcp.tool()
+@herramienta()
 def list_projects() -> str:
-    """Lista los proyectos indexados y cuantos fragmentos AST tiene cada uno."""
+    """Proyectos indexados y cuantos fragmentos tiene cada uno."""
     try:
         db = indexer.get_db()
         df = db.open_table(indexer.TABLE_NAME).to_pandas()[["project"]]
@@ -251,9 +278,9 @@ def list_projects() -> str:
         return f"[SyntaxRAG] Indice no disponible: {e}. Ejecuta reindex_desktop."
 
 
-@mcp.tool()
+@herramienta()
 def reindex_desktop() -> str:
-    """Vuelve a indexar todo con AST y Grafo de Impacto (unos segundos)."""
+    """Reindexa todas las carpetas configuradas (segundos)."""
     try:
         indexer.index_desktop()
         return "[OK] Reindexado completo exitoso (Tree-sitter AST + Grafo de Impacto + Cache reseteada)."
@@ -261,5 +288,77 @@ def reindex_desktop() -> str:
         return f"[ERROR] Error al reindexar: {e}"
 
 
+@herramienta()
+def repo_map(project: str, foco: str = "", tokens: int = 1024) -> str:
+    """Mapa de firmas del proyecto ordenado por relevancia (PageRank) dentro de un presupuesto de tokens."""
+    return mapa.mapa_del_repo(proyecto=project, foco=foco, tokens=tokens)
+
+
+# ==============================================================================
+# REGISTRO DE SUITE MODULAR DE HERRAMIENTAS (OPTIMIZACION DE TOKENS Y SEGURIDAD)
+# ==============================================================================
+import tools.context_tools as context_tools
+import tools.inspect_tools as inspect_tools
+import tools.runner_tools as runner_tools
+import tools.patch_tools as patch_tools
+import tools.safety_tools as safety_tools
+
+# Bloque 1: Gestión de contexto y sesiones
+herramienta()(context_tools.session_handoff)
+herramienta()(context_tools.context_budget_alert)
+herramienta()(context_tools.git_staged_overview)
+herramienta()(context_tools.extract_todo_status)
+
+# Bloque 2: Lectura e inspección quirúrgica
+herramienta()(inspect_tools.get_symbol_contract)
+herramienta()(inspect_tools.extract_type_definition)
+herramienta()(inspect_tools.get_import_graph)
+herramienta()(inspect_tools.find_callers_exact)
+
+# Bloque 3: Ejecución y filtrado de consola
+herramienta()(runner_tools.run_test_isolated)
+herramienta()(runner_tools.lint_summary)
+herramienta()(runner_tools.run_typecheck_focus)
+herramienta()(runner_tools.tail_clean_logs)
+
+# Bloque 4: Modificación sintáctica y parches
+herramienta()(patch_tools.patch_function_body)
+herramienta()(patch_tools.add_import_clean)
+herramienta()(patch_tools.rename_symbol_scoped)
+herramienta()(patch_tools.remove_unused_imports)
+
+# Bloque 5: Prevención de errores y dependencias rotas
+herramienta()(safety_tools.verify_dependency_exists)
+herramienta()(safety_tools.check_circular_imports)
+herramienta()(safety_tools.check_breaking_callsites)
+herramienta()(safety_tools.find_code_duplicates)
+
+# Bloque 6 (opcional): coprocesador con Gemini. Solo si el usuario configuro su GEMINI_API_KEY;
+# sin clave no se registran y el motor no usa la red.
+import argon
+if argon.disponible():
+    herramienta()(argon.ask_synrag_architect)
+    herramienta()(argon.explain_blast_radius)
+
+
+def _compactar_esquemas():
+    """Quita los "title" que el SDK genera solos en cada parametro ("File Path" para file_path):
+    repiten el nombre y se pagan en cada sesion. Si el SDK cambia su interna, no pasa nada."""
+    def limpiar(nodo):
+        if isinstance(nodo, dict):
+            nodo.pop("title", None)
+            for v in nodo.values():
+                limpiar(v)
+    try:
+        for t in mcp._tool_manager.list_tools():
+            limpiar(t.parameters)
+    except Exception:
+        pass
+
+
+_compactar_esquemas()
+
 if __name__ == "__main__":
     mcp.run()
+
+

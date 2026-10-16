@@ -20,11 +20,29 @@ Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejem
 
 **SyntaxRAG (SYNRAG)** resuelve este problema analizando el árbol sintáctico abstracto (AST) del código en tu máquina local:
 
-- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases, tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript y Python; Markdown se trocea por secciones y SQL por sentencias); los bloques de más de 2.400 caracteres se dividen.
-- **Búsqueda por palabras con reordenado neuronal:** Recupera candidatos con BM25 (Tantivy sobre LanceDB) y los reordena en CPU con un modelo TinyBERT local (FlashRank). Si la consulta no comparte palabras con el código, no lo encuentra. Mediana medida: ~90 ms por consulta nueva.
+- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases (las grandes, método por método), tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript y Python). La documentación (Markdown, MDX, reStructuredText, AsciiDoc) se trocea en fragmentos de ~200 tokens con su ruta de títulos; SQL por sentencias.
+- **Localizar antes que leer:** Con un nombre de símbolo devuelve su definición primero y entera; el resto de resultados ocupa una línea (`ruta:líneas tipo nombre | firma`). Los nombres compuestos se indexan también partidos (`esSinCupo` se encuentra con "sin cupo"). Candidatos por BM25 (Tantivy sobre LanceDB) reordenados en CPU con TinyBERT (FlashRank). Mediana medida: 61-89 ms por consulta nueva.
 - **Grafo de Impacto de Dependencias:** Guarda en una tabla de LanceDB qué archivos importan cada símbolo, para avisar a los agentes de qué depende de lo que van a editar. Detecta imports; no sigue llamadas dinámicas.
-- **Caché de consultas repetidas:** Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local (~9 ms). No es una caché semántica y se vacía al reindexar. La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo que los lee.
-- **Observador de cambios (opcional):** Un servicio de systemd de usuario (`lancedb-watcher.service`) reindexa solo el archivo que guardas: ~8 ms por archivo pequeño (mediana medida), tras 0,6 s de espera para agrupar guardados. Usa 300 MB o más de RAM.
+- **Caché de consultas repetidas:** Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local (~3-4 ms). No es una caché semántica y se vacía al reindexar. La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo que los lee.
+- **Observador de cambios (opcional):** Un servicio de systemd de usuario (`lancedb-watcher.service`) reindexa solo el archivo que guardas: ~8 ms por archivo pequeño (mediana medida), tras 0,6 s de espera para agrupar guardados. Usa unos 250-300 MB de RAM; compacta la base cada cierto número de cambios y detecta carpetas nuevas sin reiniciar.
+
+
+## Cuánto ahorra (medido, no prometido)
+
+Cada cifra sale de un guion de `benchmarks/` que cualquiera puede repetir en su equipo sobre repositorios públicos (Flask y Hono). La comparación honesta no es contra leer archivos enteros, sino contra lo que hace un agente sin SynRAG: `grep` y leer el tramo.
+
+| Qué | Resultado | Guion |
+|---|---|---|
+| Sistema completo con un agente real (Gemini con function calling): 10 tareas de varios pasos (localizar, entender, planear un cambio, correr pruebas) x 2 rondas, contando todos los tokens que cobra la API | **-29,2 % tokens** (191.567 frente a 270.717), calidad 87 % -> 90 %; gana en 7 de 10 (planear un cambio -81 %, pruebas con salida larga -38 %, entender -20 %); pierde en tareas muy cortas (+124 %: las definiciones de las herramientas pesan más que la tarea) y en 2 de 3 de Flask (+10 % y +30 %). Varianza alta: ronda 1 -15 %, ronda 2 -48 % | `benchmarks/agente/completo.py` |
+| Agente real, solo ubicar: 16 preguntas x 2 rondas, con y sin SynRAG | **-11,5 % tokens**, 16/16 aciertos en ambos modos; gana en 7 de 16 (hasta -79 % en lenguaje natural en un repo grande; pierde con nombres exactos en un repo chico, donde `grep` devuelve una línea) | `benchmarks/agente/agente.py` |
+| Encontrar y leer una función por su nombre, frente a grep + leer el tramo | Flask -27 a -30 %, Hono -45 %; la definición sale primera en el 92-100 % | `benchmarks/ahorro.py --indexar` |
+| Lo mismo con preguntas en lenguaje natural | Flask -31 % | `benchmarks/ahorro.py --naturales` |
+| Documentación (fragmentos de ~200 tokens) | -22 % frente a grep, -91 % frente al archivo entero | `benchmarks/docs.py` |
+| Empaquetar un repo solo con firmas (como Repomix `--compress`) | Flask -76 %, Hono -84 % frente al repo completo | `benchmarks/mapa.py` |
+| Salidas largas de terminal (filtro opcional) | -87 a -99 % conservando todas las líneas de error; la salida completa queda en un archivo | `benchmarks/filtro.py` |
+| Costo fijo: definiciones de las 28 herramientas MCP | ~2.000 tokens por sesión | `scripts/ci/mcp_tools_list.py` |
+
+Lo que más pesa en una sesión real no es ninguna herramienta: es la longitud de la sesión, porque cada turno reenvía todo el historial. `context_budget_alert` y `session_handoff` ayudan a cortar a tiempo. Detalle y límites de cada cifra: `CLAIMS.md`.
 
 ---
 
@@ -84,15 +102,14 @@ rm -rf ~/.local/opt/lancedb-hub   # opcional: borra tambien el motor y su indice
 
 ## Herramientas MCP para Agentes de IA
 
-Cualquier agente conectado a SyntaxRAG tiene acceso a 7 herramientas nativas:
+Cualquier agente conectado a SyntaxRAG tiene 28 herramientas (las dos de Gemini solo aparecen si configuras tu propia `GEMINI_API_KEY`; sin ella el motor no usa la red):
 
-1. `search_desktop(query, limit, project)`: Búsqueda por palabras (BM25) con reordenado neuronal en CPU y advertencia de impacto.
-2. `get_file_outline(file_path)`: Esquema sintáctico de un archivo (firmas y rangos de línea) sin volcar el código fuente. Suele pesar mucho menos que el archivo completo; el ahorro real depende de la tarea.
-3. `get_impact_radius(symbol)`: Cálculo del blast radius preventivo antes de editar una función.
-4. `find_related_tests(file_or_symbol)`: Mapeo de archivos `.test.ts`, `.spec.ts` asociados para correr solo las pruebas necesarias.
-5. `get_savings_report()`: Registro de uso del buscador: tokens devueltos y una referencia contrafactual (tamaño completo de los archivos devueltos). La referencia no es un ahorro medido; ver `CLAIMS.md`.
-6. `list_projects()`: Resumen de proyectos indexados y recuento de fragmentos.
-7. `reindex_desktop()`: Re-indexación completa del árbol AST y grafo de impacto.
+- **Buscar y orientarse:** `search_desktop` (con `tipo="docs"` o `"codigo"`), `get_file_outline` (incluye los métodos de objetos y clases grandes), `repo_map` (firmas de los archivos más importantes por PageRank, dentro de un presupuesto de tokens), `list_projects`, `reindex_desktop`.
+- **Antes de editar:** `get_impact_radius`, `find_related_tests`, `find_callers_exact`, `get_symbol_contract`, `extract_type_definition`, `get_import_graph`, `check_breaking_callsites`, `check_circular_imports`, `verify_dependency_exists` (entiende monorepos y workspaces), `find_code_duplicates`.
+- **Editar:** `patch_function_body`, `add_import_clean`, `rename_symbol_scoped`, `remove_unused_imports` (conservan saltos de línea y sangría; si el nombre del archivo es ambiguo no tocan nada; respaldo fuera del repo).
+- **Ejecutar con salida corta:** `run_test_isolated`, `lint_summary`, `run_typecheck_focus`, `tail_clean_logs`.
+- **Sesión:** `session_handoff`, `context_budget_alert`, `git_staged_overview`, `extract_todo_status`, `get_savings_report`.
+- **Opcional con Gemini:** `ask_synrag_architect`, `explain_blast_radius`.
 
 ---
 
@@ -125,8 +142,25 @@ SYNRAG stats
 # Re-escanear y auto-configurar todas las IAs instaladas
 SYNRAG configure
 
+# Qué carpetas se indexan (por defecto se detectan ~/Projects, ~/code, ~/dev...; se guardan en
+# ~/.config/synrag/carpetas.txt o en la variable SYNRAG_CARPETAS)
+SYNRAG carpetas
+SYNRAG agregar ~/trabajo [nombre-del-proyecto]
+SYNRAG quitar ~/trabajo
+
 # Reindexar todo con Tree-sitter AST
 SYNRAG index
+
+# Mapa del repo: firmas de los archivos más importantes (PageRank) en un presupuesto de tokens
+SYNRAG mapa mi-proyecto --tokens 1024 [--foco archivo.ts,funcion]
+
+# Empaquetar un repo solo con firmas, tipos e imports (para pegarlo en un chat web)
+SYNRAG empaquetar ~/mi-proyecto --salida paquete.md [--sin-comprimir]
+
+# Opcionales (se quitan con "SYNRAG uninstall --<lo-mismo>"):
+SYNRAG configure --filtro-largas   # recorta salidas largas de la terminal en Claude Code (hook PostToolUse)
+SYNRAG configure --filtro          # resume salidas de instalar/compilar/probar
+SYNRAG configure --conciso         # respuestas cortas (basado en Caveman de Julius Brussee, Apache-2.0)
 
 # Ver log en vivo del demonio reactivo (Ctrl+S)
 SYNRAG watch
