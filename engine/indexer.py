@@ -695,6 +695,37 @@ def buscar_definiciones(tbl, query: str, project: str | None = None, limit: int 
     return salida[:limit]
 
 
+RE_MIEMBRO_PUNTO = re.compile(r"^([A-Za-z_$][A-Za-z0-9_$]*)\.([A-Za-z_$][A-Za-z0-9_$]{2,})\(?\)?$")
+
+
+def definiciones_de_consulta(tbl, query: str, project: str | None = None, limit: int = 5, tipo: str = "") -> List[Dict[str, Any]]:
+    """Definiciones exactas que pide la consulta: `nombre`; `objeto.miembro` (c.json, self.open_session)
+    da las del miembro, primero las de la clase `objeto` si existe; `Clase miembro` (Config from_envvar)
+    da el miembro definido en el archivo de esa clase."""
+    q = query.strip()
+    if RE_IDENTIFICADOR.match(q):
+        return buscar_definiciones(tbl, q, project=project, limit=limit, tipo=tipo)
+    m = RE_MIEMBRO_PUNTO.match(q)
+    palabras = q.split()
+    if m:
+        dueno, miembro = m.group(1), m.group(2)
+    elif len(palabras) == 2 and all(RE_IDENTIFICADOR.match(w) for w in palabras):
+        dueno, miembro = palabras
+    else:
+        return []
+    defs = buscar_definiciones(tbl, miembro, project=project, limit=max(limit, 10), tipo=tipo)
+    clases = {r.get("rel_path") for r in buscar_definiciones(tbl, dueno, project=project, limit=10, tipo=tipo)
+              if r.get("symbol_kind") in ("class", "interface", "type", "variable")}
+    if not clases and not m and len(palabras) == 2:  # tambien "from_envvar Config"
+        dueno, miembro = miembro, dueno
+        defs = buscar_definiciones(tbl, miembro, project=project, limit=max(limit, 10), tipo=tipo)
+        clases = {r.get("rel_path") for r in buscar_definiciones(tbl, dueno, project=project, limit=10, tipo=tipo)
+                  if r.get("symbol_kind") in ("class", "interface", "type", "variable")}
+    if not m:  # dos palabras: solo cuenta si el miembro esta en el archivo de la clase
+        return [r for r in defs if r.get("rel_path") in clases][:limit]
+    return sorted(defs, key=lambda r: r.get("rel_path") not in clases)[:limit]
+
+
 def _abs_home(rel: str) -> str:
     """rel_path / imported_by son relativas al HOME salvo fuera de el."""
     return rel if rel.startswith("/") else os.path.normpath(str(HOME / rel))
@@ -878,7 +909,7 @@ def search_desktop(
 
     tbl = db.open_table(TABLE_NAME)
     candidates = []
-    exactos = buscar_definiciones(tbl, query, project=project, limit=limit, tipo=tipo)
+    exactos = definiciones_de_consulta(tbl, query, project=project, limit=limit, tipo=tipo)
 
     condiciones = []
     if project:
@@ -945,6 +976,11 @@ def search_desktop(
     # notas no cambia nada. Para buscar solo en docs: tipo="docs".
     if not tipo:
         reranked = [r for r in reranked if not _es_doc(r)] + [r for r in reranked if _es_doc(r)]
+    # Las pruebas repiten los nombres que se buscan y ganaban a la implementacion ("c.json" daba un
+    # test). Van detras salvo que la consulta las pida.
+    if not re.search(r"(?i)test|spec|prueba", query):
+        reranked = [r for r in reranked if not _es_prueba(r.get("rel_path", ""))] + \
+                   [r for r in reranked if _es_prueba(r.get("rel_path", ""))]
 
     # 3. Grafo de Impacto
     if check_impact:

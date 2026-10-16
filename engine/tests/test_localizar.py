@@ -66,3 +66,25 @@ def test_palabras_sueltas_encuentran_nombres_compuestos(casa):
     indexer.index_desktop()
     res = indexer.search_desktop("sin cupo", project="demo", use_rerank=False)
     assert res and res[0]["rel_path"].endswith("lecturas.ts")
+
+
+def test_objeto_punto_miembro_y_clase_miembro_dan_la_definicion(casa):
+    relleno = "\n".join(f"    const v{i} = 'relleno para que la clase supere el tamano maximo {i}'" for i in range(20))
+    crear_proyecto(casa, "web", {
+        "src/context.ts": (
+            "export class Context {\n"
+            f"  json = (objeto: unknown) => {{\n{relleno}\n    return 'application/json'\n  }}\n"
+            f"  text = (texto: string) => {{\n{relleno}\n    return texto\n  }}\n"
+            "}\n"
+        ),
+        "src/request.ts": "export class HonoRequest {\n  json() {\n    return this.raw.json()\n  }\n}\n",
+        "src/context.test.ts": "describe('c.json', () => {\n  it('json', () => { c.json({}) ; c.json({}) })\n})\n",
+    })
+    indexer.index_desktop()
+    for consulta in ("c.json", "Context json", "json Context", "Context.json"):
+        res = indexer.search_desktop(consulta, project="web", use_rerank=False)
+        assert res[0]["rel_path"].endswith("src/context.ts"), consulta
+        assert res[0]["symbol_name"] == "json" and res[0].get("exacto")
+    # las pruebas van detras del codigo salvo que se pidan
+    res = indexer.search_desktop("json objeto", project="web", use_rerank=False)
+    assert not res[0]["rel_path"].endswith(".test.ts")
