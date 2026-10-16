@@ -1,0 +1,797 @@
+{
+ "modelo": "gemini-3.5-flash-lite",
+ "rondas": 2,
+ "filas": [
+  {
+   "tarea": "synrag_pruebas_filtro",
+   "tipo": "correr pruebas",
+   "modo": "sin",
+   "turnos": 2,
+   "prompt": 691,
+   "salida": 59,
+   "razonamiento": 0,
+   "total": 750,
+   "calidad": 1.0,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "Al ejecutar las pruebas con `pytest engine/tests/test_filtro.py`, pasan **18 pruebas** (18 passed) y **ninguna falla**.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_pruebas_filtro",
+   "tipo": "correr pruebas",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 1645,
+   "salida": 34,
+   "razonamiento": 0,
+   "total": 1679,
+   "calidad": 1.0,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "18 pasadas, 0 fallidas.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_suite_v",
+   "tipo": "correr pruebas (salida larga)",
+   "modo": "sin",
+   "turnos": 2,
+   "prompt": 6949,
+   "salida": 144,
+   "razonamiento": 0,
+   "total": 7093,
+   "calidad": 0.6666666666666666,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "Al ejecutar la suite completa de pruebas del motor con `cd engine && python -m pytest -v`:\n\n- **Pruebas que pasan (PASSED):** 180\n- **Pruebas que fallan (FAILED):** 0\n- **Prueba marcada como xfail:** `tests/test_chunker.py::test_chunker_rust_y_go_extraccion_simbolos` (además hay 1 prueba omitida/skipped: `tests/test_argon.py::test_call_gemini_model_execution`).",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_suite_v",
+   "tipo": "correr pruebas (salida larga)",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 4358,
+   "salida": 79,
+   "razonamiento": 0,
+   "total": 4437,
+   "calidad": 0.6666666666666666,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "- Pruebas que pasan: 180\n- Pruebas que fallan: 0\n- Prueba marcada como xfail: `tests/test_chunker.py::test_chunker_rust_y_go_extraccion_simbolos`",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_orden_busqueda",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 6,
+   "prompt": 17910,
+   "salida": 1027,
+   "razonamiento": 0,
+   "total": 18937,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file",
+    "grep",
+    "read_file",
+    "grep"
+   ],
+   "respuesta": "Cuando la consulta (`query`) es un nombre de símbolo exacto (es decir, cumple con el patrón de identificador `RE_IDENTIFICADOR`), **`search_desktop`** (en `engine/indexer.py`) decide el orden de los resultados combinando dos fases principales: **las definiciones exactas** y **los candidatos por similitud léxica/semántica (`fts` + `FlashRank`)**, aplicando además un orden especial para código frente a documentación.\n\nEl proceso detallado paso a paso es el siguiente:\n\n---\n\n### 1. Búsqueda y Ordenamiento de Definiciones Exactas (`buscar_definiciones`)\n\nPrimero se ejecuta `buscar_definiciones`, que consulta la tabla de LanceDB buscando registros donde `symbol_name = query` (y filtrando opcionalmente por proyecto o tipo). \n\nSi existen varios fragmentos o trozos para un mismo símbolo en un archivo, se agrupan y se ordenan internamente mediante una clave de ordenamiento múltiple (tupla) de cuatro criterios:\n\n1. **Tipo de símbolo (`symbol_kind`) usando `PRIORIDAD_KIND`**:\n   Los símbolos se priorizan de menor a mayor valor numérico:\n   - `function` y `hook` (Prioridad `0` - más alto)\n   - `method` (Prioridad `1`)\n   - `class` (Prioridad `2`)\n   - `interface`, `type`, `enum` (Prioridad `3`)\n   - `variable` (Prioridad `4`)\n   - Cualquier otro tipo desconocido (Prioridad `5`)\n\n2. **Evitar archivos de test (`\"test\" in r.get(\"rel_path\", \"\").lower()`)**:\n   Da prioridad a los archivos que **no** son de test (`False` / `0`) frente a los que están en rutas de tests (`True` / `1`), asegurando",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_orden_busqueda",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 4,
+   "prompt": 11442,
+   "salida": 666,
+   "razonamiento": 0,
+   "total": 12108,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "read_file",
+    "grep"
+   ],
+   "respuesta": "Cuando la consulta (`query`) es un nombre de símbolo exacto (validado por `RE_IDENTIFICADOR.match(nombre)`), `search_desktop` decide el orden de los resultados combinando la búsqueda de definiciones exactas, candidatos FTS de Tantivy, reordenamiento por FlashRank y la inyección prioritaria de las definiciones exactas. \n\nEl proceso detallado sigue estos pasos:\n\n1. **Obtención de definiciones exactas (`buscar_definiciones`)**:\n   Busca registros donde `symbol_name = '{nombre}'` filtrando opcionalmente por proyecto y tipo (`docs` o `codigo`).\n   - Agrupa los fragmentos del mismo símbolo en un mismo archivo por `(rel_path, symbol_name)` y calcula su rango completo de líneas (`line` a `end_line`).\n   - Ordena los resultados exactos según la clave de tupla:\n     - `PRIORIDAD_KIND`: Prioriza por tipo de símbolo (`function`/`hook`: 0, `method`: 1, `class`: 2, `interface`/`type`/`enum`: 3, `variable`: 4, otros: 5).\n     - Archivos que **no** contienen la palabra `\"test\"` en su ruta frente a los que sí la contienen (`\"test\" in r.get(\"rel_path\", \"\").lower()` es False antes que True).\n     - Si la definición está exportada explícitamente (`export` seguido del nombre en el contenido).\n     - Longitud de la ruta relativa (`len(r.get(\"rel_path\", \"\"))`).\n\n2. **Búsqueda general de candidatos (FTS / BM25)**:\n   Paralelamente, realiza una búsqueda por palabras clave (`query_type=\"fts\"`) en la tabla LanceDB para obtener un conjunto de candidatos generales (hasta 25).\n   - Filtra los candidatos a",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_observador",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 4,
+   "prompt": 8430,
+   "salida": 526,
+   "razonamiento": 0,
+   "total": 8956,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "En el archivo `engine/watcher.py`, el comportamiento del observador frente a los guardados y versiones se define mediante las siguientes constantes y mecanismos:\n\n1. **¿Qué hace para no crear una versión de tabla por cada guardado?**\n   Utiliza una técnica de **`debounce`** (agrupamiento). Cuando se produce un evento de archivo (como `Ctrl + S`), en lugar de indexar y generar una versión de la tabla inmediatamente, el evento se programa en un diccionario de tareas pendientes (`self._pending`) asignándole un plazo temporal (`time.monotonic() + self.debounce_delay`). Si el mismo archivo vuelve a guardarse antes de que expire ese tiempo, se actualiza su marca de tiempo en la cola en lugar de añadir una nueva ejecución. El hilo trabajador (`_worker_loop`) espera a que transcurran **0.6 segundos** (`DEBOUNCE_SECONDS = 0.6`) sin nuevos cambios en ese archivo antes de proceder a reindexarlo (`index_single_file`).\n\n2. **¿Cada cuántas actualizaciones compacta?**\n   Compacta cada **50 actualizaciones** exitosas. Esto está controlado por la constante:\n   ```python\n   OPTIMIZAR_CADA_ACTUALIZACIONES = 50\n   ```\n   Cada vez que se procesa una actualización, se incrementa un contador (`self._updates_count`), y al alcanzar o superar 50, se resetea y se ejecuta la función `optimizar_tablas()`.\n\n3. **¿Cuántos minutos conserva las versiones viejas?**\n   Conserva las versiones antiguas durante **5 minutos** antes de eliminarlas definitivamente durante la optimización (`tbl.optimize(cleanup_older",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_observador",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 3,
+   "prompt": 6712,
+   "salida": 259,
+   "razonamiento": 0,
+   "total": 6971,
+   "calidad": 1.0,
+   "llamadas": [
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "- **Para no crear una versión de tabla por cada guardado**: Utiliza un mecanismo de *debounce* (`DEBOUNCE_SECONDS = 0.6` y `_schedule_update` / `_worker_loop`) en un único hilo trabajador (`synrag-watcher-worker`), agrupando eventos repetidos sobre el mismo archivo en el intervalo configurado antes de reindexar (`indexer.index_single_file(path)`).\n- **Cada cuántas actualizaciones compacta**: Cada `50` actualizaciones (`OPTIMIZAR_CADA_ACTUALIZACIONES = 50`), llamando a `optimizar_tablas()`.\n- **Cuántos minutos conserva las versiones viejas**: `5` minutos (`CONSERVAR_VERSIONES_MINUTOS = 5`), aplicado mediante `tbl.optimize(cleanup_older_than=timedelta(minutes=CONSERVAR_VERSIONES_MINUTOS))`.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_cambio_firma",
+   "tipo": "planear cambio",
+   "modo": "sin",
+   "turnos": 7,
+   "prompt": 17250,
+   "salida": 190,
+   "razonamiento": 0,
+   "total": 17440,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "run",
+    "grep",
+    "read_file",
+    "grep"
+   ],
+   "respuesta": "Si agregas un parámetro obligatorio `idioma` a la función `terminos_de_busqueda`, tendrías que cambiar la siguiente llamada (archivo y función):\n\n1. **Archivo**: `engine/indexer.py`\n   **Función**: `_con_terminos` (en la línea 171)",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_cambio_firma",
+   "tipo": "planear cambio",
+   "modo": "con",
+   "turnos": 3,
+   "prompt": 3428,
+   "salida": 121,
+   "razonamiento": 0,
+   "total": 3549,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "grep"
+   ],
+   "respuesta": "Llamadas a cambiar:\n\n1. Archivo: `synrag/engine/indexer.py`\n   Función: `_con_terminos` (en la línea donde se invoca `terminos_de_busqueda(r[\"content\"], r.get(\"symbol_name\", \"\"), r.get(\"filename\", \"\"))`).",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_from_envvar",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 3,
+   "prompt": 1961,
+   "salida": 177,
+   "razonamiento": 0,
+   "total": 2138,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file"
+   ],
+   "respuesta": "Flask carga la configuración desde una variable de entorno que apunta a un archivo utilizando el método **`from_envvar`** de la clase de configuración (`Config`).\n\n**Qué pasa si la variable de entorno no existe:**\n- Por defecto (`silent=False`), lanza una excepción **`RuntimeError`** indicando que la variable de entorno no está configurada.\n- Si se pasa el parámetro **`silent=True`** (`app.config.from_envvar('NOMBRE_VARIABLE', silent=True)`), falla de forma silenciosa y devuelve **`False`** sin lanzar ninguna excepción.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_from_envvar",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 2238,
+   "salida": 119,
+   "razonamiento": 0,
+   "total": 2357,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop"
+   ],
+   "respuesta": "Metodo: `Config.from_envvar(variable_name: str, silent: bool = False)` (disponible en `app.config.from_envvar`).\n\nComportamiento si la variable de entorno no existe:\n- Si `silent=False` (por defecto), lanza una excepcion `RuntimeError` indicando que la variable de entorno no esta establecida.\n- Si `silent=True`, falla silenciosamente y retorna `False` sin lanzar excepciones.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_firma_sesion",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 7,
+   "prompt": 10393,
+   "salida": 421,
+   "razonamiento": 0,
+   "total": 10814,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "En Flask, la cookie de sesión se firma y serializa a través de la clase por defecto `SecureCookieSessionInterface` (ubicada en `flask.sessions`).\n\nA continuación se detallan los elementos solicitados:\n\n1. **Método:** El método donde se firma y serializa la sesión (al guardar la respuesta) es **`dumps(...)`** del serializador (llamado desde `save_session`), y en el proceso de lectura/verificación se utiliza el método **`loads(...)`** (en `open_session`). Específicamente, en `save_session` se invoca:\n   ```python\n   val = self.get_signing_serializer(app).dumps(dict(session))\n   ```\n2. **Clase del serializador:** La clase utilizada para firmar y serializar los datos de la cookie es **`URLSafeTimedSerializer`** (perteneciente a la librería externa `itsdangerous`), configurada mediante `SecureCookieSessionInterface.get_signing_serializer(app)`.\n3. **De dónde sale la clave:** La clave secreta proviene de **`app.secret_key`** (y opcionalmente de las claves de respaldo definidas en `app.config[\"SECRET_KEY_FALLBACKS\"]`), las cuales son proporcionadas por la aplicación Flask (`app`).",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_firma_sesion",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 5,
+   "prompt": 12614,
+   "salida": 188,
+   "razonamiento": 0,
+   "total": 12802,
+   "calidad": 0.6666666666666666,
+   "llamadas": [
+    "search_desktop",
+    "search_desktop",
+    "search_desktop",
+    "search_desktop"
+   ],
+   "respuesta": "- Metodo donde se firma: `itsdangerous.URLSafeTimedSerializer.dumps` (llamado desde `flask.sessions.SecureCookieSessionInterface.save_session`).\n- Clase del serializador: `itsdangerous.URLSafeTimedSerializer` (con `flask.json.tag.TaggedJSONSerializer` como serializador interno del payload).\n- Origen de la clave: `app.secret_key` (y opcionalmente `app.config[\"SECRET_KEY_FALLBACKS\"]`), definido en la instancia de Flask.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_metodos_config",
+   "tipo": "orientarse",
+   "modo": "sin",
+   "turnos": 7,
+   "prompt": 14865,
+   "salida": 517,
+   "razonamiento": 0,
+   "total": 15382,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "Los métodos públicos de la clase `Config` de Flask que sirven para cargar configuración son:\n\n1. **`from_envvar(variable_name, silent=False)`**\n   Carga la configuración desde un archivo cuya ruta está especificada en una variable de entorno.\n\n2. **`from_prefixed_env(prefix=\"FLASK\", *, loads=json.loads)`**\n   Carga variables de entorno que comienzan con un prefijo dado (por defecto `FLASK_`), eliminando el prefijo para las claves de configuración y convirtiendo los valores (por defecto mediante `json.loads`).\n\n3. **`from_pyfile(filename, silent=False)`**\n   Actualiza los valores de la configuración a partir de un archivo de Python (ej. `.py` o `.cfg`).\n\n4. **`from_object(obj)`**\n   Actualiza los valores de la configuración a partir de un objeto o una ruta de importación de cadena en formato de texto (normalmente un módulo o una clase), cargando únicamente los atributos en mayúsculas.\n\n5. **`from_file(filename, load, silent=False, text=True)`**\n   Actualiza los valores de la configuración a partir de un archivo general (como JSON o TOML) utilizando una función de carga personalizada (`load`) que devuelve un mapeo, pasándolo internamente a `from_mapping`.\n\n6. **`from_mapping(mapping=None, **kwargs)`**\n   Actualiza la configuración utilizando un objeto mapeador (como un diccionario) o argumentos de palabras clave (`kwargs`), ignorando aquellas claves que no estén en mayúsculas.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_metodos_config",
+   "tipo": "orientarse",
+   "modo": "con",
+   "turnos": 6,
+   "prompt": 17506,
+   "salida": 338,
+   "razonamiento": 0,
+   "total": 17844,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "get_file_outline",
+    "read_file",
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "- `from_envvar(variable_name: str, silent: bool = False) -> bool`\n- `from_prefixed_env(prefix: str = \"FLASK\", *, loads: t.Callable[[str], t.Any] = json.loads) -> bool`\n- `from_pyfile(filename: str | os.PathLike[str], silent: bool = False) -> bool`\n- `from_object(obj: object | str) -> None`\n- `from_file(filename: str | os.PathLike[str], load: t.Callable[[t.IO[t.Any]], t.Mapping[str, t.Any]], silent: bool = False, text: bool = True) -> bool`\n- `from_mapping(mapping: t.Mapping[str, t.Any] | None = None, **kwargs: t.Any) -> bool`",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_compose",
+   "tipo": "localizar y entender",
+   "modo": "sin",
+   "turnos": 3,
+   "prompt": 3278,
+   "salida": 159,
+   "razonamiento": 0,
+   "total": 3437,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file"
+   ],
+   "respuesta": "La función encargada de componer los middlewares es `compose`, ubicada en el archivo `src/compose.ts`. \n\nCada middleware se ejecuta pasando una función `next` (que al ser invocada ejecuta `dispatch(i + 1)`), lo que permite que el flujo avance de un middleware al siguiente de forma asíncrona y basada en promesas. Cuando un middleware llama a `await next()`, transfiere el control al siguiente índice del arreglo de middlewares y espera a que este termine antes de reanudar el resto de su propia ejecución.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_compose",
+   "tipo": "localizar y entender",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 2532,
+   "salida": 101,
+   "razonamiento": 0,
+   "total": 2633,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop"
+   ],
+   "respuesta": "- Función: `compose`\n- Archivo: `src/compose.ts`\n\nLa función ejecuta recursivamente cada middleware pasando como argumento `next` una función `dispatch(i + 1)` que avanza al siguiente índice del array. Cada middleware invoca a `await next()` para ceder el control al siguiente eslabón y retomar la ejecución al regresar la promesa.",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_c_json",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 15,
+   "prompt": 70116,
+   "salida": 261,
+   "razonamiento": 0,
+   "total": 70377,
+   "calidad": 0.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep"
+   ],
+   "respuesta": "",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_c_json",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 15,
+   "prompt": 66804,
+   "salida": 308,
+   "razonamiento": 0,
+   "total": 67112,
+   "calidad": 0.0,
+   "llamadas": [
+    "search_desktop",
+    "search_desktop",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "search_desktop",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep"
+   ],
+   "respuesta": "",
+   "ronda": 1,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_pruebas_filtro",
+   "tipo": "correr pruebas",
+   "modo": "sin",
+   "turnos": 2,
+   "prompt": 691,
+   "salida": 56,
+   "razonamiento": 0,
+   "total": 747,
+   "calidad": 1.0,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "Las pruebas de `engine/tests/test_filtro.py` han pasado exitosamente: **18 pasadas** y **ninguna falla**.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_pruebas_filtro",
+   "tipo": "correr pruebas",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 1645,
+   "salida": 32,
+   "razonamiento": 0,
+   "total": 1677,
+   "calidad": 1.0,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "18 pruebas pasan y ninguna falla.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_suite_v",
+   "tipo": "correr pruebas (salida larga)",
+   "modo": "sin",
+   "turnos": 2,
+   "prompt": 6949,
+   "salida": 152,
+   "razonamiento": 0,
+   "total": 7101,
+   "calidad": 0.6666666666666666,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "Al ejecutar la suite completa de pruebas del motor con `cd engine && python -m pytest -v`:\n\n- **Pruebas que pasan (PASSED):** 180\n- **Pruebas que fallan (FAILED):** 0\n- **Pruebas omitidas (SKIPPED):** 1 (`tests/test_argon.py::test_call_gemini_model_execution`)\n- **Prueba marcada como xfail (XFAIL):** `tests/test_chunker.py::test_chunker_rust_y_go_extraccion_simbolos`",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_suite_v",
+   "tipo": "correr pruebas (salida larga)",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 4358,
+   "salida": 79,
+   "razonamiento": 0,
+   "total": 4437,
+   "calidad": 0.6666666666666666,
+   "llamadas": [
+    "run"
+   ],
+   "respuesta": "- Pruebas que pasan: 180\n- Pruebas que fallan: 0\n- Prueba marcada como xfail: `tests/test_chunker.py::test_chunker_rust_y_go_extraccion_simbolos`",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_orden_busqueda",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 6,
+   "prompt": 18248,
+   "salida": 919,
+   "razonamiento": 0,
+   "total": 19167,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file",
+    "grep",
+    "read_file",
+    "grep"
+   ],
+   "respuesta": "Cuando la consulta (`query`) es un nombre de símbolo exacto (es decir, cumple con la expresión regular de identificador `RE_IDENTIFICADOR`), la función `search_desktop` en `engine/indexer.py` determina el orden de los resultados combinando la **búsqueda de definiciones exactas**, el **reordenamiento por IA (Cross-Encoder)** y unas **reglas específicas de priorización**.\n\nEl proceso detallado sigue estos pasos:\n\n### 1. Obtención de Definiciones Exactas (`buscar_definiciones`)\nPrimero, el motor comprueba si el texto de la consulta es un símbolo válido. Si lo es, consulta la tabla de LanceDB buscando coincidencias exactas en el campo `symbol_name` (`symbol_name = 'nombre'`).\n\nSi existen múltiples fragmentos (`chunks`) para el mismo símbolo en un mismo archivo, estos se agrupan y se ordenan por su índice (`chunk_index`), unificando su rango de líneas (`line` hasta `end_line`) y leyendo el contenido completo del archivo si el símbolo abarca múltiples trozos.\n\nA continuación, estas definiciones exactas se **ordenan internamente** utilizando una tupla de claves de ordenación (`salida.sort`):\n\n1. **`PRIORIDAD_KIND` (Tipo de símbolo):** Se priorizan ciertos constructos sobre otros según un diccionario predefinido:\n   - Funciones y Hooks (`0`)\n   - Métodos (`1`)\n   - Clases (`2`)\n   - Interfaces, Tipos y Enums (`3`)\n   - Variables (`4`)\n   - Otros / Desconocidos (`5`)\n2. **Archivos de test:** Se penalizan ligeramente los archivos cuyo `rel_path` contenga la palabra `\"test\"` (colocándol",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_orden_busqueda",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 4,
+   "prompt": 10770,
+   "salida": 471,
+   "razonamiento": 0,
+   "total": 11241,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "search_desktop",
+    "grep"
+   ],
+   "respuesta": "1. **Detección y recuperación de definiciones exactas (`buscar_definiciones`)**:\n   - Valida si la consulta coincide con un identificador válido mediante `RE_IDENTIFICADOR`.\n   - Consulta LanceDB filtrando por coincidencia exacta del nombre del símbolo (`symbol_name = '{nombre}'`).\n   - Agrupa los fragmentos contiguos del mismo símbolo y archivo, ordenándolos por `chunk_index` y recalculando líneas iniciales y finales (`line`, `end_line`), leyendo el archivo completo si hay múltiples trozos.\n\n2. **Ordenación interna de las definiciones exactas (`salida.sort`)**:\n   Ordena la lista de resultados exactos utilizando una clave de tupla con cuatro criterios en orden de prioridad:\n   - **`PRIORIDAD_KIND`**: Da preferencia al tipo de símbolo (`function`/`hook` = 0, `method` = 1, `class` = 2, `interface`/`type`/`enum` = 3, `variable` = 4, otros = 5).\n   - **No tests**: Penaliza los archivos cuyos caminos contienen `\"test\"` (mueve código de test al final).\n   - **Exportación**: Prioriza símbolos que contengan la palabra `export` junto al nombre en su contenido.\n   - **Longitud de la ruta**: Prefiere rutas de archivo más cortas (`len(r.get(\"rel_path\", \"\"))`).\n\n3. **Fusión en la búsqueda general (`search_desktop`)**:\n   - Obtiene candidatos mediante búsqueda FTS/vectorial habitual y los reordena con FlashRank Cross-Encoder.\n   - Antepone obligatoriamente los resultados exactos (`exactos`) al principio de la lista final `reranked` (eliminando duplicados por `id`).\n   - Si no se especific",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_observador",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 4,
+   "prompt": 6294,
+   "salida": 414,
+   "razonamiento": 0,
+   "total": 6708,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "Basándose en el archivo `engine/watcher.py`, las respuestas son las siguientes:\n\n1. **¿Qué hace el observador para no crear una versión de tabla por cada guardado?**\n   Utiliza un mecanismo de **debounce** (retraso/agrupación) mediante un diccionario (`self._pending`) y un hilo trabajador (`_worker_loop`) controlado por condiciones. Cuando un archivo se guarda repetidamente en un corto período de tiempo, el evento actualiza el tiempo límite (`deadline`) en `_pending`. El hilo espera a que pase ese lapso de inactividad (`DEBOUNCE_SECONDS = 0.6` segundos) antes de procesar la actualización, evitando ráfagas o creaciones masivas e innecesarias de versiones de tabla por cada pulsación de guardado.\n\n2. **¿Cada cuántas actualizaciones compacta?**\n   Compacta cada **50 actualizaciones** (`OPTIMIZAR_CADA_ACTUALIZACIONES = 50`). Cada vez que se acumulan 50 actualizaciones de archivos procesadas con éxito, el contador se reinicia y se ejecuta `optimizar_tablas()`.\n\n3. **¿Cuántos minutos conserva las versiones viejas?**\n   Conserva las versiones antiguas durante **5 minutos** (`CONSERVAR_VERSIONES_MINUTOS = 5`), parámetro que se le pasa al método `tbl.optimize(cleanup_older_than=timedelta(minutes=5))` para evitar que fallen lectores activos (como un servidor MCP) que puedan estar consultando una versión anterior de la tabla en ese instante.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_observador",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 2941,
+   "salida": 190,
+   "razonamiento": 0,
+   "total": 3131,
+   "calidad": 1.0,
+   "llamadas": [
+    "read_file"
+   ],
+   "respuesta": "- Para no crear una versión de tabla por cada guardado, utiliza un sistema de `debounce` (`DEBOUNCE_SECONDS = 0.6`) mediante un hilo trabajador (`synrag-watcher-worker`) que acumula y agrupa eventos pendientes en `self._pending`.\n- Compacta cada `50` actualizaciones (`OPTIMIZAR_CADA_ACTUALIZACIONES = 50`) mediante la función `optimizar_tablas()` llamando a `tbl.optimize()`.\n- Conserva las versiones viejas durante `5` minutos (`CONSERVAR_VERSIONES_MINUTOS = 5`) usando `cleanup_older_than=timedelta(minutes=CONSERVAR_VERSIONES_MINUTOS)` en LanceDB.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_cambio_firma",
+   "tipo": "planear cambio",
+   "modo": "sin",
+   "turnos": 9,
+   "prompt": 18561,
+   "salida": 290,
+   "razonamiento": 0,
+   "total": 18851,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "grep",
+    "read_file",
+    "grep",
+    "grep",
+    "grep",
+    "grep"
+   ],
+   "respuesta": "Para agregar un parámetro obligatorio `idioma` a la función `terminos_de_busqueda`, la llamada que habría que cambiar es:\n\n* **Archivo:** `engine/indexer.py`\n* **Función:** `_con_terminos` (en la línea 171)\n\nEn dicha llamada se invoca `terminos_de_busqueda(r[\"content\"], r.get(\"symbol_name\", \"\"), r.get(\"filename\", \"\"))`, la cual deberá incluir el nuevo parámetro obligatorio `idioma` (por ejemplo, pasando `r.get(\"idioma\", ...)` o el campo correspondiente).",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "synrag_cambio_firma",
+   "tipo": "planear cambio",
+   "modo": "con",
+   "turnos": 3,
+   "prompt": 3416,
+   "salida": 84,
+   "razonamiento": 0,
+   "total": 3500,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "grep"
+   ],
+   "respuesta": "Archivo: `synrag/engine/indexer.py`\nFuncion: `_con_terminos` (en la llamada a `terminos_de_busqueda` dentro de esa funcion).",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_from_envvar",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 3,
+   "prompt": 1961,
+   "salida": 176,
+   "razonamiento": 0,
+   "total": 2137,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file"
+   ],
+   "respuesta": "Flask carga la configuración desde una variable de entorno que apunta a un archivo utilizando el método:\n\n* **`from_envvar(variable_name, silent=False)`** (perteneciente a la clase `Config`).\n\n**¿Qué pasa si la variable de entorno no existe?**\n* Por defecto (`silent=False`), lanza una excepción **`RuntimeError`** indicando que la variable de entorno no está configurada.\n* Si se pasa el parámetro `silent=True`, el método falla de forma silenciosa y devuelve **`False`** en lugar de lanzar la excepción.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_from_envvar",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 2238,
+   "salida": 111,
+   "razonamiento": 0,
+   "total": 2349,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop"
+   ],
+   "respuesta": "Metodo: `Config.from_envvar(variable_name: str, silent: bool = False) -> bool` (definido en `flask.config`).\n\nComportamiento si la variable no existe:\n- Si `silent=False` (por defecto), lanza una excepcion `RuntimeError` indicando que la variable de entorno no esta establecida.\n- Si `silent=True`, falla silenciosamente y retorna `False`.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_firma_sesion",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 3,
+   "prompt": 2453,
+   "salida": 329,
+   "razonamiento": 0,
+   "total": 2782,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file"
+   ],
+   "respuesta": "En Flask, la cookie de sesión se firma en la clase `SecureCookieSessionInterface` (ubicada en el módulo `flask.sessions`). \n\nA continuación se detallan los elementos solicitados:\n\n1. **Método donde se firma:** \n   El empaquetado y firmado de los datos de la sesión se realiza mediante el método **`dumps()`** del serializador (llamado desde `save_session` en la línea 373: `val = self.get_signing_serializer(app).dumps(dict(session))`).\n\n2. **Clase del serializador:** \n   Se utiliza la clase **`URLSafeTimedSerializer`** (proveniente de la librería externa `itsdangerous`), la cual es instanciada por el método auxiliar `get_signing_serializer()`.\n\n3. **De dónde sale la clave:** \n   La clave secreta proviene de **`app.secret_key`** (o de la lista de claves de respaldo en `app.config[\"SECRET_KEY_FALLBACKS\"]`, si están configuradas), que a su vez se obtienen de la configuración de la aplicación Flask. Si `app.secret_key` no está definida, `get_signing_serializer()` retorna `None` y no se puede firmar ni usar la sesión basada en cookies.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_firma_sesion",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 3,
+   "prompt": 4696,
+   "salida": 156,
+   "razonamiento": 0,
+   "total": 4852,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "search_desktop"
+   ],
+   "respuesta": "- **Metodo:** `dumps` (del serializador devuelto por `get_signing_serializer`) dentro del metodo `save_session` de la clase `SecureCookieSessionInterface` (ubicado en `flask/sessions.py`).\n- **Clase del serializador:** `itsdangerous.URLSafeTimedSerializer`.\n- **Origen de la clave:** `app.secret_key` (y opcionalmente `app.config[\"SECRET_KEY_FALLBACKS\"]`), definido en la aplicacion de Flask.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_metodos_config",
+   "tipo": "orientarse",
+   "modo": "sin",
+   "turnos": 7,
+   "prompt": 14947,
+   "salida": 539,
+   "razonamiento": 0,
+   "total": 15486,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "read_file",
+    "read_file",
+    "read_file",
+    "read_file"
+   ],
+   "respuesta": "En la clase `Config` de Flask, los métodos públicos que sirven para cargar configuración son los siguientes:\n\n1. **`from_envvar(variable_name, silent=False)`**\n   Carga la configuración desde un archivo cuya ruta está especificada en una variable de entorno. (Internamente llama a `from_pyfile`).\n\n2. **`from_prefixed_env(prefix=\"FLASK\", *, loads=json.loads)`**\n   Carga variables de entorno que comiencen con un prefijo determinado (por defecto `\"FLASK_\"`) y las añade a la configuración (soporta además claves anidadas usando doble guion bajo `__`).\n\n3. **`from_pyfile(filename, silent=False)`**\n   Actualiza los valores de la configuración ejecutando un archivo Python (generalmente contiene variables en mayúsculas).\n\n4. **`from_object(obj)`**\n   Actualiza los valores de la configuración importando o leyendo los atributos en mayúsculas de un objeto o módulo (pasado como una cadena con su ruta de importación o como una referencia al objeto).\n\n5. **`from_file(filename, load, silent=False, text=True)`**\n   Actualiza los valores de la configuración leyendo un archivo de datos (como JSON, TOML, YAML, etc.) mediante una función de carga personalizada (`load`) que devuelve un mapeo, el cual luego es procesado por `from_mapping`.\n\n6. **`from_mapping(mapping=None, **kwargs)`**\n   Actualiza la configuración a partir de un objeto de tipo mapeo (como un diccionario) o argumentos de palabras clave (`kwargs`), filtrando e incluyendo únicamente las claves que están en mayúsculas.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "flask_metodos_config",
+   "tipo": "orientarse",
+   "modo": "con",
+   "turnos": 3,
+   "prompt": 3698,
+   "salida": 243,
+   "razonamiento": 0,
+   "total": 3941,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "get_file_outline"
+   ],
+   "respuesta": "- `from_envvar(variable_name: str, silent: bool = False) -> bool`\n- `from_prefixed_env(prefix: str = \"FLASK\", *, loads: t.Callable[[str], t.Any] = json.loads) -> bool`\n- `from_pyfile(filename: str | os.PathLike[str], silent: bool = False) -> bool`\n- `from_object(obj: object | str) -> None`\n- `from_file(filename: str | os.PathLike[str], load: t.Callable[[t.IO[t.Any]], t.Mapping[str, t.Any]], silent: bool = False) -> bool`\n- `from_mapping(mapping: t.Mapping[str, t.Any] | None = None, **kwargs: t.Any) -> dict[str, t.Any]`",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_compose",
+   "tipo": "localizar y entender",
+   "modo": "sin",
+   "turnos": 3,
+   "prompt": 3278,
+   "salida": 143,
+   "razonamiento": 0,
+   "total": 3421,
+   "calidad": 1.0,
+   "llamadas": [
+    "grep",
+    "read_file"
+   ],
+   "respuesta": "La función encargada de componer los middlewares se llama **`compose`** y se encuentra en el archivo **`src/compose.ts`**. \n\nAvanza de un middleware al siguiente ejecutando recursivamente la función interna `dispatch(i + 1)` cada vez que el middleware actual invoca el parámetro `next()`. Esto permite que el flujo pase al siguiente índice del arreglo y regrese de forma anidada (estilo pila o *onion model*).",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_compose",
+   "tipo": "localizar y entender",
+   "modo": "con",
+   "turnos": 2,
+   "prompt": 2526,
+   "salida": 104,
+   "razonamiento": 0,
+   "total": 2630,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop"
+   ],
+   "respuesta": "Función: `compose`\nArchivo: `src/compose.ts`\n\nCada middleware se ejecuta pasando el objeto de contexto y una función `next` que invoca recursivamente a `dispatch(i + 1)` para avanzar al siguiente índice. Cuando un middleware ejecuta `await next()`, cede el control al siguiente eslabón de la cadena y espera a que este termine antes de reanudar su propia ejecución.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_c_json",
+   "tipo": "entender",
+   "modo": "sin",
+   "turnos": 15,
+   "prompt": 38702,
+   "salida": 291,
+   "razonamiento": 0,
+   "total": 38993,
+   "calidad": 0.0,
+   "llamadas": [
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "grep",
+    "read_file",
+    "grep",
+    "grep",
+    "grep",
+    "grep"
+   ],
+   "respuesta": "",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  },
+  {
+   "tarea": "hono_c_json",
+   "tipo": "entender",
+   "modo": "con",
+   "turnos": 8,
+   "prompt": 22084,
+   "salida": 233,
+   "razonamiento": 0,
+   "total": 22317,
+   "calidad": 1.0,
+   "llamadas": [
+    "search_desktop",
+    "search_desktop",
+    "search_desktop",
+    "read_file",
+    "grep",
+    "grep",
+    "read_file"
+   ],
+   "respuesta": "Archivo: `src/context.ts`\n\nCabecera que establece: `Content-Type: application/json` (utilizando `setDefaultContentType('application/json', headers)`). Serializa el objeto recibido a JSON usando `JSON.stringify(object)` y construye la respuesta HTTP.",
+   "ronda": 2,
+   "modelo": "gemini-3.5-flash-lite"
+  }
+ ],
+ "total_sin": 270717,
+ "total_con": 191567,
+ "ahorro_pct": -29.237173875301515
+}

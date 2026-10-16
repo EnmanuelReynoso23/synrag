@@ -1,0 +1,79 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.15, pytest-9.1.1, pluggy-1.6.0 -- /home/usuario/.local/opt/lancedb-hub/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/usuario/synrag/engine
+plugins: anyio-4.15.1
+collecting ... collected 85 items
+
+tests/test_core.py::test_init_0 PASSED                                   [  1%]
+tests/test_core.py::test_init_1 PASSED                                   [  2%]
+tests/test_core.py::test_init_2 PASSED                                   [  3%]
+tests/test_core.py::test_init_3 PASSED                                   [  4%]
+tests/test_core.py::test_init_4 PASSED                                   [  5%]
+tests/test_core.py::test_init_5 PASSED                                   [  7%]
+tests/test_core.py::test_init_6 PASSED                                   [  8%]
+tests/test_core.py::test_init_7 PASSED                                   [  9%]
+tests/test_core.py::test_init_8 PASSED                                   [ 10%]
+tests/test_core.py::test_init_9 PASSED                                   [ 11%]
+tests/test_core.py::test_init_10 PASSED                                  [ 12%]
+tests/test_core.py::test_init_11 PASSED                                  [ 14%]
+tests/test_core.py::test_init_12 PASSED                                  [ 15%]
+tests/test_core.py::test_init_13 PASSED                                  [ 16%]
+tests/test_core.py::test_init_14 PASSED                                  [ 17%]
+tests/test_core.py::test_init_15 PASSED                                  [ 18%]
+tests/test_core.py::test_init_16 PASSED                                  [ 20%]
+tests/test_core.py::test_init_17 PASSED                                  [ 21%]
+tests/test_core.py::test_init_18 PASSED                                  [ 22%]
+tests/test_core.py::test_init_19 PASSED                                  [ 23%]
+tests/test_core.py::test_init_20 PASSED                                  [ 24%]
+tests/test_core.py::test_init_21 PASSED                                  [ 25%]
+tests/test_core.py::test_init_22 PASSED                                  [ 27%]
+tests/test_core.py::test_init_23 PASSED                                  [ 28%]
+tests/test_core.py::test_init_24 PASSED                                  [ 29%]
+tests/test_core.py::test_init_25 PASSED                                  [ 30%]
+tests/test_core.py::test_init_26 PASSED                                  [ 31%]
+tests/test_core.py::test_init_27 PASSED                                  [ 32%]
+tests/test_core.py::test_init_28 PASSED                                  [ 34%]
+tests/test_core.py::test_init_29 PASSED                                  [ 35%]
+tests/test_core.py::test_init_30 PASSED                                  [ 36%]
+tests/test_core.py::test_init_31 PASSED                                  [ 37%]
+tests/test_core.py::test_init_32 PASSED                                  [ 38%]
+tests/test_core.py::test_init_33 PASSED                                  [ 40%]
+tests/test_core.py::test_init_34 PASSED                                  [ 41%]
+tests/test_core.py::test_init_35 PASSED                                  [ 42%]
+tests/test_core.py::test_init_36 PASSED                                  [ 43%]
+tests/test_core.py::test_init_37 PASSED                                  [ 44%]
+tests/test_core.py::test_init_38 PASSED                                  [ 45%]
+tests/test_core.py::test_init_39 PASSED                                  [ 47%]
+tests/test_runner.py::test_exec_0 PASSED                                 [ 48%]
+tests/test_runner.py::test_exec_1 PASSED                                 [ 49%]
+tests/test_runner.py::test_exec_2 PASSED                                 [ 50%]
+tests/test_runner.py::test_exec_3 PASSED                                 [ 51%]
+tests/test_runner.py::test_exec_4 PASSED                                 [ 52%]
+tests/test_runner.py::test_exec_5 PASSED                                 [ 54%]
+tests/test_runner.py::test_exec_6 PASSED                                 [ 55%]
+tests/test_runner.py::test_exec_7 PASSED                                 [ 56%]
+tests/test_runner.py::test_exec_8 PASSED                                 [ 57%]
+tests/test_runner.py::test_exec_9 PASSED                                 [ 58%]
+tests/test_runner.py::test_exec_10 FAILED                                [ 60%]
+
+=================================== FAILURES ===================================
+__________________________________ test_fallo __________________________________
+
+    def test_fallo():
+        x = 42
+        y = 100
+>       assert x == y, "El valor calculado no coincide con el esperado"
+E       AssertionError: El valor calculado no coincide con el esperado
+E       assert 42 == 100
+
+tests/test_runner.py:27: AssertionError
+----------------------------- Captured stderr call -----------------------------
+[ERROR] Fallo critico en modulo runner: conexion interrumpida
+Traceback (most recent call last):
+  File "engine/runner.py", line 15, in conectar
+    raise ConnectionResetError("Conexion reseteada por el peer")
+ConnectionResetError: Conexion reseteada por el peer
+=========================== short test summary info ============================
+FAILED tests/test_runner.py::test_exec_10 - AssertionError: El valor calculado no coincide con el esperado
+========================= 1 failed, 84 passed in 5.21s =========================

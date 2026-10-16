@@ -27,6 +27,27 @@ pnpm build      # tsc -b && vite build
 
 Los guiones de `benchmarks/` miden contra tu propio índice o en un equipo temporal. Mira `benchmarks/README.md` para usarlos y para entender sus límites.
 
+## Integración continua y verificación local
+
+El repositorio cuenta con integración continua en GitHub Actions (`.github/workflows/pruebas.yml`):
+
+- **Job `pruebas`**: se ejecuta en `ubuntu-latest` y `macos-latest` con Python 3.10 y 3.12. Instala las dependencias del motor (`DEPENDENCIAS` de `install.sh`) más `pytest` (sin compilar Rust) y ejecuta la suite con `cd engine && python -m pytest -q`. Usa caché de pip.
+- **Job `instalacion-limpia`**: se ejecuta en `ubuntu-latest` y `macos-latest`. Corre `bash install.sh` en un `$HOME` temporal limpio, crea un proyecto de prueba en `$HOME/Projects`, indexa con `SYNRAG index`, realiza una búsqueda CLI comprobando que localice el símbolo, y levanta el servidor MCP por stdio mediante `scripts/ci/mcp_tools_list.py` para verificar que responda a `tools/list` y que ninguna herramienta incluya `outputSchema` (requisito estricto para no inflar el consumo de tokens en cada sesión).
+
+Para validar tus cambios localmente antes de abrir un PR:
+
+```bash
+# 1. Pruebas unitarias del motor
+cd engine && ~/.local/opt/lancedb-hub/.venv/bin/python -m pytest -q
+
+# 2. Prueba completa de instalacion limpia y servidor MCP
+bash scripts/ci/test_clean_install.sh
+
+# O manualmente en un entorno sin variables heredadas:
+TMP_HOME=$(mktemp -d)
+env -i HOME="$TMP_HOME" PATH=/usr/bin:/bin bash install.sh
+```
+
 ## Reportar problemas
 
 Abre una incidencia con: sistema operativo, versión de Python, qué IA usas, qué esperabas y qué pasó. Para vulnerabilidades, lee `SECURITY.md`.

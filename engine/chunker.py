@@ -42,6 +42,7 @@ LANG_MAP = {
 }
 
 MAX_CHUNK_CHARS = 2400
+MAX_DOC_CHARS = 800
 MIN_CHUNK_CHARS = 35
 
 RE_TS_SYM = re.compile(r"(?:export\s+(?:default\s+)?)?(?:async\s+)?(?:function\*?|class|interface|type|enum|const|let|var)\s+([A-Za-z0-9_$]+)")
@@ -50,33 +51,49 @@ RE_IMPORT_TS = re.compile(r"""import\s+(?:type\s+)?(?:([A-Za-z0-9_$]+)|\{([^}]+)
 RE_IMPORT_PY = re.compile(r"""(?:from\s+([A-Za-z0-9_.]+)\s+import\s+([^#\n]+)|import\s+([A-Za-z0-9_.]+))""")
 
 
+RE_DECL = re.compile(
+    r"^\s*(?:export\s+(?:default\s+)?)?(?:declare\s+)?(?:abstract\s+)?(?:async\s+)?"
+    r"(function\*?|class|interface|type|enum|const|let|var|def)\s+([A-Za-z0-9_$]+)(.*)$",
+    re.M,
+)
+RE_ARROW = re.compile(r"=\s*(?:async\s*)?(?:function\b|\([^)]*\)?\s*(?::[^=]*)?=>|[A-Za-z0-9_$]+\s*=>|\(|<)")
+
+
+def _sin_comentarios_iniciales(texto: str) -> str:
+    """Quita el JSDoc, los comentarios y los decoradores que preceden a la declaracion."""
+    lineas = texto.splitlines()
+    i, en_bloque = 0, False
+    while i < len(lineas):
+        l = lineas[i].strip()
+        if en_bloque:
+            en_bloque = "*/" not in l
+        elif l.startswith("/*"):
+            en_bloque = "*/" not in l
+        elif not (l == "" or l.startswith(("//", "#", "@"))):
+            break
+        i += 1
+    return "\n".join(lineas[i:])
+
+
 def extract_symbol_and_kind(node_text: str, ntype: str) -> Tuple[Optional[str], str]:
     """Extrae el nombre del símbolo y clasifica su tipo sintáctico."""
-    name = None
-    first_lines = "\n".join(node_text.splitlines()[:3])
+    cuerpo = _sin_comentarios_iniciales(node_text)
+    primeras = "\n".join(cuerpo.splitlines()[:3])
+    m = RE_DECL.search(primeras)
+    if not m:
+        kind = "code"
+        if "declaration" in ntype or "statement" in ntype:
+            kind = "variable"
+        return None, kind
 
-    m = RE_TS_SYM.search(first_lines) or RE_PY_SYM.search(first_lines)
-    if m:
-        name = m.group(1)
-
-    kind = "code"
-    if "function" in ntype or "method" in ntype or "def " in first_lines:
-        kind = "function"
-        if name and name.startswith("use") and len(name) > 3 and name[3].isupper():
-            kind = "hook"
-    elif "class" in ntype or "struct" in ntype or "class " in first_lines:
-        kind = "class"
-    elif "interface" in ntype or "interface " in first_lines:
-        kind = "interface"
-    elif "type" in ntype or "type " in first_lines:
-        kind = "type"
-    elif "enum" in ntype or "enum " in first_lines:
-        kind = "enum"
-    elif "declaration" in ntype or "statement" in ntype:
-        kind = "variable"
-        if name and name.startswith("use") and len(name) > 3 and name[3].isupper():
-            kind = "hook"
-
+    palabra, name, resto = m.group(1), m.group(2), m.group(3)
+    es_hook = name.startswith("use") and len(name) > 3 and name[3].isupper()
+    if palabra in ("function", "function*", "def"):
+        kind = "hook" if es_hook else "function"
+    elif palabra in ("class", "interface", "type", "enum"):
+        kind = palabra
+    else:
+        kind = "hook" if es_hook else ("function" if RE_ARROW.search(resto) else "variable")
     return name, kind
 
 
@@ -127,6 +144,35 @@ def extract_imports_and_exports(text: str) -> Tuple[List[Dict[str, str]], List[D
     return imports, exports
 
 
+CLASES = {"class_definition", "class_declaration", "abstract_class_declaration", "class"}
+METODOS = {"function_definition", "decorated_definition", "method_definition"}
+
+
+def _miembros_de_clase(nodo) -> List[Tuple[int, int, str]]:
+    """(inicio, fin, nombre) de los metodos de una clase de primer nivel, con su comentario pegado."""
+    clase = nodo
+    if nodo.type in ("export_statement", "decorated_definition"):
+        clase = nodo.child_by_field_name("declaration") or nodo.child_by_field_name("definition")
+    if clase is None or clase.type not in CLASES:
+        return []
+    cuerpo = clase.child_by_field_name("body")
+    if cuerpo is None:
+        return []
+    miembros, comentario = [], None
+    for hijo in cuerpo.children:
+        if hijo.type == "comment":
+            comentario = comentario if comentario is not None else int(hijo.start_byte)
+            continue
+        if hijo.type in METODOS:
+            definicion = hijo.child_by_field_name("definition") if hijo.type == "decorated_definition" else hijo
+            nombre = definicion.child_by_field_name("name") if definicion is not None else None
+            if nombre is not None:
+                inicio = comentario if comentario is not None else int(hijo.start_byte)
+                miembros.append((inicio, int(hijo.end_byte), nombre.text.decode("utf-8", errors="ignore")))
+        comentario = None
+    return miembros
+
+
 def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
     """Trocea código con AST de Tree-sitter."""
     code_bytes = text.encode("utf-8", errors="ignore")
@@ -142,6 +188,11 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
             (str(n.type), int(n.start_byte), int(n.end_byte))
             for n in tree.root_node.children
         ]
+        miembros_por_nodo = {
+            int(n.start_byte): _miembros_de_clase(n)
+            for n in tree.root_node.children
+            if int(n.end_byte) - int(n.start_byte) > MAX_CHUNK_CHARS
+        }
         del tree
     except Exception:
         fallback_chunks = chunk_fallback(text)
@@ -199,8 +250,28 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
             continue
 
         name, kind = extract_symbol_and_kind(chunk_text, ntype)
+        if not name and start_byte != s_byte:
+            name, kind = extract_symbol_and_kind(code_bytes[s_byte:e_byte].decode("utf-8", errors="ignore"), ntype)
         start_line = code_bytes.count(b"\n", 0, start_byte) + 1
         end_line = start_line + code_bytes.count(b"\n", start_byte, e_byte)
+
+        miembros = miembros_por_nodo.get(s_byte)
+        if miembros:
+            # Clase grande: cabecera + un fragmento por metodo, en vez de cortes ciegos por tamano
+            cabecera = code_bytes[start_byte:miembros[0][0]].decode("utf-8", errors="ignore").strip()
+            if len(cabecera) >= MIN_CHUNK_CHARS:
+                chunks.append({"line": start_line,
+                               "end_line": code_bytes.count(b"\n", 0, miembros[0][0]),
+                               "symbol_name": name or "", "symbol_kind": kind, "content": cabecera})
+            for m_ini, m_fin, m_nombre in miembros:
+                texto_m = code_bytes[m_ini:m_fin].decode("utf-8", errors="ignore")
+                linea_m = code_bytes.count(b"\n", 0, m_ini) + 1
+                if len(texto_m) > MAX_CHUNK_CHARS:
+                    chunks.extend(chunk_fallback(texto_m, start_offset_line=linea_m, symbol_name=m_nombre, symbol_kind="method"))
+                else:
+                    chunks.append({"line": linea_m, "end_line": linea_m + texto_m.count("\n"),
+                                   "symbol_name": m_nombre, "symbol_kind": "method", "content": texto_m.rstrip()})
+            continue
 
         if len(chunk_text) > MAX_CHUNK_CHARS:
             sub = chunk_fallback(chunk_text, start_offset_line=start_line, symbol_name=name or "", symbol_kind=kind)
@@ -232,50 +303,371 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
     return (chunks if chunks else chunk_fallback(text)), imps, exps
 
 
-def chunk_markdown(text: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
-    """Divide archivos Markdown respetando los encabezados (# y ##)."""
-    lines = text.splitlines()
-    chunks = []
-    current_title = "Documento"
-    current_lines = []
-    start_line = 1
-
-    re_header = re.compile(r"^(#{1,3})\s+(.+)$")
-
-    for idx, line in enumerate(lines, start=1):
-        m = re_header.match(line.strip())
-        if m and current_lines:
-            chunk_content = "\n".join(current_lines).strip()
-            if len(chunk_content) >= MIN_CHUNK_CHARS:
-                chunks.append({
-                    "line": start_line,
-                    "end_line": idx - 1,
-                    "symbol_name": current_title,
-                    "symbol_kind": "section",
-                    "content": chunk_content,
-                })
-            current_lines = [line]
-            current_title = m.group(2).strip()
-            start_line = idx
+def _split_long_paragraph(text: str, max_len: int) -> List[str]:
+    """Divide un párrafo extenso por oraciones o palabras para no exceder el presupuesto."""
+    if len(text) <= max_len:
+        return [text]
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    pieces, curr, curr_len = [], [], 0
+    for s in sentences:
+        s_len = len(s)
+        if curr and curr_len + 1 + s_len > max_len:
+            pieces.append(" ".join(curr))
+            curr, curr_len = [], 0
+        if s_len > max_len:
+            words = s.split(" ")
+            w_curr, w_len = [], 0
+            for w in words:
+                if w_curr and w_len + 1 + len(w) > max_len:
+                    pieces.append(" ".join(w_curr))
+                    w_curr, w_len = [], 0
+                w_curr.append(w)
+                w_len += (1 if w_curr else 0) + len(w)
+            if w_curr:
+                curr = w_curr
+                curr_len = w_len
         else:
-            if not current_lines:
-                start_line = idx
-                if m:
-                    current_title = m.group(2).strip()
-            current_lines.append(line)
+            curr.append(s)
+            curr_len += (1 if len(curr) > 1 else 0) + s_len
+    if curr:
+        pieces.append(" ".join(curr))
+    return pieces
 
-    if current_lines:
-        chunk_content = "\n".join(current_lines).strip()
-        if len(chunk_content) >= MIN_CHUNK_CHARS:
-            chunks.append({
-                "line": start_line,
-                "end_line": len(lines),
-                "symbol_name": current_title,
-                "symbol_kind": "section",
-                "content": chunk_content,
+
+def chunk_doc_generic(text: str, fmt: str = "md") -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
+    """
+    Divide documentos estructurados (Markdown, RST, AsciiDoc) en fragmentos de hasta ~800 caracteres:
+    - Corta por títulos y luego por párrafos.
+    - Nunca parte un bloque de código cercado (```, ----, .. code-block::).
+    - Cada fragmento comienza con la ruta jerárquica de títulos (# Guía > ## Instalación).
+    - symbol_name = título más cercano, symbol_kind = 'section'.
+    """
+    if not text or not text.strip():
+        return [], [], []
+
+    lines = text.splitlines()
+    n = len(lines)
+
+    # 1. Identificar líneas que pertenecen a bloques de código (para no cortarlos ni interpretar títulos dentro)
+    is_code = [False] * n
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+
+    i = 0
+    while i < n:
+        line = lines[i]
+        stripped = line.strip()
+        if not in_fence:
+            if fmt in ("md", "mdx"):
+                m = re.match(r"^\s*(`{3,}|~{3,})", line)
+                if m:
+                    in_fence = True
+                    fence_char = m.group(1)[0]
+                    fence_len = len(m.group(1))
+                    is_code[i] = True
+            elif fmt == "adoc":
+                m = re.match(r"^\s*(-{4,}|\.{4,}|`{3,}|~{3,})", line)
+                if m:
+                    in_fence = True
+                    fence_char = m.group(1)[0]
+                    fence_len = len(m.group(1))
+                    is_code[i] = True
+            elif fmt == "rst":
+                m_dir = re.match(r"^(\s*)\.\.\s+(?:code-block|code)::", line)
+                if m_dir:
+                    indent = len(m_dir.group(1))
+                    is_code[i] = True
+                    j = i + 1
+                    while j < n:
+                        if not lines[j].strip():
+                            is_code[j] = True
+                            j += 1
+                            continue
+                        line_indent = len(lines[j]) - len(lines[j].lstrip())
+                        if line_indent > indent:
+                            is_code[j] = True
+                            j += 1
+                        else:
+                            break
+                    i = j - 1
+                elif line.rstrip().endswith("::") and not line.strip().startswith(".."):
+                    base_indent = len(line) - len(line.lstrip())
+                    j = i + 1
+                    while j < n and not lines[j].strip():
+                        j += 1
+                    if j < n and len(lines[j]) - len(lines[j].lstrip()) > base_indent:
+                        code_indent = len(lines[j]) - len(lines[j].lstrip())
+                        while j < n:
+                            if not lines[j].strip():
+                                is_code[j] = True
+                                j += 1
+                                continue
+                            if len(lines[j]) - len(lines[j].lstrip()) >= code_indent:
+                                is_code[j] = True
+                                j += 1
+                            else:
+                                break
+                        i = j - 1
+        else:
+            is_code[i] = True
+            if stripped.startswith(fence_char * fence_len):
+                in_fence = False
+        i += 1
+
+    # 2. Identificar encabezados fuera de bloques de código
+    headings = []
+    i = 0
+    while i < n:
+        if is_code[i]:
+            i += 1
+            continue
+        line = lines[i]
+        stripped = line.strip()
+        if fmt in ("md", "mdx"):
+            m = re.match(r"^(#{1,6})\s+(.+)$", stripped)
+            if m:
+                level = len(m.group(1))
+                clean = m.group(2).strip()
+                hashes = "#" * level
+                headings.append({
+                    "start_line": i + 1,
+                    "end_line": i + 1,
+                    "level": level,
+                    "marker": f"{hashes} {clean}",
+                    "clean_title": clean,
+                })
+            elif i + 1 < n and not is_code[i + 1]:
+                next_str = lines[i + 1].strip()
+                if stripped and (re.match(r"^={3,}\s*$", next_str) or re.match(r"^-{3,}\s*$", next_str)):
+                    level = 1 if next_str[0] == "=" else 2
+                    hashes = "#" * level
+                    headings.append({
+                        "start_line": i + 1,
+                        "end_line": i + 2,
+                        "level": level,
+                        "marker": f"{hashes} {stripped}",
+                        "clean_title": stripped,
+                    })
+                    i += 1
+        elif fmt == "adoc":
+            m = re.match(r"^(={1,5})\s+(.+)$", stripped)
+            if m:
+                level = len(m.group(1))
+                clean = m.group(2).strip()
+                eqs = "=" * level
+                headings.append({
+                    "start_line": i + 1,
+                    "end_line": i + 1,
+                    "level": level,
+                    "marker": f"{eqs} {clean}",
+                    "clean_title": clean,
+                })
+        elif fmt == "rst":
+            m_under = re.match(r"^([=\-~^\"`#])\1{2,}\s*$", stripped)
+            if m_under and i > 0 and not is_code[i - 1]:
+                prev_str = lines[i - 1].strip()
+                if prev_str and not prev_str.startswith("..") and not re.match(r"^([=\-~^\"`#])\1{2,}\s*$", prev_str):
+                    char = m_under.group(1)
+                    level_map = {"=": 1, "-": 2, "~": 3, "`": 3, "^": 4, "\"": 5, "#": 1}
+                    level = level_map.get(char, 2)
+                    start_l = i
+                    if i >= 2 and re.match(r"^([=\-~^\"`#])\1{2,}\s*$", lines[i - 2].strip()):
+                        start_l = i - 1
+                    headings.append({
+                        "start_line": start_l,
+                        "end_line": i + 1,
+                        "level": level,
+                        "marker": prev_str,
+                        "clean_title": prev_str,
+                    })
+        i += 1
+
+    # 3. Particionar el documento en secciones basadas en encabezados
+    sections = []
+    first_h_line = headings[0]["start_line"] if headings else n + 1
+    if first_h_line > 1:
+        pre_lines = [(idx + 1, lines[idx], is_code[idx]) for idx in range(first_h_line - 1)]
+        if any(l[1].strip() for l in pre_lines):
+            sections.append({
+                "start_line": 1,
+                "end_line": first_h_line - 1,
+                "route": "Documento",
+                "clean_title": "Documento",
+                "body_lines": pre_lines,
             })
 
-    return (chunks if chunks else chunk_fallback(text)), [], []
+    stack = []
+    for idx_h, h in enumerate(headings):
+        while stack and stack[-1]["level"] >= h["level"]:
+            stack.pop()
+        stack.append(h)
+
+        if fmt in ("md", "mdx", "adoc"):
+            route = " > ".join(item["marker"] for item in stack)
+        else:
+            route = " > ".join(item["clean_title"] for item in stack)
+
+        clean_title = stack[-1]["clean_title"]
+        start_body = h["end_line"]
+        end_body = (headings[idx_h + 1]["start_line"] - 1) if idx_h + 1 < len(headings) else n
+        body_lines = [(line_idx + 1, lines[line_idx], is_code[line_idx]) for line_idx in range(start_body, end_body)]
+
+        sections.append({
+            "start_line": h["start_line"],
+            "end_line": end_body,
+            "route": route,
+            "clean_title": clean_title,
+            "body_lines": body_lines,
+        })
+
+    if not sections and not headings:
+        # Documento sin títulos
+        all_lines = [(idx + 1, lines[idx], is_code[idx]) for idx in range(n)]
+        sections.append({
+            "start_line": 1,
+            "end_line": n,
+            "route": "Documento",
+            "clean_title": "Documento",
+            "body_lines": all_lines,
+        })
+
+    # 4. Convertir cada sección en fragmentos de hasta ~800 caracteres
+    chunks = []
+    for sec in sections:
+        route = sec["route"]
+        clean_title = sec["clean_title"]
+        prefix = route + "\n\n"
+        prefix_len = len(prefix)
+
+        blocks = []
+        b_lines = sec["body_lines"]
+        bi = 0
+        while bi < len(b_lines):
+            line_no, l_text, l_is_code = b_lines[bi]
+            if not l_text.strip():
+                bi += 1
+                continue
+            if l_is_code:
+                c_start = line_no
+                c_text = [l_text]
+                bi += 1
+                while bi < len(b_lines):
+                    l_no2, l_t2, l_c2 = b_lines[bi]
+                    if l_c2:
+                        c_text.append(l_t2)
+                        bi += 1
+                    elif not l_t2.strip() and bi + 1 < len(b_lines) and b_lines[bi + 1][2]:
+                        c_text.append(l_t2)
+                        bi += 1
+                    else:
+                        break
+                blocks.append({
+                    "is_code": True,
+                    "text": "\n".join(c_text),
+                    "start_line": c_start,
+                    "end_line": b_lines[bi - 1][0],
+                })
+            else:
+                p_start = line_no
+                p_text = [l_text]
+                bi += 1
+                while bi < len(b_lines):
+                    l_no2, l_t2, l_c2 = b_lines[bi]
+                    if l_c2 or not l_t2.strip():
+                        break
+                    p_text.append(l_t2)
+                    bi += 1
+                blocks.append({
+                    "is_code": False,
+                    "text": "\n".join(p_text),
+                    "start_line": p_start,
+                    "end_line": b_lines[bi - 1][0],
+                })
+
+        if not blocks:
+            chunks.append({
+                "line": sec["start_line"],
+                "end_line": sec["end_line"],
+                "symbol_name": clean_title,
+                "symbol_kind": "section",
+                "content": route,
+            })
+            continue
+
+        curr_blocks = []
+        curr_len = prefix_len
+        curr_start_line = sec["start_line"]
+
+        for b in blocks:
+            b_text = b["text"]
+            b_len = len(b_text)
+            sep_len = 2 if curr_blocks else 0
+
+            if curr_blocks and (curr_len + sep_len + b_len > MAX_DOC_CHARS):
+                content = prefix + "\n\n".join(blk["text"] for blk in curr_blocks)
+                chunks.append({
+                    "line": curr_start_line,
+                    "end_line": curr_blocks[-1]["end_line"],
+                    "symbol_name": clean_title,
+                    "symbol_kind": "section",
+                    "content": content,
+                })
+                curr_blocks = []
+                curr_len = prefix_len
+                curr_start_line = b["start_line"]
+                sep_len = 0
+
+            if not b["is_code"] and (prefix_len + b_len > MAX_DOC_CHARS):
+                pieces = _split_long_paragraph(b_text, MAX_DOC_CHARS - prefix_len)
+                line_offset = b["start_line"]
+                for piece in pieces:
+                    piece_lines = piece.count("\n")
+                    piece_end = line_offset + piece_lines
+                    content = prefix + piece
+                    chunks.append({
+                        "line": curr_start_line if curr_start_line is not None else line_offset,
+                        "end_line": piece_end,
+                        "symbol_name": clean_title,
+                        "symbol_kind": "section",
+                        "content": content,
+                    })
+                    line_offset = piece_end + 1
+                    curr_start_line = None
+                curr_blocks = []
+                curr_len = prefix_len
+            else:
+                curr_blocks.append(b)
+                curr_len += sep_len + b_len
+                if curr_start_line is None:
+                    curr_start_line = b["start_line"]
+
+        if curr_blocks:
+            content = prefix + "\n\n".join(blk["text"] for blk in curr_blocks)
+            chunks.append({
+                "line": curr_start_line if curr_start_line is not None else curr_blocks[0]["start_line"],
+                "end_line": curr_blocks[-1]["end_line"],
+                "symbol_name": clean_title,
+                "symbol_kind": "section",
+                "content": content,
+            })
+
+    return chunks, [], []
+
+
+def chunk_markdown(text: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
+    """Divide archivos Markdown respetando encabezados (# y ##) y fragmentos de hasta ~800 caracteres."""
+    return chunk_doc_generic(text, fmt="md")
+
+
+def chunk_rst(text: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
+    """Divide archivos reStructuredText (.rst) respetando encabezados subrayados (===, ---, ~~~)."""
+    return chunk_doc_generic(text, fmt="rst")
+
+
+def chunk_adoc(text: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
+    """Divide archivos AsciiDoc (.adoc) respetando encabezados (=, ==, ===)."""
+    return chunk_doc_generic(text, fmt="adoc")
 
 
 def chunk_fallback(
@@ -364,8 +756,14 @@ def parse_and_chunk_file(file_path: Path, text: str) -> Tuple[List[Dict[str, Any
     """Función de entrada: devuelve (chunks, imports, exports)."""
     suffix = file_path.suffix.lower()
 
-    if suffix == ".md":
+    if suffix in (".md", ".mdx"):
         return chunk_markdown(text)
+
+    if suffix == ".rst":
+        return chunk_rst(text)
+
+    if suffix == ".adoc":
+        return chunk_adoc(text)
 
     if suffix == ".sql":
         return chunk_sql(text)

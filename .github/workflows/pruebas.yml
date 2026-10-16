@@ -1,0 +1,59 @@
+name: Pruebas e Integracion Continua
+
+"on":
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  pruebas:
+    name: Pruebas unitarias (${{ matrix.os }} - Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.10", "3.12"]
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: scripts/ci/requirements.txt
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r scripts/ci/requirements.txt
+
+      - name: Ejecutar pruebas del motor
+        run: |
+          cd engine && python -m pytest -q
+
+  instalacion-limpia:
+    name: Instalacion limpia (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          # sin cache de pip: la instalacion limpia usa un HOME falso y ~/.cache/pip nunca existe
+
+      - name: Ejecutar prueba de instalacion limpia
+        run: |
+          bash scripts/ci/test_clean_install.sh

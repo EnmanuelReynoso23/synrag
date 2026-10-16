@@ -43,4 +43,5 @@ def test_cache_expiracion_ttl_y_limpieza(tmp_path):
 
     # clear_cache elimina la tabla por completo
     cache.clear_cache(db)
-    assert cache.CACHE_TABLE not in db.table_names()
+    assert not cache._has_table(db, cache.CACHE_TABLE)
+

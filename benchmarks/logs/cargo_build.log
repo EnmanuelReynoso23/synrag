@@ -1,0 +1,49 @@
+   Compiling proc-macro2 v1.0.69
+   Compiling unicode-ident v1.0.12
+   Compiling quote v1.0.33
+   Compiling syn v2.0.38
+   Compiling serde_derive v1.0.189
+   Compiling serde v1.0.189
+   Compiling libc v0.2.149
+   Compiling cfg-if v1.0.0
+   Compiling autocfg v1.1.0
+   Compiling memchr v2.6.4
+   Compiling once_cell v1.18.0
+   Compiling bitflags v2.4.1
+   Compiling log v0.4.20
+   Compiling itoa v1.0.9
+   Compiling ryu v1.0.15
+   Compiling serde_json v1.0.108
+   Compiling tinyvec_macros v0.1.1
+   Compiling tinyvec v1.6.0
+   Compiling percent-encoding v2.3.0
+   Compiling form_urlencoded v1.2.0
+   Compiling unicode-normalization v0.1.22
+   Compiling idna v0.4.0
+   Compiling url v2.4.1
+   Compiling anyhow v1.0.75
+   Compiling thiserror-impl v1.0.50
+   Compiling thiserror v1.0.50
+   Compiling futures-core v0.3.29
+   Compiling futures-channel v0.3.29
+   Compiling futures-task v0.3.29
+   Compiling futures-util v0.3.29
+   Compiling pin-project-lite v0.2.13
+   Compiling bytes v1.5.0
+   Compiling tokio v1.33.0
+   Compiling synrag-engine v0.3.0 (/home/user/synrag/engine)
+warning: unused variable: `cache_hit`
+  --> src/main.rs:48:9
+   |
+48 |     let cache_hit = true;
+   |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cache_hit`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+error[E0425]: cannot find value `indexer_missing` in this scope
+  --> src/main.rs:112:13
+   |
+112 |     let x = indexer_missing.run();
+   |             ^^^^^^^^^^^^^^^ not found in this scope
+
+error: could not compile `synrag-engine` due to 1 previous error; 1 warning emitted

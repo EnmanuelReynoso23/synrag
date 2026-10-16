@@ -1,0 +1,42 @@
+npm WARN deprecated har-validator@5.1.5: this library is no longer supported
+npm WARN deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+npm WARN deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+npm WARN deprecated querystring@0.2.0: The querystring API is considered Legacy. new code should use the URLSearchParams API instead.
+npm WARN deprecated chokidar@2.1.8: Chokidar 2 will break on node v14+. Upgrade to chokidar 3 with 15x less dependencies.
+npm WARN deprecated fsevents@1.2.13: The v1 package contains DTrace hooks that cause problems on modern macOS versions.
+npm WARN deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
+npm WARN deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
+npm WARN deprecated source-map-url@0.4.1: See https://github.com/lydell/source-map-url#deprecated
+npm WARN deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
+npm WARN deprecated sane@4.1.0: Some dependencies have fallen behind.
+npm WARN deprecated core-js@2.6.12: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues.
+npm WARN deprecated babel-eslint@10.1.0: babel-eslint is now @babel/eslint-parser. This package will no longer receive updates.
+npm WARN deprecated svgo@1.3.2: This SVGO version is no longer supported. Upgrade to v2.x.x.
+npm WARN deprecated left-pad@1.3.0: use String.prototype.padStart()
+npm WARN deprecated rollup-plugin-terser@7.0.2: This package has been deprecated in favor of @rollup/plugin-terser
+npm WARN deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+npm WARN deprecated stable@0.1.8: Modern JS already guarantees Array#sort() is a stable sort, so this library is deprecated.
+npm WARN deprecated w3c-hr-time@1.0.2: Use your platform's native performance.now() and performance.timeOrigin.
+npm WARN deprecated workbox-google-analytics@6.6.0: It is not recommended to use workbox-google-analytics with GA4.
+npm WARN deprecated subarg@1.0.0: subarg has been deprecated.
+npm WARN deprecated circular-json@0.3.3: CircularJSON is in maintenance only, flatted is its successor.
+npm WARN deprecated flat-cache@1.3.4: I would like to retire this module. Please use flat-cache@^3.0.0 instead.
+npm WARN deprecated parser-toolkit@0.0.1: This module is no longer maintained.
+npm WARN deprecated consolidate@0.15.1: Please upgrade to consolidate v1.0.0 or later.
+npm WARN deprecated multiline@1.0.2: Use ES2015 template literals instead.
+npm WARN deprecated mkdirp@0.5.1: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1.x.
+npm WARN deprecated request-promise-native@1.0.9: request-promise-native has been deprecated because request is deprecated.
+npm WARN deprecated har-schema@2.0.0: No longer maintained.
+npm WARN deprecated formidable@1.2.6: Please upgrade to latest, formidable@v2 or formidable@v3!
+npm WARN deprecated cryptiles@4.1.3: This version has been deprecated in accordance with the lodash security policy.
+npm WARN deprecated hoek@6.1.3: This module has moved and is now available at @hapi/hoek.
+npm WARN deprecated boom@7.3.0: This module has moved and is now available at @hapi/boom.
+npm WARN deprecated topo@3.0.3: This module has moved and is now available at @hapi/topo.
+npm WARN deprecated joi@14.3.1: This module has moved and is now available at @hapi/joi.
+
+added 1420 packages, and audited 1421 packages in 24s
+
+145 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities

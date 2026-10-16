@@ -14,6 +14,18 @@ CACHE_TABLE = "query_cache"
 DEFAULT_TTL = 3600 * 4  # 4 horas de validez
 
 
+def _has_table(db: lancedb.DBConnection, table_name: str) -> bool:
+    try:
+        res = db.list_tables()
+        tables = res.tables if hasattr(res, "tables") else res
+        return table_name in tables
+    except Exception:
+        try:
+            return table_name in db.table_names()
+        except Exception:
+            return False
+
+
 def _normalize_query(q: str) -> str:
     return " ".join(q.lower().strip().split())
 
@@ -26,14 +38,16 @@ def get_cached_results(
     db: lancedb.DBConnection,
     query: str,
     project: Optional[str] = None,
-    ttl_seconds: int = DEFAULT_TTL
+    ttl_seconds: int = DEFAULT_TTL,
+    tipo: str = "",
 ) -> Optional[List[Dict[str, Any]]]:
     """Busca si la consulta ya fue resuelta recientemente."""
-    if CACHE_TABLE not in db.table_names():
+    if not _has_table(db, CACHE_TABLE):
         return None
 
     tbl = db.open_table(CACHE_TABLE)
-    q_hash = _hash_query(f"{project}:{query}" if project else query)
+    key = f"{tipo}:{project}:{query}" if tipo else (f"{project}:{query}" if project else query)
+    q_hash = _hash_query(key)
 
     try:
         rows = tbl.search().where(f"query_hash = '{q_hash}'").limit(1).to_list()
@@ -42,12 +56,8 @@ def get_cached_results(
         r = rows[0]
         if time.time() - r["timestamp"] > ttl_seconds:
             return None
-        # Incrementar contador de hits
-        hit_count = r.get("hit_count", 1) + 1
-        try:
-            tbl.update(where=f"query_hash = '{q_hash}'", values={"hit_count": hit_count})
-        except Exception:
-            pass
+        # Sin escribir en cada acierto: una lectura no debe crear versiones de la tabla (lentitud y
+        # choques con el observador). Los aciertos ya los cuenta la telemetria (cache_hit).
         data = json.loads(r["results_json"])
         return data
     except Exception:
@@ -58,12 +68,14 @@ def save_cached_results(
     db: lancedb.DBConnection,
     query: str,
     results: List[Dict[str, Any]],
-    project: Optional[str] = None
+    project: Optional[str] = None,
+    tipo: str = "",
 ):
     """Guarda los resultados procesados en la caché de LanceDB."""
     if not results:
         return
-    q_hash = _hash_query(f"{project}:{query}" if project else query)
+    key = f"{tipo}:{project}:{query}" if tipo else (f"{project}:{query}" if project else query)
+    q_hash = _hash_query(key)
     norm_q = _normalize_query(query)
 
     record = {
@@ -75,7 +87,7 @@ def save_cached_results(
     }
 
     try:
-        if CACHE_TABLE not in db.table_names():
+        if not _has_table(db, CACHE_TABLE):
             db.create_table(CACHE_TABLE, data=[record], mode="overwrite")
         else:
             tbl = db.open_table(CACHE_TABLE)
@@ -92,7 +104,7 @@ def save_cached_results(
 def clear_cache(db: lancedb.DBConnection):
     """Limpia la tabla de caché cuando se reindexa."""
     try:
-        if CACHE_TABLE in db.table_names():
+        if _has_table(db, CACHE_TABLE):
             db.drop_table(CACHE_TABLE)
     except Exception:
         pass
@@ -108,7 +120,7 @@ def get_cache_stats(db: Optional[lancedb.DBConnection] = None) -> Dict[str, Any]
     cache_entries = 0
     total_hits = 0
     try:
-        if CACHE_TABLE in db.table_names():
+        if _has_table(db, CACHE_TABLE):
             tbl = db.open_table(CACHE_TABLE)
             df = tbl.to_pandas()
             cache_entries = len(df)

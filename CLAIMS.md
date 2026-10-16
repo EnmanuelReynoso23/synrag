@@ -1,6 +1,6 @@
 # Afirmaciones verificables
 
-Cada cifra y cada afirmación que aparece en el README o en la web tiene aquí su fecha, su método y el comando que la reproduce. Lo que no se pudo medir figura como "no afirmado". Última revisión: 6-oct-2026.
+Cada cifra y cada afirmación que aparece en el README o en la web tiene aquí su fecha, su método y el comando que la reproduce. Lo que no se pudo medir figura como "no afirmado". Última revisión: 15-oct-2026 (las filas 1-9 son del 6-oct salvo donde se indica).
 
 Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76 proyectos, 96.318 fragmentos y 23.721 relaciones. Las cifras de latencia dependen de tu equipo y de la carga que tenga: ejecuta los guiones en el tuyo.
 
@@ -27,8 +27,8 @@ Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76
 | 12 | El troceo es por AST para TypeScript, TSX/JSX, JavaScript y Python; Markdown se trocea por secciones y SQL por sentencias; los bloques de más de 2.400 caracteres se dividen | `engine/chunker.py` (`LANG_MAP`, `MAX_CHUNK_CHARS`) |
 | 13 | El grafo de impacto guarda qué archivos importan cada símbolo en una tabla de LanceDB; no usa NetworkX | `engine/impact.py` |
 | 14 | Se excluyen carpetas ocultas, archivos de más de 250 KB y archivos de credenciales, y se redactan patrones de secretos | `engine/indexer.py`; probado en `engine/tests/test_secretos.py` y `engine/tests/test_busqueda.py` |
-| 15 | El motor no hace llamadas de red | `grep -rniE "requests\|urllib\|httpx\|socket" engine/*.py` no devuelve nada |
-| 16 | Siete herramientas MCP: `search_desktop`, `get_file_outline`, `get_impact_radius`, `find_related_tests`, `get_savings_report`, `list_projects`, `reindex_desktop` | `engine/server_mcp.py` |
+| 15 | El motor no hace llamadas de red salvo las dos herramientas opcionales de Gemini, que solo se registran si el usuario configura su propia `GEMINI_API_KEY` | `grep -rln urllib engine/` solo muestra `engine/argon.py`; `server_mcp.py` registra sus herramientas solo si `argon.disponible()` |
+| 16 | 28 herramientas MCP (26 sin clave de Gemini), sin `outputSchema` y sin `title` en los parámetros | `python scripts/ci/mcp_tools_list.py` (falla si alguna trae `outputSchema`) |
 
 ## Probado
 
@@ -37,12 +37,36 @@ Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76
 | 17 | Con Claude Code y Antigravity el MCP queda cargado | En el equipo del autor hay un proceso `server_mcp.py` hijo de cada IA; Antigravity lee `~/.gemini/config/mcp_config.json` (la ruta está en su binario y en el del CLI `agy`) |
 | 18 | El instalador funciona en un equipo limpio, es idempotente, conserva servidores ajenos y se desinstala | Probado con un `HOME` falso el 6-oct-2026: instalación, segunda pasada, ruta anterior de Antigravity y `--uninstall`; automatizado en `engine/tests/test_instalador.py` |
 
+## Medido el 15-oct-2026
+
+Equipo del autor, en reposo salvo donde se indica. Repos públicos clonados con `git clone --depth 1` (Flask `d086db8`, Hono `588ec13`); los guiones indexan solo ese repo en un índice temporal (`--indexar`). Tokens = caracteres/4 salvo en las filas 19 y 33 (contador real de la API).
+
+| # | Afirmación | Resultado | Cómo reproducirlo |
+|---|---|---|---|
+| 19 | Con un agente real, SynRAG gasta menos tokens que grep + leer archivos | -11,5 % (72.533 frente a 81.996 tokens; 16 preguntas x 2 rondas, Gemini 3.5 Flash-Lite); 16/16 aciertos en ambos modos; gana en 7 de 16. Las preguntas solo piden la ubicación, el peor caso para SynRAG (entrega la definición entera) | `python benchmarks/agente/agente.py` |
+| 20 | Encontrar y leer una función por su nombre cuesta menos que grep (30 líneas) + leer el tramo | Flask -27 a -30 % (3 semillas, 25 funciones), Hono -45 % (16 funciones); definición primera en 23-25 de 25 y 16 de 16 | `python benchmarks/ahorro.py --repo <repo> --indexar --semilla N` |
+| 21 | Lo mismo con preguntas en lenguaje natural | Flask -31 % (12 preguntas, `benchmarks/preguntas/flask.json`); definición primera 8 de 12, en el top 5 11 de 12 | `python benchmarks/ahorro.py --repo flask --indexar --n 0 --naturales benchmarks/preguntas/flask.json` |
+| 22 | Documentación en fragmentos de ~200 tokens | -22 % frente a grep + 40 líneas, -91 % frente al archivo entero (10 preguntas sobre la doc de Flask); respuesta en el top 5 10 de 10 | `python benchmarks/docs.py --repo flask` |
+| 23 | Empaquetado comprimido (solo firmas, tipos e imports) | Flask 160.514 -> 38.882 tokens (-76 %), Hono 756.316 -> 118.669 (-84 %) | `python benchmarks/mapa.py --repo <repo>` |
+| 24 | Filtro de salidas largas (`configure --filtro-largas`) | find: 178.449 -> 1.249 tokens; script de 5.000 líneas: 73.088 -> 1.738; journalctl: 59.248 -> 7.444; todas las líneas de error conservadas. Claude Code entrega al hook como mucho 30.000 caracteres: por encima de eso SynRAG resume ese trozo y avisa que la completa la guarda Claude Code | `python benchmarks/filtro.py` |
+| 25 | Filtro de comandos ruidosos (`configure --filtro`) | 31-55 % menos en pytest, pip, npm y cargo (fixtures de 42-79 líneas) | `python benchmarks/filtro.py` |
+| 26 | Costo fijo de las definiciones MCP | ~2.000 tokens (7.981 caracteres) con 28 herramientas; antes ~4.150 con 27 | `python scripts/ci/mcp_tools_list.py` |
+| 27 | Latencia en el índice del autor (125.570 fragmentos) | Consulta nueva: medianas de 61 a 89 ms (3 semillas); repetida: 3,3-3,7 ms (antes 6-8 ms: ya no escribe en la caché en cada acierto) | `python benchmarks/latencia.py --modo motor --semilla N` |
+| 28 | Reindexar todo | 16,7 s para 9.247 archivos y 125.570 fragmentos | `SYNRAG index` |
+| 29 | Tamaño del índice tras reindexar | 132 MB (antes 350-400 MB: el grafo de impacto nunca se compactaba y acumuló 7.836 versiones) | `du -sh ~/.local/share/lancedb-hub/data` |
+| 30 | Observador: versiones y hilos | 2.000 guardados sintéticos: 2.001 -> 2 archivos de versión, 23 -> 3 hilos, memoria -10 % (306 -> 275 MB); la memoria todavía crece algo | `python benchmarks/observador.py --guardados 2000` |
+| 31 | Modo conciso (`configure --conciso`) | -77 % en la salida del modelo en 10 tareas; datos clave 28/30 frente a 29/30; código válido 10/10. En las sesiones del autor el texto del modelo es ~9 % del contenido | `python benchmarks/conciso.py` |
+| 32 | Instalación limpia en un `HOME` vacío (Linux) | Instala, detecta `~/Projects`, indexa, busca y arranca el MCP con 28 herramientas | `bash scripts/ci/test_clean_install.sh` |
+| 33 | Sistema completo (búsqueda + filtro de salidas largas + modo conciso) con un agente real en tareas de varios pasos | -29,2 % de tokens cobrados por la API (191.567 frente a 270.717; 10 tareas x 2 rondas, Gemini 3.5 Flash-Lite); calidad (hechos esperados en la respuesta) 87 % -> 90 %. Por tipo: planear un cambio -81 %, pruebas con salida larga -38 %, orientarse -29 %, localizar y entender -23 %, entender -20 %. Pierde en pruebas con salida corta (+124 %, ~900 tokens de definiciones por turno) y en 2 de 3 tareas de Flask (+10 % y +30 %; en esta la calidad baja de 100 % a 83 %). Ronda 1 -15 %, ronda 2 -48 %: con 2 rondas el margen de error es amplio. Filas crudas en `benchmarks/agente/completo-resultados-2026-10-15.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2` |
+
+Descartado con mediciones: LLMLingua-2 (comprime ~50 % pero rompe el código, borra resultados de pruebas en logs y pesa 1,9-6,6 GB). Ver `investigacion/llmlingua.md`.
+
 ## No afirmado
 
-- **Ahorro de tokens o de dinero.** No hay una medición pública. `get_savings_report` muestra una referencia contrafactual (tamaño completo de los archivos devueltos), no un ahorro medido, y la web ya no promete ninguno. Los resultados de una búsqueda igualmente cuestan tokens al modelo que los lee. Una prueba pareada reproducible está pendiente.
-- **Calidad de la búsqueda** (qué porcentaje de las veces el resultado correcto está entre los primeros). No medida.
+- **Ahorro en dinero o en sesiones completas de trabajo.** Lo medido son tareas acotadas (filas 19-25 y 33). No hay una medición de sesiones largas reales con y sin SynRAG. `get_savings_report` sigue mostrando una referencia contrafactual, no un ahorro medido.
+- **Que la fila 33 valga para cualquier agente.** Son 10 tareas, un solo modelo (Gemini 3.5 Flash-Lite) y 2 rondas con mucha varianza. No está medido con Claude ni en sesiones largas.
 - **Rust y Go.** El chunker trae sus gramáticas y devuelve fragmentos, pero sin nombre de símbolo (probado el 6-oct-2026) y `ALLOWED_EXTENSIONS` de `engine/indexer.py` no incluye `.rs` ni `.go`, así que esos archivos no se indexan. No están soportados.
-- **Compatibilidad** con Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS y Windows con WSL. Se configuran según su documentación, pero no se han probado.
+- **Compatibilidad** con Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS y Windows con WSL. Se configuran según su documentación, pero no se han probado. La integración continua (`.github/workflows/pruebas.yml`) prueba Linux y macOS cuando se suba a GitHub.
 - **Las demos de la web** (explorador, terminal, observador) son simulaciones con datos de ejemplo.
 
 ## Cómo añadir o cambiar una afirmación

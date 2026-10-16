@@ -1,0 +1,12 @@
+[
+  {"consulta": "escape HTML in responses to protect against injection attacks", "grep": "escape", "archivo": "docs/quickstart.rst", "linea": 136, "simbolo": "HTML Escaping"},
+  {"consulta": "add variable sections to a URL with variable rules", "grep": "variable_name", "archivo": "docs/quickstart.rst", "linea": 177, "simbolo": "Variable Rules"},
+  {"consulta": "rendering HTML templates automatically with Jinja", "grep": "render_template", "archivo": "docs/quickstart.rst", "linea": 355, "simbolo": "Rendering Templates"},
+  {"consulta": "how to read and set cookies in flask request and response", "grep": "set_cookie", "archivo": "docs/quickstart.rst", "linea": 554, "simbolo": "Cookies"},
+  {"consulta": "store user information in cryptographically signed session cookie", "grep": "secret_key", "archivo": "docs/quickstart.rst", "linea": 724, "simbolo": "Sessions"},
+  {"consulta": "how to write a basic blueprint in flask", "grep": "Blueprint", "archivo": "docs/blueprints.rst", "linea": 59, "simbolo": "My First Blueprint"},
+  {"consulta": "register custom error handlers to show error pages", "grep": "registering error handlers", "archivo": "docs/errorhandling.rst", "linea": 85, "simbolo": "Registering Error Handlers"},
+  {"consulta": "subscribe to signals using connect method", "grep": "Signal.connect", "archivo": "docs/signals.rst", "linea": 30, "simbolo": "Subscribing to Signals"},
+  {"consulta": "send requests to the application with test client", "grep": "test client makes requests", "archivo": "docs/testing.rst", "linea": 86, "simbolo": "Sending Requests with the Test Client"},
+  {"consulta": "modify configuration values on flask app config dictionary", "grep": "app.config", "archivo": "docs/config.rst", "linea": 25, "simbolo": "Configuration Basics"}
+]

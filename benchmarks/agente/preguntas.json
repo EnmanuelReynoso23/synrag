@@ -1,0 +1,146 @@
+[
+  {
+    "id": "flask_sym_1",
+    "repo": "flask",
+    "tipo": "simbolo",
+    "consulta": "copy_current_request_context",
+    "pregunta": "Encuentra el archivo y la funcion donde se define copy_current_request_context.",
+    "archivo": "src/flask/ctx.py",
+    "simbolo": "copy_current_request_context"
+  },
+  {
+    "id": "flask_sym_2",
+    "repo": "flask",
+    "tipo": "simbolo",
+    "consulta": "render_template_string",
+    "pregunta": "Encuentra el archivo y la funcion donde se define render_template_string.",
+    "archivo": "src/flask/templating.py",
+    "simbolo": "render_template_string"
+  },
+  {
+    "id": "flask_sym_3",
+    "repo": "flask",
+    "tipo": "simbolo",
+    "consulta": "find_package",
+    "pregunta": "Encuentra el archivo y la funcion donde se define find_package.",
+    "archivo": "src/flask/sansio/scaffold.py",
+    "simbolo": "find_package"
+  },
+  {
+    "id": "flask_sym_4",
+    "repo": "flask",
+    "tipo": "simbolo",
+    "consulta": "create_logger",
+    "pregunta": "Encuentra el archivo y la funcion donde se define create_logger.",
+    "archivo": "src/flask/logging.py",
+    "simbolo": "create_logger"
+  },
+  {
+    "id": "flask_nat_1",
+    "repo": "flask",
+    "tipo": "natural",
+    "consulta": "load config from file named in environment variable",
+    "pregunta": "En que archivo y funcion se carga la configuracion desde un archivo cuyo nombre esta en una variable de entorno?",
+    "archivo": "src/flask/config.py",
+    "simbolo": "from_envvar"
+  },
+  {
+    "id": "flask_nat_2",
+    "repo": "flask",
+    "tipo": "natural",
+    "consulta": "serializer that signs session cookie with secret key",
+    "pregunta": "En que archivo y funcion se crea el serializador que firma la cookie de sesion con la clave secreta?",
+    "archivo": "src/flask/sessions.py",
+    "simbolo": "get_signing_serializer"
+  },
+  {
+    "id": "flask_nat_3",
+    "repo": "flask",
+    "tipo": "natural",
+    "consulta": "safely send a file from a directory",
+    "pregunta": "En que archivo y funcion se envia de forma segura un archivo desde un directorio dado?",
+    "archivo": "src/flask/helpers.py",
+    "simbolo": "send_from_directory"
+  },
+  {
+    "id": "flask_nat_4",
+    "repo": "flask",
+    "tipo": "natural",
+    "consulta": "pull flashed messages from session",
+    "pregunta": "En que archivo y funcion se extraen o leen los mensajes que fueron guardados con flash en la sesion?",
+    "archivo": "src/flask/helpers.py",
+    "simbolo": "get_flashed_messages"
+  },
+  {
+    "id": "hono_sym_1",
+    "repo": "hono",
+    "tipo": "simbolo",
+    "consulta": "getColorEnabled",
+    "pregunta": "Encuentra el archivo y la funcion donde se define getColorEnabled.",
+    "archivo": "src/utils/color.ts",
+    "simbolo": "getColorEnabled"
+  },
+  {
+    "id": "hono_sym_2",
+    "repo": "hono",
+    "tipo": "simbolo",
+    "consulta": "parseAcceptLanguage",
+    "pregunta": "Encuentra el archivo y la funcion donde se define parseAcceptLanguage.",
+    "archivo": "src/middleware/language/language.ts",
+    "simbolo": "parseAcceptLanguage"
+  },
+  {
+    "id": "hono_sym_3",
+    "repo": "hono",
+    "tipo": "simbolo",
+    "consulta": "deepMerge",
+    "pregunta": "Encuentra el archivo y la funcion donde se define deepMerge.",
+    "archivo": "src/client/utils.ts",
+    "simbolo": "deepMerge"
+  },
+  {
+    "id": "hono_sym_4",
+    "repo": "hono",
+    "tipo": "simbolo",
+    "consulta": "isTokenHeader",
+    "pregunta": "Encuentra el archivo y la funcion donde se define isTokenHeader.",
+    "archivo": "src/utils/jwt/jwt.ts",
+    "simbolo": "isTokenHeader"
+  },
+  {
+    "id": "hono_nat_1",
+    "repo": "hono",
+    "tipo": "natural",
+    "consulta": "get mime type from file path or extension",
+    "pregunta": "En que archivo y funcion se obtiene el tipo MIME correspondiente a un nombre de archivo o extension?",
+    "archivo": "src/utils/mime.ts",
+    "simbolo": "getMimeType"
+  },
+  {
+    "id": "hono_nat_2",
+    "repo": "hono",
+    "tipo": "natural",
+    "consulta": "decode base64url encoded string to Uint8Array",
+    "pregunta": "En que archivo y funcion se decodifica una cadena en formato base64url a Uint8Array?",
+    "archivo": "src/utils/encode.ts",
+    "simbolo": "decodeBase64Url"
+  },
+  {
+    "id": "hono_nat_3",
+    "repo": "hono",
+    "tipo": "natural",
+    "consulta": "escape html string into buffer",
+    "pregunta": "En que archivo y funcion se escapan caracteres especiales HTML escribiendolos en un buffer?",
+    "archivo": "src/utils/html.ts",
+    "simbolo": "escapeToBuffer"
+  },
+  {
+    "id": "hono_nat_4",
+    "repo": "hono",
+    "tipo": "natural",
+    "consulta": "get multiple query parameter values from URL",
+    "pregunta": "En que archivo y funcion se extraen los parametros de consulta de una URL devolviendo arreglos de valores?",
+    "archivo": "src/utils/url.ts",
+    "simbolo": "getQueryParams"
+  }
+]

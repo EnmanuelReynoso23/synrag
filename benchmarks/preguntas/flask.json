@@ -1,0 +1,14 @@
+[
+  {"consulta": "load config from file named in environment variable", "grep": "environ", "archivo": "src/flask/config.py", "linea": 102, "simbolo": "from_envvar"},
+  {"consulta": "load config from environment variables with prefix", "grep": "prefix", "archivo": "src/flask/config.py", "linea": 126, "simbolo": "from_prefixed_env"},
+  {"consulta": "serializer that signs the session cookie with the secret key", "grep": "secret_key", "archivo": "src/flask/sessions.py", "linea": 303, "simbolo": "get_signing_serializer"},
+  {"consulta": "safely send a file from a directory", "grep": "send_file", "archivo": "src/flask/helpers.py", "linea": 543, "simbolo": "send_from_directory"},
+  {"consulta": "flash a message to the next request", "grep": "flash", "archivo": "src/flask/helpers.py", "linea": 326, "simbolo": "flash"},
+  {"consulta": "pull flashed messages from the session", "grep": "_flashes", "archivo": "src/flask/helpers.py", "linea": 360, "simbolo": "get_flashed_messages"},
+  {"consulta": "domain for the session cookie", "grep": "SESSION_COOKIE_DOMAIN", "archivo": "src/flask/sessions.py", "linea": 175, "simbolo": "get_cookie_domain"},
+  {"consulta": "log an unhandled exception", "grep": "logger.error", "archivo": "src/flask/app.py", "linea": 950, "simbolo": "log_exception"},
+  {"consulta": "handle an HTTP exception with registered error handlers", "grep": "HTTPException", "archivo": "src/flask/app.py", "linea": 830, "simbolo": "handle_http_exception"},
+  {"consulta": "default OPTIONS response with allowed methods", "grep": "OPTIONS", "archivo": "src/flask/app.py", "linea": 1053, "simbolo": "make_default_options_response"},
+  {"consulta": "abort the request with an HTTP error code", "grep": "abort", "archivo": "src/flask/helpers.py", "linea": 281, "simbolo": "abort"},
+  {"consulta": "cache max age for files sent to the browser", "grep": "max_age", "archivo": "src/flask/app.py", "linea": 363, "simbolo": "get_send_file_max_age"}
+]

@@ -4,7 +4,7 @@ Qué hace SyntaxRAG (SYNRAG) con tus datos y con tus archivos de configuración,
 
 ## Qué se indexa y dónde se guarda
 
-- Indexa en tu equipo los archivos de texto y de código de las carpetas que el motor escanea (`SCAN_DIRECTORIES` en `engine/indexer.py`: por defecto `~/Proyectos` y `~/AsistoYA/Proyectos`). El índice vive en `~/.local/share/lancedb-hub/` y nunca sale de tu equipo.
+- Indexa en tu equipo los archivos de texto y de código de las carpetas que el motor escanea (las que muestra `SYNRAG carpetas`, guardadas en `~/.config/synrag/carpetas.txt` o en la variable `SYNRAG_CARPETAS`; si no hay ninguna, detecta carpetas habituales como `~/Projects`, `~/code` o `~/dev` y las memorias de Claude Code en `~/.claude/projects/*/memory`). El índice vive en `~/.local/share/lancedb-hub/` y nunca sale de tu equipo.
 - **Excluye** carpetas ocultas, `.git`, `node_modules`, carpetas de compilación, archivos de más de 250 KB y archivos cuyo nombre sugiere credenciales (`.env`, `credential`, `secret`, `*.pem`, `*.key`, `id_rsa`, `keystore`, entre otros). Los patrones exactos están en `engine/indexer.py`.
 - **Redacta** dentro del contenido los patrones de claves de API, contraseñas y tokens (`[SECRETO-OCULTO]`). La redacción se basa en patrones: no garantiza detectar todo secreto. No guardes secretos en archivos que se indexen.
 

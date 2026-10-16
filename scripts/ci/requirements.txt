@@ -1,0 +1,9 @@
+lancedb
+rich
+tree-sitter
+tree-sitter-language-pack
+flashrank
+mcp
+watchdog
+pandas
+pytest

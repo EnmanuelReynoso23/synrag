@@ -10,9 +10,21 @@ import lancedb
 IMPACT_TABLE = "impact_graph"
 
 
+def _has_table(db: lancedb.DBConnection, table_name: str) -> bool:
+    try:
+        res = db.list_tables()
+        tables = res.tables if hasattr(res, "tables") else res
+        return table_name in tables
+    except Exception:
+        try:
+            return table_name in db.table_names()
+        except Exception:
+            return False
+
+
 def get_impact_table(db: lancedb.DBConnection):
     """Obtiene o inicializa la tabla del grafo de impacto."""
-    if IMPACT_TABLE in db.table_names():
+    if _has_table(db, IMPACT_TABLE):
         return db.open_table(IMPACT_TABLE)
     return None
 
@@ -31,7 +43,7 @@ def init_impact_table(db: lancedb.DBConnection, records: List[Dict[str, Any]]):
 
 def get_dependents(db: lancedb.DBConnection, symbol_name: str, project: Optional[str] = None) -> List[str]:
     """Devuelve los archivos que importan el símbolo especificado."""
-    if IMPACT_TABLE not in db.table_names() or not symbol_name:
+    if not _has_table(db, IMPACT_TABLE) or not symbol_name:
         return []
     tbl = db.open_table(IMPACT_TABLE)
     try:

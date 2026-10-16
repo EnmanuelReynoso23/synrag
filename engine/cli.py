@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SyntaxRAG — Terminal UI & UX (v3.0)
+SyntaxRAG — Terminal UI & UX (v1.5)
 Búsqueda por palabras (BM25) con reordenado FlashRank · Grafo de impacto
 Búsqueda local · Sin APIs de pago
 """
@@ -20,6 +20,8 @@ import ranker
 import telemetry
 import server_mcp
 import installer
+import mapa
+import empaquetar
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -263,7 +265,7 @@ def show_stats_ui():
     if excluidas > 0:
         savings_table.add_row("Filas excluidas (no medidas)", f"{excluidas:,}")
     savings_table.add_row("Entradas en la caché de consultas", f"{cache_entries:,}")
-    savings_table.add_row("Aciertos de caché registrados", f"{total_hits:,}")
+    savings_table.add_row("Aciertos de caché registrados", f"{t_stats.get('all_time', {}).get('cache_hits', 0):,}")
     console.print(savings_table)
     console.print()
 
@@ -439,16 +441,22 @@ def print_help_menu():
 
     cmd_table.add_row("SYNRAG", "Muestra este panel de control y resumen del motor", "SYNRAG")
     cmd_table.add_row("SYNRAG <consulta>", "Búsqueda por palabras (BM25) + reordenado FlashRank", "SYNRAG asistenciaServicio")
-    cmd_table.add_row("SYNRAG --project <p> <q>", "Filtrar por proyecto específico", "SYNRAG --project asistoya-web webhook")
+    cmd_table.add_row("SYNRAG --project <p> <q>", "Filtrar por proyecto específico", "SYNRAG --project mi-proyecto webhook")
     cmd_table.add_row("SYNRAG outline <archivo>", "Esquema sintáctico (firmas y rangos de línea)", "SYNRAG outline asistencia.servicio.ts")
+    cmd_table.add_row("SYNRAG mapa <p> [--foco ..]", "Mapa del repo con PageRank sobre imports", "SYNRAG mapa mi-proyecto")
+    cmd_table.add_row("SYNRAG empaquetar <ruta>", "Empaquetar repo comprimido (firmas e imports)", "SYNRAG empaquetar .")
     cmd_table.add_row("SYNRAG impact <símbolo>", "Radio de impacto y dependientes de una función", "SYNRAG impact asistenciaServicio")
     cmd_table.add_row("SYNRAG tests <símbolo>", "Localiza los tests asociados a un símbolo", "SYNRAG tests asistenciaServicio")
     cmd_table.add_row("SYNRAG configure", "Auto-configura todas las IAs del sistema (MCP)", "SYNRAG configure")
     cmd_table.add_row("SYNRAG uninstall", "Quita SYNRAG de todas tus IAs (no borra el motor)", "SYNRAG uninstall")
     cmd_table.add_row("SYNRAG stats", "Uso del buscador, latencia y fragmentos", "SYNRAG stats")
     cmd_table.add_row("SYNRAG info", "Dashboard de arquitectura, subsistemas y rutas", "SYNRAG info")
+    cmd_table.add_row("SYNRAG carpetas", "Qué carpetas se indexan y de dónde sale la lista", "SYNRAG carpetas")
+    cmd_table.add_row("SYNRAG agregar <ruta> [p]", "Indexar otra carpeta (opcional: nombre de proyecto)", "SYNRAG agregar ~/trabajo")
+    cmd_table.add_row("SYNRAG quitar <ruta>", "Dejar de indexar una carpeta", "SYNRAG quitar ~/trabajo")
     cmd_table.add_row("SYNRAG index", "Reindexar repositorios con Tree-sitter AST", "SYNRAG index")
     cmd_table.add_row("SYNRAG watch", "Ver el log del observador de cambios (opcional)", "SYNRAG watch")
+    cmd_table.add_row("SYNRAG filtrar [--comando \"...\"]", "Filtrar salida de terminal por stdin", "npm test | SYNRAG filtrar")
     cmd_table.add_row("SYNRAG agy | claude", "Lanzar Antigravity CLI o Claude Code directamente", "SYNRAG agy")
 
     console.print(cmd_table)
@@ -468,6 +476,44 @@ def print_help_menu():
     console.print(status_panel)
 
 
+def gestionar_carpetas(accion: str, args: list):
+    """SYNRAG carpetas | agregar <ruta> [proyecto] | quitar <ruta>"""
+    archivo = indexer.archivo_de_carpetas()
+    if accion in ("agregar", "add", "quitar", "remove"):
+        if not args:
+            console.print(f"[bold #FF7B72]Falta la ruta.[/] Ejemplo: SYNRAG {accion} ~/mis-proyectos")
+            return
+        if not archivo.is_file():  # partir de lo que se usa hoy, para no perder la deteccion
+            archivo.parent.mkdir(parents=True, exist_ok=True)
+            lineas = ["# Carpetas que indexa SynRAG. Una por linea; \"ruta = proyecto\" fija el nombre del proyecto.",
+                      "# Sin nombre, cada subcarpeta de primer nivel es un proyecto. Tras cambiarla: SYNRAG index"]
+            lineas += [f"{r}" + (f" = {p}" if p else "") for r, p in indexer.cargar_carpetas()]
+        else:
+            lineas = archivo.read_text(encoding="utf-8").splitlines()
+        ruta = Path(args[0]).expanduser().resolve()
+        if accion in ("agregar", "add"):
+            if not ruta.is_dir():
+                console.print(f"[bold #FF7B72]No existe la carpeta[/] {ruta}")
+                return
+            lineas = [l for l in lineas if (indexer._parsear_carpeta(l) or (None,))[0] != ruta]
+            lineas.append(f"{ruta}" + (f" = {args[1]}" if len(args) > 1 else ""))
+        else:
+            lineas = [l for l in lineas if (indexer._parsear_carpeta(l) or (None,))[0] != ruta]
+        archivo.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+
+        console.print(f"[bold #7EE787]Guardado en[/] {archivo}. Ejecuta [bold]SYNRAG index[/] para aplicarlo.")
+
+    origen = ("variable SYNRAG_CARPETAS" if os.environ.get("SYNRAG_CARPETAS")
+              else str(archivo) if archivo.is_file() else "deteccion automatica (no hay carpetas.txt)")
+    tabla = Table(title=f"Carpetas indexadas · {origen}", box=box.ROUNDED, border_style="#30363D")
+    tabla.add_column("Carpeta", style="#FFFFFF")
+    tabla.add_column("Proyecto", style="#00E5FF")
+    tabla.add_column("Existe", style="#8B949E")
+    for ruta, proyecto in indexer.cargar_carpetas():
+        tabla.add_row(str(ruta), proyecto or "una por subcarpeta", "si" if ruta.is_dir() else "no")
+    console.print(tabla)
+
+
 def main():
     if len(sys.argv) == 1:
         print_help_menu()
@@ -481,17 +527,97 @@ def main():
         show_info_ui()
     elif arg1 in ("stats", "--stats", "-s"):
         show_stats_ui()
+    elif arg1 in ("carpetas", "folders", "agregar", "add", "quitar", "remove"):
+        gestionar_carpetas(arg1, sys.argv[2:])
     elif arg1 in ("index", "--index", "-i"):
         run_index_ui()
     elif arg1 in ("watch", "--watch", "-w"):
         run_watch_ui()
     elif arg1 in ("configure", "install", "--configure"):
-        installer.run_full_installation()
+        if "--conciso" in sys.argv:
+            import conciso
+            conciso.activar()
+        elif "--filtro-largas" in sys.argv:
+            installer.configure_filtro_largas()
+        elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
+            installer.configure_filtro()
+        else:
+            installer.run_full_installation()
     elif arg1 in ("uninstall", "--uninstall"):
-        installer.run_uninstall()
+        if "--conciso" in sys.argv:
+            import conciso
+            conciso.desactivar()
+        elif "--filtro-largas" in sys.argv:
+            installer.uninstall_filtro_largas()
+        elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
+            installer.uninstall_filtro()
+        else:
+            installer.run_uninstall()
+    elif arg1 in ("filtrar", "--filtrar"):
+        comando = ""
+        modo_largas = "--largas" in sys.argv
+        args = sys.argv[2:]
+        i = 0
+        while i < len(args):
+            if args[i] in ("--comando", "-c") and i + 1 < len(args):
+                comando = args[i + 1]
+                i += 2
+            elif args[i].startswith("--comando="):
+                comando = args[i].split("=", 1)[1]
+                i += 1
+            else:
+                i += 1
+        import filtro
+        texto = sys.stdin.read()
+        if modo_largas:
+            res = filtro.filtrar_salida_larga(texto, comando=comando)
+        else:
+            res = filtro.filtrar(texto, comando=comando)
+        sys.stdout.write(res)
+        sys.stdout.flush()
+        sys.exit(0)
     elif arg1 in ("outline", "--outline") and len(sys.argv) > 2:
         file_arg = sys.argv[2]
         console.print(Panel(server_mcp.get_file_outline(file_arg), border_style="#00E5FF", box=box.ROUNDED))
+    elif arg1 in ("mapa", "--mapa") and len(sys.argv) > 2:
+        proyecto = sys.argv[2]
+        foco = ""
+        tokens = 1024
+        idx = 3
+        while idx < len(sys.argv):
+            if sys.argv[idx] == "--foco" and idx + 1 < len(sys.argv):
+                foco = sys.argv[idx + 1]
+                idx += 2
+            elif sys.argv[idx] == "--tokens" and idx + 1 < len(sys.argv):
+                try:
+                    tokens = int(sys.argv[idx + 1])
+                except ValueError:
+                    tokens = 1024
+                idx += 2
+            else:
+                idx += 1
+        salida_mapa = mapa.mapa_del_repo(proyecto, foco=foco, tokens=tokens)
+        console.print(Panel(salida_mapa, border_style="#00E5FF", box=box.ROUNDED, title=f"Mapa de {proyecto} ({tokens} tokens)"))
+    elif arg1 in ("empaquetar", "--empaquetar", "pack") and len(sys.argv) > 2:
+        ruta = Path(sys.argv[2])
+        comprimir = "--sin-comprimir" not in sys.argv
+        salida_archivo = None
+        if "--salida" in sys.argv:
+            s_idx = sys.argv.index("--salida")
+            if s_idx + 1 < len(sys.argv):
+                salida_archivo = Path(sys.argv[s_idx + 1])
+        texto_pack, stats = empaquetar.empaquetar(ruta, comprimir=comprimir)
+        top10 = sorted(stats["por_archivo"].items(), key=lambda x: x[1], reverse=True)[:10]
+        tabla = Table(title=f"Empaquetado de {ruta.name} ({'comprimido' if comprimir else 'completo'})", box=box.ROUNDED, border_style="#30363D")
+        tabla.add_column("Archivo", style="#FFFFFF")
+        tabla.add_column("Tokens", style="#00E5FF", justify="right")
+        for f, tok in top10:
+            tabla.add_row(f, f"{tok:,}")
+        console.print(tabla)
+        console.print(f"Total: [bold #00E5FF]{stats['tokens']:,}[/] tokens en [bold]{stats['total_archivos']}[/] archivos ({stats['num_omitidos']} omitidos)")
+        if salida_archivo:
+            salida_archivo.write_text(texto_pack, encoding="utf-8")
+            console.print(f"[bold #7EE787]Guardado en[/] {salida_archivo}")
     elif arg1 in ("impact", "--impact", "blast") and len(sys.argv) > 2:
         sym_arg = sys.argv[2]
         console.print(Panel(server_mcp.get_impact_radius(sym_arg), border_style="#FF7B72", box=box.ROUNDED))

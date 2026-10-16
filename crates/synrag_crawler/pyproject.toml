@@ -1,0 +1,13 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "synrag_crawler"
+version = "0.1.0"
+description = "High-performance parallel codebase crawler and secret sanitizer for SynRAG"
+requires-python = ">=3.9"
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "synrag_crawler"
