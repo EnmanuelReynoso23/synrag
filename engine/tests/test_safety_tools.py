@@ -497,3 +497,29 @@ def test_verify_dependency_workspace_installed_node_modules(tmp_path):
     assert "[SynRAG Dep OK]" in res_helper
     assert "apps/web/node_modules/local-helper" in res_helper
 
+
+
+def test_busqueda_sin_ripgrep_da_lo_mismo(tmp_path, monkeypatch):
+    """Sin rg instalado, check_breaking_callsites y find_code_duplicates usan la busqueda en Python."""
+    (tmp_path / "calculator.py").write_text("def calculate(amount):\n    return amount * 1.1\n", encoding="utf-8")
+    (tmp_path / "caller.py").write_text("from calculator import calculate\nres = calculate(100)\n", encoding="utf-8")
+    (tmp_path / "node_modules").mkdir()
+    (tmp_path / "node_modules" / "otro.py").write_text("calculate(1, 2, 3)\n", encoding="utf-8")
+    (tmp_path / "datos.bin").write_bytes(b"\0calculate(9)\n")
+
+    run_original = safety_tools.subprocess.run
+
+    def sin_rg(cmd, *a, **k):
+        if cmd and cmd[0] == "rg":
+            raise FileNotFoundError(2, "No such file or directory: 'rg'")
+        return run_original(cmd, *a, **k)
+
+    monkeypatch.setattr(safety_tools.subprocess, "run", sin_rg)
+    lineas = safety_tools._buscar_lineas(r"\bcalculate\s*\(", tmp_path)
+    assert sorted(Path(l.split(":", 2)[0]).name for l in lineas) == ["calculator.py", "caller.py"]
+
+    res = safety_tools.check_breaking_callsites(str(tmp_path / "calculator.py"), "calculate", "amount, tax_rate")
+    assert "[SynRAG Breaking ALERTA]" in res and "calculate(100)" in res
+
+    res = safety_tools.find_code_duplicates("calculate_total", str(tmp_path))
+    assert "calculate" in res and "Error" not in res

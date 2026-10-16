@@ -148,9 +148,11 @@ def test_lint_summary_clean(tmp_path):
 # Pruebas para run_typecheck_focus
 # ==============================================================================
 
-def test_run_typecheck_focus_ts_missing_node_modules(tmp_path):
+def test_run_typecheck_focus_ts_missing_node_modules(tmp_path, monkeypatch):
     """Proyecto TypeScript sin node_modules debe avisar claramente."""
     (tmp_path / "tsconfig.json").write_text('{}\n', encoding="utf-8")
+    # los runners de GitHub traen tsc global: aqui simulamos un equipo sin el
+    monkeypatch.setattr(runner_tools.shutil, "which", lambda *a, **k: None)
 
     res = runner_tools.run_typecheck_focus(cwd=str(tmp_path))
 

@@ -52,8 +52,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: scripts/ci/requirements.txt
+          # sin cache de pip: la instalacion limpia usa un HOME falso y ~/.cache/pip nunca existe
 
       - name: Ejecutar prueba de instalacion limpia
         run: |

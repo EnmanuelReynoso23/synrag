@@ -23,6 +23,8 @@ Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md`.
 
 ### Arreglado
 - El instalador no copiaba `tools/` ni `argon.py` y el MCP no arrancaba en un equipo nuevo.
+- `check_breaking_callsites` y `find_code_duplicates` fallaban si ripgrep (`rg`) no estaba instalado; ahora buscan en Python.
+- En macOS (disco que no distingue mayúsculas) `~/Proyectos` y `~/proyectos` se indexaban dos veces.
 - El grafo de impacto nunca se compactaba (índice de 350-400 MB a 132 MB).
 - Observador: una sola cola de espera, compactación periódica y recarga de carpetas sin reiniciar (2.001 -> 2 archivos de versión, 23 -> 3 hilos).
 - Herramientas de contexto: detectan la IA que llama y miden su sesión; sin cifras no medidas.

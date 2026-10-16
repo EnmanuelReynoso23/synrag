@@ -25,6 +25,16 @@ def test_usuario_nuevo_sin_configuracion_detecta_sus_carpetas(casa, monkeypatch)
     assert res and res[0]["project"] == "tienda"
 
 
+
+def test_misma_carpeta_con_otro_nombre_se_indexa_una_vez(casa, monkeypatch):
+    """En macOS ~/Proyectos y ~/proyectos son la misma carpeta (disco sin mayusculas); aqui con un enlace."""
+    monkeypatch.delenv("SYNRAG_CARPETAS", raising=False)
+    (casa / "Proyectos" / "tienda").mkdir(parents=True)
+    (casa / "proyectos").symlink_to(casa / "Proyectos")
+    ix = _recargar()
+    assert [r for r, _ in ix.cargar_carpetas()] == [casa / "Proyectos"]
+
+
 def test_archivo_de_carpetas_y_variable_de_entorno(casa, monkeypatch):
     monkeypatch.delenv("SYNRAG_CARPETAS", raising=False)
     otra = casa / "trabajo"

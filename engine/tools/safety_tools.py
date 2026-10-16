@@ -10,7 +10,9 @@ import json
 import re
 import ast
 import difflib
+import fnmatch
 import subprocess
+import time
 from pathlib import Path
 from typing import Optional, List, Set, Dict, Any, Tuple
 from collections import deque
@@ -100,6 +102,49 @@ def _find_root(path: Path) -> Path:
             break
         curr = curr.parent
     return path if path.is_dir() else path.parent
+
+
+_EXCLUIR_BUSQUEDA = ("node_modules", ".venv", ".git", "dist", "build")
+
+
+def _archivos_de_busqueda(raiz: Path, excluir_archivos: Tuple[str, ...]):
+    if raiz.is_file():
+        yield raiz
+        return
+    for base, dirs, nombres in os.walk(raiz):
+        dirs[:] = [d for d in dirs if d not in _EXCLUIR_BUSQUEDA and not d.startswith(".")]
+        for n in nombres:
+            if not n.startswith(".") and not any(fnmatch.fnmatch(n, g) for g in excluir_archivos):
+                yield Path(base) / n
+
+
+def _buscar_lineas(patron: str, raiz: Path, excluir_archivos: Tuple[str, ...] = (), timeout: float = 8) -> List[str]:
+    """Lineas 'ruta:linea:texto' que cumplen `patron`: con ripgrep si esta instalado y, si no, en Python."""
+    globs = [a for x in _EXCLUIR_BUSQUEDA + excluir_archivos for a in ("-g", f"!{x}")]
+    try:
+        res = subprocess.run(["rg", "-n", "--no-heading", "-H", *globs, "-e", patron, str(raiz)],
+                             capture_output=True, text=True, timeout=timeout)
+        return [l for l in res.stdout.splitlines() if l.strip()]
+    except FileNotFoundError:  # sin ripgrep instalado
+        pass
+    regex = re.compile(patron)
+    limite = time.monotonic() + timeout
+    lineas = []
+    for f in _archivos_de_busqueda(raiz, excluir_archivos):
+        if time.monotonic() > limite:
+            break
+        try:
+            if f.stat().st_size > 5_000_000:
+                continue
+            datos = f.read_bytes()
+        except OSError:
+            continue
+        if b"\0" in datos[:8192]:  # binario: ripgrep tambien lo salta
+            continue
+        for i, linea in enumerate(datos.decode("utf-8", errors="ignore").splitlines(), 1):
+            if regex.search(linea):
+                lineas.append(f"{f}:{i}:{linea}")
+    return lineas
 
 
 def _find_workspace_manifests(target: Path, manifest_name: str, max_depth: int = 4) -> List[Path]:
@@ -697,14 +742,7 @@ def check_breaking_callsites(file_path: str, function_name: str, new_params: str
         param_names, required_names, min_required, max_pos, has_varargs, has_kwargs, is_method = _parse_params(new_params)
         allowed_kw = set(param_names)
 
-        cmd = [
-            "rg", "-n", "--no-heading", "-H",
-            "-g", "!node_modules", "-g", "!.venv", "-g", "!.git", "-g", "!dist", "-g", "!build",
-            rf"\b{re.escape(function_name)}\s*\(",
-            str(project_root)
-        ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=8)
-        lineas = [l for l in res.stdout.splitlines() if l.strip()]
+        lineas = _buscar_lineas(rf"\b{re.escape(function_name)}\s*\(", project_root)
 
         total_llamadas = 0
         rotas = []
@@ -801,15 +839,10 @@ def find_code_duplicates(symbol_name: str, project_dir: str = "") -> str:
         if not query_sig:
             query_sig = set(query_tokens)
 
-        rg_cmd = [
-            "rg", "-n", "--no-heading",
-            "-g", "!node_modules", "-g", "!.venv", "-g", "!.git", "-g", "!dist", "-g", "!build",
-            "-g", "!*.min.js", "-g", "!*.lock",
-            "-e", r"^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:def|class|function\*?|const|let|var|interface|type)\s+([A-Za-z0-9_$]+)",
-            str(target)
-        ]
-        res = subprocess.run(rg_cmd, capture_output=True, text=True, timeout=8)
-        lines = [l for l in res.stdout.splitlines() if l.strip()]
+        lines = _buscar_lineas(
+            r"^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:def|class|function\*?|const|let|var|interface|type)\s+([A-Za-z0-9_$]+)",
+            target, excluir_archivos=("*.min.js", "*.lock"),
+        )
 
         candidatos = []
         vistos = set()

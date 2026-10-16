@@ -64,7 +64,16 @@ def _parsear_carpeta(linea: str) -> Optional[tuple]:
 
 
 def detectar_carpetas() -> List[tuple]:
-    carpetas = [(HOME / c, None) for c in CARPETAS_HABITUALES if (HOME / c).is_dir()]
+    # en macOS el disco no distingue mayusculas: Proyectos y proyectos son la misma carpeta
+    carpetas, vistas = [], set()
+    for c in CARPETAS_HABITUALES:
+        ruta = HOME / c
+        if not ruta.is_dir():
+            continue
+        st = ruta.stat()
+        if (st.st_dev, st.st_ino) not in vistas:
+            vistas.add((st.st_dev, st.st_ino))
+            carpetas.append((ruta, None))
     for memoria in sorted((HOME / ".claude" / "projects").glob("*/memory")):
         carpetas.append((memoria, "memoria-claude"))
     return carpetas
