@@ -19,12 +19,15 @@ La clave se lee de GEMINI_API_KEY (o de engine/argon.py get_api_key) y nunca se 
 Uso:
   git clone --depth 1 https://github.com/pallets/flask /tmp/flask
   git clone --depth 1 https://github.com/honojs/hono  /tmp/hono
-  GEMINI_API_KEY=... python benchmarks/agente/completo.py --flask /tmp/flask --hono /tmp/hono [--rondas 2]
+  GEMINI_API_KEY=... python benchmarks/agente/completo.py --flask /tmp/flask --hono /tmp/hono [--rondas 2] [--commit-synrag 3ea6a85]
+
+Las tareas del repo SynRAG se ejecutan sobre el commit --commit-synrag (por defecto 3ea6a85, 1.5.0).
 """
 import argparse
 import datetime
 import json
 import os
+import random
 import re
 import shutil
 import subprocess
@@ -57,7 +60,7 @@ TAREAS: List[Dict[str, Any]] = [
      "hechos": ["18", "pas|passed"]},
     {"id": "synrag_suite_v", "repo": "synrag", "tipo": "correr pruebas (salida larga)",
      "pregunta": "Corre la suite completa del motor en modo detallado: `cd engine && python -m pytest -v`. Dime cuantas pruebas pasan, cuantas fallan y cual es la que se marca como xfail.",
-     "hechos": ["197|196", "xfail", "test_"]},  # 196 sin una clave de Gemini valida (una prueba usa la red)
+     "hechos": ["183|182", "xfail", "test_chunker_rust_y_go"]},  # medido en 3ea6a85: 183 pasan (182 si falla una prueba de red)
     {"id": "synrag_orden_busqueda", "repo": "synrag", "tipo": "entender",
      "pregunta": "Explica como decide search_desktop (engine/indexer.py) el orden de los resultados cuando la consulta es un nombre de simbolo exacto.",
      "hechos": ["buscar_definiciones", "exact|exacto", "PRIORIDAD_KIND|function|funcion", "export"]},
@@ -82,6 +85,30 @@ TAREAS: List[Dict[str, Any]] = [
     {"id": "hono_c_json", "repo": "hono", "tipo": "entender",
      "pregunta": "¿Que hace el metodo json del contexto de Hono (c.json)? Di el archivo y que cabecera pone.",
      "hechos": ["context.ts", "application/json"]},
+    {"id": "flask_python_minimo", "repo": "flask", "tipo": "conversacion corta",
+     "pregunta": "¿Que version minima de Python pide Flask? Dime tambien en que archivo esta.",
+     "hechos": ["3.11", "pyproject.toml"]},
+    {"id": "hono_licencia", "repo": "hono", "tipo": "conversacion corta",
+     "pregunta": "¿Con que licencia se distribuye Hono y en que archivo figura?",
+     "hechos": ["MIT", "LICENSE"]},
+    {"id": "flask_variable_debug", "repo": "flask", "tipo": "conversacion corta",
+     "pregunta": "¿Como se llama la variable de entorno que activa el modo debug de Flask y que funcion la lee?",
+     "hechos": ["FLASK_DEBUG", "get_debug_flag"]},
+    {"id": "synrag_pruebas_cache", "repo": "synrag", "tipo": "conversacion corta",
+     "pregunta": "Corre las pruebas de engine/tests/test_cache.py con pytest (desde la carpeta engine) y dime cuantas pasan.",
+     "hechos": ["3|tres", "test_cache"]},
+    {"id": "flask_cambio_get_debug_flag", "repo": "flask", "tipo": "planear cambio",
+     "pregunta": "Quiero que get_debug_flag reciba un parametro opcional `default` (bool). ¿Que llamadas en el codigo fuente de Flask (sin los tests) habria que revisar? Dame archivo y funcion de cada una.",
+     "hechos": ["make_config", "load_app", "sansio/app.py", "run"]},
+    {"id": "hono_callers_set_default_content_type", "repo": "hono", "tipo": "planear cambio",
+     "pregunta": "¿Que metodos del contexto de Hono llaman a setDefaultContentType? Dame archivo y metodo de cada uno.",
+     "hechos": ["json", "html", "text", "context.ts"]},
+    {"id": "flask_precedencia_debug", "repo": "flask", "tipo": "entender",
+     "pregunta": "En Flask.run, ¿que prioridad tiene el parametro debug frente a la variable FLASK_DEBUG?",
+     "hechos": ["sobrescrib|overrides|prevalece|tiene prioridad", "FLASK_DEBUG"]},
+    {"id": "hono_c_html", "repo": "hono", "tipo": "entender",
+     "pregunta": "¿Que cabecera Content-Type pone c.html de Hono y en que archivo esta el metodo?",
+     "hechos": ["text/html; charset=UTF-8", "context.ts"]},
 ]
 
 BASE = ("Eres un asistente de programacion trabajando en el repositorio '{repo}' (la raiz del repositorio es el "
@@ -130,6 +157,42 @@ def puntuar(texto: str, hechos: List[str]) -> float:
     return sum(any(alt.lower() in t for alt in h.split("|")) for h in hechos) / len(hechos)
 
 
+def clonar_synrag(raiz: Path, destino: Path, commit: str) -> None:
+    """Clona el repo local de SynRAG y deja el arbol de trabajo en el commit indicado."""
+    subprocess.run(["git", "clone", "-q", "--local", "--no-hardlinks", str(raiz), str(destino)], check=True)
+    existe = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{commit}}"],
+                            cwd=destino, capture_output=True, text=True)
+    if existe.returncode != 0:
+        raise ValueError(f"El commit '{commit}' no existe en el repositorio de SynRAG.")
+    subprocess.run(["git", "checkout", "-q", commit], cwd=destino, check=True)
+
+
+def ic_bootstrap_ahorro(pares: List[tuple], remuestreos: int = 10000, semilla: int = 20261016,
+                        confianza: float = 0.95) -> tuple:
+    """Intervalo de confianza bootstrap (remuestreo por tareas) del cambio porcentual con frente a sin.
+
+    pares: lista de (total_sin, total_con), una por tarea (media de las rondas).
+    Devuelve (bajo, alto) en porcentaje, con la misma convencion que el resumen: 100 * (con - sin) / sin.
+    Semilla fija: el mismo input da siempre el mismo intervalo.
+    """
+    if not pares:
+        raise ValueError("Se necesita al menos una tarea para el intervalo.")
+    rng = random.Random(semilla)
+    n = len(pares)
+    valores = []
+    for _ in range(remuestreos):
+        muestra = [pares[rng.randrange(n)] for _ in range(n)]
+        sin = sum(p[0] for p in muestra)
+        con = sum(p[1] for p in muestra)
+        if sin:
+            valores.append(100 * (con - sin) / sin)
+    valores.sort()
+    alfa = (1 - confianza) / 2
+    bajo = valores[int(alfa * len(valores))]
+    alto = valores[min(len(valores) - 1, int((1 - alfa) * len(valores)))]
+    return bajo, alto
+
+
 def ejecutar(tarea, modo, repos, modelo, clave, venv_bin, max_turnos=15, pausa=0.4) -> Dict[str, Any]:
     con = modo == "con"
     repo_dir = repos[tarea["repo"]]
@@ -139,7 +202,7 @@ def ejecutar(tarea, modo, repos, modelo, clave, venv_bin, max_turnos=15, pausa=0
         sistema += EXTRA_CON + bloque
     tools = [{"functionDeclarations": TOOLS_BASE + (TOOLS_SYNRAG if con else [])}]
     contents: List[Dict[str, Any]] = [{"role": "user", "parts": [{"text": tarea["pregunta"]}]}]
-    tok = {"prompt": 0, "salida": 0, "razonamiento": 0}
+    tok = {"prompt": 0, "salida": 0, "razonamiento": 0, "cache": 0}
     llamadas: List[str] = []
     final, turnos = "", 0
     for _ in range(max_turnos):
@@ -150,6 +213,7 @@ def ejecutar(tarea, modo, repos, modelo, clave, venv_bin, max_turnos=15, pausa=0
         tok["prompt"] += u.get("promptTokenCount", 0)
         tok["salida"] += u.get("candidatesTokenCount", 0)
         tok["razonamiento"] += u.get("thoughtsTokenCount", 0)
+        tok["cache"] += u.get("cachedContentTokenCount", 0)  # informativo: ya va dentro de promptTokenCount
         cand = (res.get("candidates") or [{}])[0].get("content") or {"role": "model", "parts": []}
         cand.setdefault("role", "model")
         contents.append(cand)
@@ -196,6 +260,7 @@ def main():
     ap.add_argument("--modelo", default="gemini-3.5-flash-lite")
     ap.add_argument("--solo", default="", help="ids de tareas separados por coma")
     ap.add_argument("--progreso", type=Path, help="JSONL donde se guarda cada ejecucion; al relanzar se salta lo ya hecho")
+    ap.add_argument("--commit-synrag", default="3ea6a85", help="commit fijo del repo SynRAG sobre el que corren las tareas 'synrag'")
     a = ap.parse_args()
     clave = os.environ.get("GEMINI_API_KEY") or argon.get_api_key()
     if not clave:
@@ -203,7 +268,7 @@ def main():
 
     tmp = Path(tempfile.mkdtemp(prefix="synrag-completo-"))
     synrag = tmp / "synrag"
-    subprocess.run(["git", "clone", "-q", "--local", "--no-hardlinks", str(RAIZ), str(synrag)], check=True)
+    clonar_synrag(RAIZ, synrag, a.commit_synrag)
     repos = {"synrag": synrag, "flask": a.flask.resolve(), "hono": a.hono.resolve()}
     indexer.DB_PATH = tmp / "indice"
     os.environ["SYNRAG_CARPETAS"] = os.pathsep.join(f"{p}={n}" for n, p in repos.items())
@@ -231,21 +296,27 @@ def main():
                 print(f"r{ronda} {t['id']:<24} {modo:<3} total {r['total']:>7}  turnos {r['turnos']:>2}  calidad {r['calidad']:.0%}  {','.join(r['llamadas'])[:70]}", flush=True)
 
     print("\n== Resumen por tarea (media de las rondas)")
-    tot = {"sin": 0, "con": 0}; cal = {"sin": [], "con": []}
+    tot = {"sin": 0, "con": 0}; cal = {"sin": [], "con": []}; cache = {"sin": 0, "con": 0}; pares = []
     for t in tareas:
         m = {}
         for modo in ("sin", "con"):
             fs = [f for f in filas if f["tarea"] == t["id"] and f["modo"] == modo]
             m[modo] = sum(f["total"] for f in fs) / len(fs)
             tot[modo] += sum(f["total"] for f in fs)
+            cache[modo] += sum(f.get("cache", 0) for f in fs)
             cal[modo] += [f["calidad"] for f in fs]
+        pares.append((m["sin"], m["con"]))
         print(f"  {t['id']:<24} {t['tipo']:<30} sin {m['sin']:>8.0f}  con {m['con']:>8.0f}  {100 * (m['con'] - m['sin']) / m['sin']:+.0f} %")
     ahorro = 100 * (tot["con"] - tot["sin"]) / tot["sin"]
-    print(f"\n== TOTAL: sin {tot['sin']}  con {tot['con']}  -> {ahorro:+.1f} %")
+    bajo, alto = ic_bootstrap_ahorro(pares)
+    print(f"\n== TOTAL: sin {tot['sin']}  con {tot['con']}  -> {ahorro:+.1f} %  (IC 95 % bootstrap por tareas: {bajo:+.1f} % a {alto:+.1f} %)")
+    print(f"   tokens en cache: sin {cache['sin']}  con {cache['con']}")
     print(f"   calidad media: sin {sum(cal['sin']) / len(cal['sin']):.0%}  con {sum(cal['con']) / len(cal['con']):.0%}")
     salida = AQUI / f"completo-resultados-{datetime.date.today()}.json"
     salida.write_text(json.dumps({"modelo": a.modelo, "rondas": a.rondas, "filas": filas,
-                                  "total_sin": tot["sin"], "total_con": tot["con"], "ahorro_pct": ahorro}, ensure_ascii=False, indent=1))
+                                  "total_sin": tot["sin"], "total_con": tot["con"], "ahorro_pct": ahorro,
+                                  "ahorro_ic95_pct": [bajo, alto], "cache_sin": cache["sin"], "cache_con": cache["con"],
+                                  "commit_synrag": a.commit_synrag}, ensure_ascii=False, indent=1))
     print(f"   resultados: {salida}")
     shutil.rmtree(tmp, ignore_errors=True)
 
