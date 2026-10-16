@@ -8,6 +8,13 @@ import pytest
 MOTOR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(MOTOR))
 
+# Las gramaticas se cargan una vez con el HOME real (donde ya estan en cache): con el HOME temporal
+# del fixture `casa`, tree-sitter-language-pack las volveria a descargar y las pruebas fallarian
+# sin red o con red lenta. chunker no se recarga, asi que su cache en memoria sirve a todas.
+import chunker  # noqa: E402
+for _lang in set(chunker.LANG_MAP.values()):
+    chunker.get_parser_for_lang(_lang)
+
 
 @pytest.fixture
 def casa(tmp_path, monkeypatch):

@@ -70,6 +70,9 @@ echo "[2/4] Instalando dependencias (primera vez puede tardar unos minutos) ..."
     || fallo "no se pudieron instalar las dependencias (${DEPENDENCIAS[*]}). Ejecuta sin --quiet para ver el motivo: $VENV_PY -m pip install ${DEPENDENCIAS[*]}"
 "$VENV_PY" -c 'import lancedb, rich, tree_sitter, tree_sitter_language_pack, flashrank, mcp, watchdog' \
     || fallo "las dependencias se instalaron pero no se pueden importar."
+# Las gramaticas de tree-sitter se descargan una vez aqui: despues el motor no usa la red.
+"$VENV_PY" -c 'import tree_sitter_language_pack as t; t.download(["python", "typescript", "tsx", "javascript", "rust", "go"])' \
+    || echo "[AVISO] no pude descargar las gramaticas ahora; se descargaran la primera vez que indexes."
 
 # --- 3. Configurar las IAs instaladas ----------------------------------------
 echo "[3/4] Configurando las IAs instaladas en este equipo ..."
