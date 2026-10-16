@@ -305,6 +305,28 @@ def _miembros_de_clase(nodo) -> List[Tuple[int, int, str, str]]:
     return miembros
 
 
+def miembros_de_definicion(file_path: Path, linea: int) -> List[Tuple[int, str, str]]:
+    """(linea, nombre, tipo) de los miembros de la clase u objeto grande que empieza en `linea`
+    (o justo despues, si `linea` es la de su JSDoc). Vacio si ahi no hay una clase u objeto."""
+    lang = LANG_MAP.get(file_path.suffix.lower())
+    parser = get_parser_for_lang(lang) if lang else None
+    if parser is None:
+        return []
+    try:
+        code_bytes = file_path.read_bytes()
+        raiz = parser.parse(code_bytes).root_node
+    except Exception:
+        return []
+    for nodo in raiz.children:
+        if nodo.type == "comment" or nodo.end_point[0] + 1 < linea:
+            continue
+        if nodo.start_point[0] + 1 > linea + 40:  # JSDoc largo como mucho
+            break
+        return [(code_bytes.count(b"\n", 0, ini) + 1, nombre, tipo)
+                for ini, _, nombre, tipo in _miembros_de_clase(nodo) if nombre]
+    return []
+
+
 def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
     """Trocea código con AST de Tree-sitter."""
     code_bytes = text.encode("utf-8", errors="ignore")

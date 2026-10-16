@@ -88,3 +88,20 @@ def test_objeto_punto_miembro_y_clase_miembro_dan_la_definicion(casa):
     # las pruebas van detras del codigo salvo que se pidan
     res = indexer.search_desktop("json objeto", project="web", use_rerank=False)
     assert not res[0]["rel_path"].endswith(".test.ts")
+
+
+def test_definicion_de_objeto_grande_lista_sus_miembros(casa):
+    relleno = "\n".join(f"    const v{i} = 'relleno para que el objeto supere el tamano maximo {i}'" for i in range(20))
+    crear_proyecto(casa, "web", {
+        "src/apuntes.servicio.ts": (
+            "export const apuntesServicio = {\n"
+            f"  async listarMios(id: string) {{\n{relleno}\n    return []\n  }},\n"
+            f"  crear: async (datos: unknown) => {{\n{relleno}\n    return datos\n  }},\n"
+            "};\n"
+        ),
+    })
+    indexer.index_desktop()
+    import server_mcp
+    salida = server_mcp.search_desktop("apuntesServicio", project="web")
+    miembros = next(l for l in salida.splitlines() if l.startswith("Miembros"))
+    assert miembros.startswith("Miembros (2): listarMios:2, crear:")

@@ -105,6 +105,10 @@ def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool 
             out.append(texto[:tope])
             if len(texto) > tope:
                 out.append(f"[... recortado; el bloque llega hasta la linea {r.get('end_line')}]")
+            if i == 0 and r.get("exacto") and r.get("symbol_kind") in ("class", "variable"):
+                miembros = _linea_de_miembros(r)
+                if miembros:
+                    out.append(miembros)
             if i == 0 and r.get("exacto"):
                 usos = _linea_de_usos(r)
                 if usos:
@@ -117,6 +121,24 @@ def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool 
 
 
 MAX_USOS = 6  # sitios en la linea de usos del primer resultado: los suficientes para planear un cambio
+
+
+MAX_MIEMBROS = 40
+
+
+def _linea_de_miembros(r: dict) -> str:
+    """Clase u objeto grande: el bloque devuelto es solo su cabecera (cada miembro es su propio
+    fragmento), asi que se listan los miembros con su linea para no tener que abrir el archivo."""
+    try:
+        miembros = chunker.miembros_de_definicion(Path(r.get("file_path", "")), int(r.get("line", 1)))
+    except Exception:
+        return ""
+    miembros = [m for m in miembros if m[0] > int(r.get("end_line", 0))]
+    if not miembros:
+        return ""
+    partes = [f"{n}:{ln}" for ln, n, _ in miembros[:MAX_MIEMBROS]]
+    resto = f" (y {len(miembros) - MAX_MIEMBROS} mas)" if len(miembros) > MAX_MIEMBROS else ""
+    return f"Miembros ({len(miembros)}): " + ", ".join(partes) + resto
 
 
 def _linea_de_usos(r: dict) -> str:

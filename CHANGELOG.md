@@ -14,6 +14,7 @@ Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md` (fil
 - `get_impact_radius` separa las definiciones (`archivo=` elige una). Precisión en símbolos con nombre repetido: 15-18 % -> 93-100 %, cobertura 100 %. `repo_map` usa la misma resolución.
 - `search_desktop`: línea de usos bajo la definición exacta (llamadas en su archivo y en los que la importan, primero el código); `objeto.miembro` y `Clase miembro` dan la definición del miembro; las pruebas van detrás del código salvo que la consulta las pida. Costo de la línea de usos en búsquedas por nombre: Flask -37/-39 % -> -36/-38 %, Hono -54 % -> -52 %.
 - Perfil esencial (`SYNRAG configure --perfil esencial`): 5 herramientas MCP, definiciones de ~2.000 a ~445 tokens.
+- La definición exacta de una clase u objeto grande trae la lista de sus miembros con su línea (`Miembros (9): __init__:94, from_envvar:102, ...`): el bloque es solo la cabecera porque cada miembro es su propio fragmento.
 
 ## 1.5.0 (15-oct-2026)
 
