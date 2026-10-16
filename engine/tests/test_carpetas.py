@@ -30,7 +30,8 @@ def test_misma_carpeta_con_otro_nombre_se_indexa_una_vez(casa, monkeypatch):
     """En macOS ~/Proyectos y ~/proyectos son la misma carpeta (disco sin mayusculas); aqui con un enlace."""
     monkeypatch.delenv("SYNRAG_CARPETAS", raising=False)
     (casa / "Proyectos" / "tienda").mkdir(parents=True)
-    (casa / "proyectos").symlink_to(casa / "Proyectos")
+    if not (casa / "proyectos").exists():  # en macOS ya existe: es la misma carpeta
+        (casa / "proyectos").symlink_to(casa / "Proyectos")
     ix = _recargar()
     assert [r for r, _ in ix.cargar_carpetas()] == [casa / "Proyectos"]
 
