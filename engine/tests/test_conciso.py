@@ -46,7 +46,7 @@ def test_conciso_activar_idempotente(casa):
     # Reglas obligatorias presentes
     assert "Cero emojis" in texto1
     assert "Apache-2.0" in texto1
-    assert "CÓDIGO" in texto1 or "CODIGO" in texto1
+    assert "completos y literales" in texto1
 
     # 2. Segunda llamada: debe ser idempotente y no duplicar el bloque
     activadas2 = conciso.activar()

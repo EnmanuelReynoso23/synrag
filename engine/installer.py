@@ -61,13 +61,10 @@ MCP_SERVER_CONFIG: Dict[str, Any] = {
 BLOQUE_INI = "<!-- SYNRAG:BEGIN -->"
 BLOQUE_FIN = "<!-- SYNRAG:END -->"
 BLOQUE_INSTRUCCIONES = f"""{BLOQUE_INI}
-## SyntaxRAG (SYNRAG): buscar codigo en el indice local
-- Para ubicar codigo, notas o configuracion usa PRIMERO la herramienta MCP `search_desktop`
-  (servidor `{SERVER_NAME}`). Devuelve `ruta:linea` y el bloque sintactico completo. Despues lee
-  SOLO ese tramo. No listes arboles de carpetas ni leas archivos enteros para "orientarte".
-- Filtra con `project` cuando sepas el proyecto. Usa `get_file_outline` para ver el esquema de un
-  archivo y `get_impact_radius` antes de cambiar un simbolo que otros archivos importan.
-- Si la herramienta falla o no devuelve nada, dilo y sigue con busqueda normal; no la ignores en silencio.
+## SyntaxRAG: buscar codigo local
+- Primero `search_desktop` (da `ruta:linea`) y lee solo ese tramo; no listes arboles ni leas archivos enteros.
+- Filtra con `project`; `get_file_outline` da el esquema; `get_impact_radius` antes de cambiar un simbolo.
+- Si una herramienta falla, dilo y sigue con busqueda normal.
 {BLOQUE_FIN}
 """
 

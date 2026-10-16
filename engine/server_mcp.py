@@ -76,7 +76,7 @@ def _ubicacion(r: dict) -> str:
 
 @herramienta()
 def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool = False, tipo: str = "") -> str:
-    """Localiza codigo, notas o config por palabras. Con un nombre de simbolo exacto da su definicion primero y entera; el resto sale como `ruta:lineas tipo nombre | firma`. detalle=true trae el codigo de todos. project filtra; tipo filtra por 'docs' o 'codigo'."""
+    """Localiza codigo, notas o config por palabras. Un nombre de simbolo exacto da su definicion entera primero. Salida `ruta:lineas tipo nombre | firma`. project filtra; tipo='docs' o 'codigo'; detalle=true trae el codigo."""
     t0 = time.time()
     results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None, tipo=tipo,
                                      check_impact=False)
@@ -192,7 +192,7 @@ def _miembros(lineas: list, ini: int, fin: int) -> list:
 
 @herramienta()
 def get_file_outline(file_path: str, project: str = "") -> str:
-    """Esquema de un archivo: simbolos con sus lineas y los metodos de objetos/clases grandes, sin el codigo. Acepta ruta o solo el nombre del archivo."""
+    """Esquema de un archivo: simbolos con sus lineas y metodos de clases grandes, sin codigo. Acepta ruta o solo el nombre."""
     resolved_path, otras = indexer.resolver_archivo(file_path, project or None)
     if not resolved_path:
         return f"No se encontro '{file_path}' en los proyectos indexados" + (f" ('{project}')." if project else ".")
@@ -275,7 +275,7 @@ def _impacto_resuelto(symbol: str, project: str, archivo: str) -> Optional[str]:
 
 @herramienta()
 def get_impact_radius(symbol: str, project: str = "", archivo: str = "") -> str:
-    """Archivos que dependen de un simbolo (que se rompe si lo cambias), separados por definicion; archivo= elige una."""
+    """Archivos que dependen de un simbolo (se rompen si lo cambias), por definicion; archivo= elige una."""
     try:
         resuelto = _impacto_resuelto(symbol, project, archivo)
         if resuelto:
@@ -402,7 +402,7 @@ def reindex_desktop() -> str:
 
 @herramienta()
 def repo_map(project: str, foco: str = "", tokens: int = 1024) -> str:
-    """Mapa de firmas del proyecto ordenado por relevancia (PageRank) dentro de un presupuesto de tokens."""
+    """Mapa de firmas del proyecto por relevancia (PageRank) en un presupuesto de tokens."""
     return mapa.mapa_del_repo(proyecto=project, foco=foco, tokens=tokens)
 
 
