@@ -212,3 +212,17 @@ def test_desinstalacion_completa_quita_la_pista(casa):
 
     assert _hook_pista_en(settings) == 0
     assert installer.BLOQUE_INI not in (dir_claude / "CLAUDE.md").read_text(encoding="utf-8")
+
+
+def test_la_pista_va_una_sola_vez_por_sesion(casa):
+    """Lo que agrega el hook se reenvia en cada turno: repetirla costaria mas que el bloque fijo."""
+    import hook_pista
+    codigo = "Hay un bug en la funcion calcularTotal de factura.ts"
+    assert hook_pista.procesar(codigo, "sesion-1")
+    assert hook_pista.procesar(codigo, "sesion-1") == {}
+    assert hook_pista.procesar("otro error en main.py", "sesion-1") == {}
+    assert hook_pista.procesar(codigo, "sesion-2")  # otra sesion si la recibe
+    assert hook_pista.procesar("Hola, buenos dias", "sesion-3") == {}  # la charla no gasta la marca
+    assert hook_pista.procesar(codigo, "sesion-3")
+    assert hook_pista.procesar(codigo, "../../etc")  # id raro: no se usa como ruta
+    assert not (casa / "etc").exists()

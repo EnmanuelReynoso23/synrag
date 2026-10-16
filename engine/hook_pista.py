@@ -7,14 +7,21 @@ de codigo (archivos con extension, funciones, clases, errores, trazas, pruebas, 
 codigo entre comillas invertidas, identificadores camelCase/snake_case...) devuelve una
 pista corta como contexto adicional. Si no, no imprime nada.
 
+La pista va UNA vez por sesion (marca en ~/.cache/synrag/pista/<session_id>): lo que agrega un
+hook queda en el historial y se reenvia en cada turno, asi que repetirla en cada mensaje de codigo
+costaria mas que el bloque fijo del CLAUDE.md al que reemplaza.
+
 Nunca debe romper el envio del mensaje: ante cualquier error sale con codigo 0 y sin salida.
 No importa lancedb ni el resto del motor: solo biblioteca estandar.
 """
 
 import json
+import os
 import re
 import sys
+import time
 import unicodedata
+from pathlib import Path
 
 PISTA = (
     "SYNRAG: usa search_desktop (servidor desktop-lancedb) antes de grep o de leer "
@@ -80,9 +87,37 @@ def es_codigo(texto: str) -> bool:
     return False
 
 
-def procesar(prompt) -> dict:
-    """Devuelve la respuesta del hook, o {} si no hay que agregar pista."""
-    if not isinstance(prompt, str) or not es_codigo(prompt):
+VIDA_MARCAS_S = 7 * 24 * 3600
+
+
+def _carpeta_marcas() -> Path:
+    return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "synrag" / "pista"
+
+
+def _primera_vez(sesion) -> bool:
+    """True la primera vez que se pregunta por esta sesion (y deja la marca). Sin sesion: siempre."""
+    if not isinstance(sesion, str) or not re.fullmatch(r"[\w\-]{1,128}", sesion):
+        return True
+    carpeta = _carpeta_marcas()
+    marca = carpeta / sesion
+    if marca.exists():
+        return False
+    carpeta.mkdir(parents=True, exist_ok=True)
+    marca.touch()
+    ahora = time.time()
+    for vieja in carpeta.iterdir():  # limpieza: marcas de sesiones de hace mas de una semana
+        try:
+            if ahora - vieja.stat().st_mtime > VIDA_MARCAS_S:
+                vieja.unlink()
+        except OSError:
+            pass
+    return True
+
+
+def procesar(prompt, sesion=None) -> dict:
+    """Devuelve la respuesta del hook, o {} si no hay que agregar pista (no es codigo o la sesion
+    ya la recibio)."""
+    if not isinstance(prompt, str) or not es_codigo(prompt) or not _primera_vez(sesion):
         return {}
     return {
         "hookSpecificOutput": {
@@ -95,7 +130,8 @@ def procesar(prompt) -> dict:
 def main() -> None:
     try:
         datos = json.loads(sys.stdin.read())
-        respuesta = procesar(datos.get("prompt") if isinstance(datos, dict) else None)
+        datos = datos if isinstance(datos, dict) else {}
+        respuesta = procesar(datos.get("prompt"), datos.get("session_id"))
         if respuesta:
             sys.stdout.write(json.dumps(respuesta, ensure_ascii=False) + "\n")
             sys.stdout.flush()
