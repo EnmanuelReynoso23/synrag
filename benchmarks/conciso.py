@@ -14,9 +14,11 @@ Metricas medidas:
 Uso:
   python benchmarks/conciso.py            # ejecuta las llamadas con Gemini
   python benchmarks/conciso.py --leer     # muestra la tabla de los resultados guardados
+  python benchmarks/conciso.py --bloque A.txt --salida B.json   # compara otro texto conciso (p. ej. el viejo y el nuevo)
 """
 
 import ast
+import hashlib
 import json
 import re
 import sys
@@ -326,7 +328,7 @@ def evaluar_codigo(texto: str, lenguaje: str, requiere: bool) -> Tuple[bool, str
     return True, "valido"
 
 
-def ejecutar_benchmark() -> Dict[str, Any]:
+def ejecutar_benchmark(sistema: str = CAVEMAN_SYSTEM_PROMPT, salida: Path = ARCHIVO_RESULTADOS) -> Dict[str, Any]:
     if not argon:
         sys.exit("No se pudo importar argon. Revisa que engine/ este en sys.path.")
     key = argon.get_api_key()
@@ -351,7 +353,7 @@ def ejecutar_benchmark() -> Dict[str, Any]:
         time.sleep(2.5)
 
         # 2. Caveman
-        prompt_caveman = f"{CAVEMAN_SYSTEM_PROMPT}\n\nConsulta:\n{prompt}"
+        prompt_caveman = f"{sistema}\n\nConsulta:\n{prompt}"
         r_cave = llamar_gemini(prompt_caveman, key)
         time.sleep(2.5)
 
@@ -411,8 +413,9 @@ def ejecutar_benchmark() -> Dict[str, Any]:
         "tareas": resultados,
     }
 
-    ARCHIVO_RESULTADOS.write_text(json.dumps(datos_finales, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"\nResultados guardados en: {ARCHIVO_RESULTADOS}")
+    datos_finales["sistema_caveman_sha256"] = hashlib.sha256(sistema.encode("utf-8")).hexdigest()[:12]
+    salida.write_text(json.dumps(datos_finales, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"\nResultados guardados en: {salida}")
     return datos_finales
 
 
@@ -444,6 +447,15 @@ def mostrar_tabla(datos: Dict[str, Any]) -> None:
     print("=" * 90)
 
 
+def _valor_de(opcion: str) -> Optional[str]:
+    if opcion not in sys.argv:
+        return None
+    i = sys.argv.index(opcion)
+    if i + 1 >= len(sys.argv):
+        sys.exit(f"Falta el valor de {opcion}.")
+    return sys.argv[i + 1]
+
+
 def main():
     if "--leer" in sys.argv:
         if not ARCHIVO_RESULTADOS.is_file():
@@ -451,7 +463,15 @@ def main():
         datos = json.loads(ARCHIVO_RESULTADOS.read_text(encoding="utf-8"))
         mostrar_tabla(datos)
     else:
-        datos = ejecutar_benchmark()
+        # --bloque ARCHIVO: usa ese texto (sin marcadores) como modo conciso en vez del prompt fijo.
+        # --salida ARCHIVO: guarda en ese archivo y no en conciso-resultados.json.
+        bloque = _valor_de("--bloque")
+        salida = _valor_de("--salida")
+        sistema = CAVEMAN_SYSTEM_PROMPT
+        if bloque:
+            texto = Path(bloque).read_text(encoding="utf-8")
+            sistema = texto.replace("<!-- SYNRAG-CONCISO:BEGIN -->", "").replace("<!-- SYNRAG-CONCISO:END -->", "").strip() + "\n"
+        datos = ejecutar_benchmark(sistema, Path(salida) if salida else ARCHIVO_RESULTADOS)
         mostrar_tabla(datos)
 
 
