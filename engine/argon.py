@@ -145,25 +145,42 @@ INSTRUCCIONES:
            f"================================================================================"
 
 
-def explain_blast_radius(symbol: str, project: str = "") -> str:
-    """Gemini explica el riesgo de cambiar un simbolo segun sus dependientes (requiere GEMINI_API_KEY)."""
+def explain_blast_radius(symbol: str, project: str = "", archivo: str = "") -> str:
+    """Gemini explica el riesgo de cambiar un simbolo segun sus dependientes (requiere GEMINI_API_KEY); archivo= elige la definicion."""
     import indexer
     import impact
     from tools import inspect_tools
 
-    db = indexer.get_db()
-    dependents = impact.get_dependents(db, symbol, project or None)
+    # Dependientes de UNA definicion (imports resueltos), no de todo lo que se llame igual
+    definidor, otras = "", 0
+    try:
+        datos = indexer.consumidores(symbol, project or None)
+    except Exception:
+        datos = None
+    defs = (datos or {}).get("definiciones") or {}
+    if archivo:
+        defs = {d: v for d, v in defs.items() if d.endswith(archivo.lstrip("./"))}
+    if defs:
+        definidor, dependents = max(defs.items(), key=lambda kv: len(kv[1]))
+        otras = len(defs) - 1
+    else:
+        dependents = impact.get_dependents(indexer.get_db(), symbol, project or None)
 
     if not dependents:
         return f"[SynRAG Grafo] El símbolo '{symbol}' no tiene dependientes registrados en el grafo local."
 
-    contract_info = inspect_tools.get_symbol_contract(symbol, symbol)
+    corta = lambda r: os.path.relpath(r, Path.home()) if r.startswith(str(Path.home())) else r  # noqa: E731
+    dependents = sorted(corta(d) for d in dependents)
+    contract_info = inspect_tools.get_symbol_contract(definidor or symbol, symbol)
+    donde = f"DEFINIDO EN: {corta(definidor)}" + (
+        f" (hay {otras} definicion(es) mas con el mismo nombre; esta es la de mas dependientes)" if otras else ""
+    ) + "\n" if definidor else ""
 
     prompt = f"""Eres el Analista de Riesgo e Impacto de SynRAG.
 Analiza el impacto de modificar el siguiente símbolo en el proyecto:
 
 SÍMBOLO: {symbol}
-CONTRATO / DEFINICIÓN:
+{donde}CONTRATO / DEFINICIÓN:
 {contract_info}
 
 ARCHIVOS QUE DEPENDEN DIRECTAMENTE DE ESTE SÍMBOLO ({len(dependents)} archivos):
