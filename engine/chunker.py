@@ -97,8 +97,89 @@ def extract_symbol_and_kind(node_text: str, ntype: str) -> Tuple[Optional[str], 
     return name, kind
 
 
-def extract_imports_and_exports(text: str) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    """Extrae dependencias de importación y exportación de forma rápida y segura."""
+PY_CONTENEDORES = {
+    "module", "block", "function_definition", "class_definition", "decorated_definition",
+    "if_statement", "elif_clause", "else_clause", "try_statement", "except_clause", "except_group_clause",
+    "finally_clause", "with_statement", "for_statement", "while_statement", "match_statement", "case_clause",
+}
+
+
+def _texto(nodo) -> str:
+    return nodo.text.decode("utf-8", errors="ignore") if nodo is not None else ""
+
+
+def imports_del_arbol(raiz, lang: str) -> List[Dict[str, str]]:
+    """Imports leidos del AST: los de varias lineas, `import D, { a } from`, los re-export de los
+    barrels (`export { a } from`, `export * from`) y, en Python, los de parentesis, los separados por
+    coma y los de dentro de funciones. Nunca toma texto de comentarios ni de cadenas."""
+    imps: List[Dict[str, str]] = []
+
+    def agregar(simbolo: str, origen: str):
+        simbolo, origen = simbolo.strip("'\"`"), origen.strip("'\"`")
+        if simbolo and origen:
+            imps.append({"symbol": simbolo, "source": origen})
+
+    if lang == "python":
+        pila = [raiz]
+        while pila:
+            n = pila.pop()
+            if n.type == "import_statement":
+                for h in n.children_by_field_name("name"):
+                    ruta = _texto(h.child_by_field_name("name") if h.type == "aliased_import" else h)
+                    agregar(ruta.split(".")[-1], ruta)
+            elif n.type in ("import_from_statement", "future_import_statement"):
+                modulo = _texto(n.child_by_field_name("module_name")) or "__future__"
+                if any(h.type == "wildcard_import" for h in n.children):
+                    agregar("*", modulo)
+                for h in n.children_by_field_name("name"):
+                    agregar(_texto(h.child_by_field_name("name") if h.type == "aliased_import" else h), modulo)
+            elif n.type in PY_CONTENEDORES:
+                pila.extend(n.children)
+        return imps
+
+    for n in raiz.children:  # TS/JS: imports y re-exports solo existen en el nivel superior
+        fuente = n.child_by_field_name("source") if n.type in ("import_statement", "export_statement") else None
+        if fuente is None:
+            continue
+        origen = _texto(fuente)
+        for h in n.children:
+            if h.type == "import_clause":
+                for c in h.children:
+                    if c.type == "identifier":
+                        agregar(_texto(c), origen)
+                    elif c.type == "namespace_import":
+                        agregar(next((_texto(i) for i in c.children if i.type == "identifier"), ""), origen)
+                    elif c.type == "named_imports":
+                        for spec in c.children:
+                            if spec.type == "import_specifier":
+                                agregar(_texto(spec.child_by_field_name("name")), origen)
+            elif h.type == "export_clause":
+                for spec in h.children:
+                    if spec.type == "export_specifier":
+                        agregar(_texto(spec.child_by_field_name("name")), origen)
+            elif h.type == "namespace_export":
+                agregar(next((_texto(i) for i in h.children if i.type == "identifier"), ""), origen)
+            elif h.type == "*" and n.type == "export_statement":
+                agregar("*", origen)
+    return imps
+
+
+def extract_imports_and_exports(text: str, ext: str = "") -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    """Imports y exports de un archivo. Con la extension de un lenguaje con gramatica, los imports
+    salen del AST (imports_del_arbol); si no, de expresiones regulares linea por linea."""
+    lang = LANG_MAP.get(ext.lower()) if ext else None
+    parser = get_parser_for_lang(lang) if lang in ("typescript", "tsx", "javascript", "python") else None
+    if parser is not None:
+        try:
+            imps = imports_del_arbol(parser.parse(text.encode("utf-8", errors="ignore")).root_node, lang)
+            return imps, _imports_y_exports_por_lineas(text)[1]
+        except Exception:
+            pass
+    return _imports_y_exports_por_lineas(text)
+
+
+def _imports_y_exports_por_lineas(text: str) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    """Respaldo sin gramatica: un import por linea (no ve los de varias lineas)."""
     imports = []
     exports = []
 
@@ -235,6 +316,7 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
             return fallback_chunks, imps, exps
 
         tree = parser.parse(code_bytes)
+        imps_arbol = imports_del_arbol(tree.root_node, lang) if lang in ("typescript", "tsx", "javascript", "python") else None
         raw_nodes = [
             (str(n.type), int(n.start_byte), int(n.end_byte))
             for n in tree.root_node.children
@@ -255,7 +337,9 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
         imps, exps = extract_imports_and_exports(text)
         return fallback_chunks, imps, exps
 
-    imps, exps = extract_imports_and_exports(text)
+    imps, exps = _imports_y_exports_por_lineas(text)
+    if imps_arbol is not None:
+        imps = imps_arbol
 
     chunks = []
     import_nodes_coords = []

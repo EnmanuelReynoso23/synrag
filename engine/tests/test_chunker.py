@@ -250,3 +250,44 @@ def test_clase_python_grande_conserva_atributos_entre_metodos():
     nombres = {c["symbol_name"] for c in chunks}
     assert {"Config", "from_envvar", "from_pyfile"} <= nombres
     assert 1 + codigo.splitlines().index("    silencioso_por_defecto = False") in _cubiertas(chunks)
+
+
+def _aristas(texto, ext):
+    imps, _ = chunker.extract_imports_and_exports(texto, ext)
+    return {(i["symbol"], i["source"]) for i in imps}
+
+
+def test_imports_ts_de_varias_lineas_default_y_reexports():
+    texto = (
+        "import React, { useState } from 'react'\n"
+        "import {\n  listar,\n  crear as nuevo,\n  type Apunte,\n} from '@/modulos/apuntes'\n"
+        "import * as fs from 'node:fs'\n"
+        "import './estilos.css'\n"
+        "export * from './barril'\n"
+        "export { a, default as B } from './otro'\n"
+        "// import { falso } from 'comentario'\n"
+        "const s = \"import { tampoco } from 'cadena'\"\n"
+    )
+    assert _aristas(texto, ".ts") == {
+        ("React", "react"), ("useState", "react"), ("listar", "@/modulos/apuntes"), ("crear", "@/modulos/apuntes"),
+        ("Apunte", "@/modulos/apuntes"), ("fs", "node:fs"), ("*", "./barril"), ("a", "./otro"), ("default", "./otro"),
+    }
+
+
+def test_imports_python_con_parentesis_coma_y_dentro_de_funciones():
+    texto = (
+        "from __future__ import annotations\n"
+        "import os, sys\n"
+        "from .app import (\n    Flask,\n    request as req,\n)\n"
+        "def f():\n    import json\n"
+        '"""\nfrom docstring import Falso\n"""\n'
+    )
+    assert _aristas(texto, ".py") == {
+        ("annotations", "__future__"), ("os", "os"), ("sys", "sys"), ("Flask", ".app"), ("request", ".app"), ("json", "json"),
+    }
+
+
+def test_parse_and_chunk_file_usa_los_imports_del_arbol():
+    texto = "import {\n  a,\n  b,\n} from './m'\n\nexport function usar() { return a + b }\n"
+    _, imps, _ = chunker.parse_and_chunk_file(Path("x.ts"), texto)
+    assert {(i["symbol"], i["source"]) for i in imps} == {("a", "./m"), ("b", "./m")}

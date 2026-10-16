@@ -23,11 +23,20 @@ def _es_codigo(linea: str) -> bool:
     return bool(s.strip("{}[]();,")) and not s.startswith(("//", "/*", "*", "#"))
 
 
+def _indexable(p: Path, repo: Path) -> bool:
+    """Mismo filtro que el indexador (sin dist/, build/, minificados...): se mide lo que se indexa."""
+    try:
+        import indexer
+        return indexer.should_index(p, repo)
+    except Exception:
+        return True
+
+
 def archivos(repo: Path):
     r = subprocess.run(["git", "-C", str(repo), "ls-files"], capture_output=True, text=True)
     for rel in r.stdout.splitlines():
         p = repo / rel
-        if p.suffix in EXTS and "node_modules" not in p.parts and p.is_file() and p.stat().st_size < 250 * 1024:
+        if p.suffix in EXTS and "node_modules" not in p.parts and p.is_file() and _indexable(p, repo):
             yield p
 
 
