@@ -86,3 +86,4 @@ def test_impacto_separa_definiciones_y_sigue_barrels(casa):
     usos = next(l for l in busqueda.splitlines() if l.startswith("Usos"))
     assert "lo importan 1 archivo(s)" in usos or "lo importan 2 archivo(s)" in usos
     assert ("Home.tsx:3 Home" in usos) != ("Panel.tsx:4 Panel" in usos)  # solo los de SU definicion
+    assert "Panel.tsx:2" not in usos  # la linea `  useAuth,` del import de varias lineas no es un uso

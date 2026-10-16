@@ -775,6 +775,18 @@ def consumidores(simbolo: str, project: str | None = None) -> Optional[Dict[str,
 
 
 RE_LINEA_IMPORT = re.compile(r"^\s*(import\b|from\s+\S+\s+import\b|export\s+(\*|\{[^}]*\})\s*from\b)")
+# Imports de varias lineas: `import {\n a,\n} from 'x'`, `export { a } from`, `from x import (\n a,\n)`
+RE_IMPORT_MULTILINEA = re.compile(
+    r"^[ \t]*(?:import\b[^;'\"]*?\bfrom\s*['\"][^'\"]*['\"]|export\s*(?:type\s*)?\{[^}]*\}\s*from\s*['\"][^'\"]*['\"]"
+    r"|from\s+[\w.]+\s+import\s*\([^)]*\))", re.M | re.S)
+
+
+def _lineas_de_imports(texto: str) -> set:
+    lineas = set()
+    for m in RE_IMPORT_MULTILINEA.finditer(texto):
+        ini = texto.count("\n", 0, m.start()) + 1
+        lineas.update(range(ini, ini + m.group(0).count("\n") + 1))
+    return lineas
 
 
 def _es_prueba(ruta: str) -> bool:
@@ -804,11 +816,12 @@ def usos_de(simbolo: str, archivo_def: str, project: str = "", rango_def: tuple 
     hallados: Dict[str, List[int]] = {}
     for archivo in archivos[:max_archivos]:
         try:
-            lineas = Path(archivo).read_text(encoding="utf-8", errors="ignore").splitlines()
+            texto = Path(archivo).read_text(encoding="utf-8", errors="ignore")
         except Exception:
             continue
-        ns = [n for n, l in enumerate(lineas, 1)
-              if patron.search(l) and not RE_LINEA_IMPORT.match(l) and not definicion.search(l)
+        de_imports = _lineas_de_imports(texto)
+        ns = [n for n, l in enumerate(texto.splitlines(), 1)
+              if patron.search(l) and n not in de_imports and not RE_LINEA_IMPORT.match(l) and not definicion.search(l)
               and not (archivo == archivo_def and rango_def[0] <= n <= rango_def[1])
               and not l.lstrip().startswith(("#", "//", "*", "/*"))]
         if ns:
