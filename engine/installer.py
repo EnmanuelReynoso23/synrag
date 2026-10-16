@@ -155,6 +155,10 @@ def _inyectar_instrucciones(path: Path) -> str:
     """Inserta o actualiza el bloque SYNRAG entre marcas, sin tocar el resto del archivo."""
     try:
         real = path.resolve() if path.is_symlink() else path  # GEMINI.md suele ser enlace a CLAUDE.md
+        # Con la pista por hook activa, el CLAUDE.md de Claude Code no lleva el bloque (ni por enlace).
+        if os.path.realpath(real) == os.path.realpath(HOME / ".claude" / "CLAUDE.md") and _pista_activa():
+            _log(OMITIDO, f"instrucciones en {path}", "pista por hook activa")
+            return YA
         texto = real.read_text(encoding="utf-8") if real.is_file() else ""
         if BLOQUE_INI in texto and BLOQUE_FIN in texto:
             ini = texto.index(BLOQUE_INI)
@@ -512,6 +516,129 @@ def uninstall_filtro_largas() -> str:
         return ERROR
 
 
+PISTA_EVENTO = "UserPromptSubmit"
+
+
+def _es_hook_pista(h: Any) -> bool:
+    return isinstance(h, dict) and "hook_pista.py" in str(h.get("command", ""))
+
+
+def _pista_activa() -> bool:
+    """True si el hook de pista esta en ~/.claude/settings.json (en ese caso el bloque SYNRAG no va al CLAUDE.md)."""
+    target = HOME / ".claude" / "settings.json"
+    try:
+        datos = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
+    except Exception:  # noqa: BLE001
+        return False
+    hooks = datos.get("hooks") if isinstance(datos, dict) else None
+    entradas = hooks.get(PISTA_EVENTO) if isinstance(hooks, dict) else None
+    if not isinstance(entradas, list):
+        return False
+    return any(
+        isinstance(e, dict) and any(_es_hook_pista(h) for h in (e.get("hooks") or []))
+        for e in entradas
+    )
+
+
+def configure_pista() -> str:
+    """Activa la pista por hook (UserPromptSubmit) y quita el bloque SYNRAG de ~/.claude/CLAUDE.md. Idempotente."""
+    target = HOME / ".claude" / "settings.json"
+    hook_cmd = f'"{VENV_PYTHON}" "{BASE_DIR / "hook_pista.py"}"'
+
+    try:
+        datos: Dict[str, Any] = {}
+        if target.is_file():
+            try:
+                datos = json.loads(target.read_text(encoding="utf-8"))
+            except Exception as e:  # noqa: BLE001
+                _log(OMITIDO, str(target), f"JSON ilegible ({e}); anade el hook a mano")
+                return OMITIDO
+        if not isinstance(datos, dict):
+            datos = {}
+
+        hooks = datos.setdefault("hooks", {})
+        if not isinstance(hooks, dict):
+            hooks = datos["hooks"] = {}
+        entradas = hooks.setdefault(PISTA_EVENTO, [])
+        if not isinstance(entradas, list):
+            entradas = hooks[PISTA_EVENTO] = []
+
+        if _pista_activa():
+            estado_hook = YA
+            _log(YA, f"hook de pista en {target}")
+        else:
+            entradas.append({"hooks": [{"type": "command", "command": hook_cmd}]})
+            _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+            estado_hook = OK
+            _log(OK, f"hook de pista anadido a {target}", "simulado" if DRY_RUN else "")
+
+        estado_bloque = _quitar_bloque(HOME / ".claude" / "CLAUDE.md")
+        if ERROR in (estado_hook, estado_bloque):
+            return ERROR
+        return OK if OK in (estado_hook, estado_bloque) else YA
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(target), str(e))
+        return ERROR
+
+
+def _quitar_hook_pista() -> str:
+    """Quita solo el hook de pista de ~/.claude/settings.json, conservando el resto."""
+    target = HOME / ".claude" / "settings.json"
+    if not target.is_file():
+        _log(YA, f"hook de pista no estaba (no existe {target})")
+        return YA
+
+    try:
+        datos = json.loads(target.read_text(encoding="utf-8"))
+        hooks = datos.get("hooks") if isinstance(datos, dict) else None
+        entradas = hooks.get(PISTA_EVENTO) if isinstance(hooks, dict) else None
+        if not isinstance(entradas, list):
+            _log(YA, f"hook de pista no estaba en {target}")
+            return YA
+
+        modificado = False
+        nuevas_entradas = []
+        for entrada in entradas:
+            sub_hooks = entrada.get("hooks") if isinstance(entrada, dict) else None
+            if not isinstance(sub_hooks, list) or not any(_es_hook_pista(h) for h in sub_hooks):
+                nuevas_entradas.append(entrada)
+                continue
+            modificado = True
+            restantes = [h for h in sub_hooks if not _es_hook_pista(h)]
+            if restantes:
+                entrada["hooks"] = restantes
+                nuevas_entradas.append(entrada)
+
+        if not modificado:
+            _log(YA, f"hook de pista no estaba en {target}")
+            return YA
+
+        if nuevas_entradas:
+            hooks[PISTA_EVENTO] = nuevas_entradas
+        else:
+            del hooks[PISTA_EVENTO]
+            if not hooks:
+                del datos["hooks"]
+
+        _escribir(target, json.dumps(datos, indent=2, ensure_ascii=False) + "\n")
+        _log(OK, f"hook de pista quitado de {target}", "simulado" if DRY_RUN else "")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(target), str(e))
+        return ERROR
+
+
+def uninstall_pista() -> str:
+    """Desactiva la pista: quita el hook y vuelve a poner el bloque SYNRAG en ~/.claude/CLAUDE.md."""
+    estado_hook = _quitar_hook_pista()
+    estado_bloque = YA
+    if (HOME / ".claude").is_dir():
+        estado_bloque = _inyectar_instrucciones(HOME / ".claude" / "CLAUDE.md")
+    if ERROR in (estado_hook, estado_bloque):
+        return ERROR
+    return OK if OK in (estado_hook, estado_bloque) else YA
+
+
 def install_cli_binaries() -> bool:
     """Crea los binarios globales SYNRAG y synrag en ~/.local/bin."""
     local_bin = HOME / ".local" / "bin"
@@ -661,6 +788,7 @@ def run_uninstall() -> None:
         _quitar_bloque(ruta)
     uninstall_filtro()
     uninstall_filtro_largas()
+    _quitar_hook_pista()
     if not DRY_RUN:
         for nombre in ("SYNRAG", "synrag", "syntaxrag"):
             lanzador = HOME / ".local" / "bin" / nombre
@@ -737,6 +865,11 @@ if __name__ == "__main__":
             uninstall_filtro()
         else:
             configure_filtro()
+    elif "--pista" in sys.argv:
+        if "--uninstall" in sys.argv or "uninstall" in sys.argv:
+            uninstall_pista()
+        else:
+            configure_pista()
     elif "--uninstall" in sys.argv:
         run_uninstall()
     else:

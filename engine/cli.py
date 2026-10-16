@@ -543,6 +543,8 @@ def main():
             installer.configure_filtro_largas()
         elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
             installer.configure_filtro()
+        elif "--pista" in sys.argv:
+            installer.configure_pista()
         else:
             installer.run_full_installation()
     elif arg1 in ("uninstall", "--uninstall"):
@@ -555,6 +557,8 @@ def main():
             installer.uninstall_filtro_largas()
         elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
             installer.uninstall_filtro()
+        elif "--pista" in sys.argv:
+            installer.uninstall_pista()
         else:
             installer.run_uninstall()
     elif arg1 in ("filtrar", "--filtrar"):
