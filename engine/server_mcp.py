@@ -33,13 +33,24 @@ import mapa
 mcp = MCPServer("desktop-lancedb")
 
 
+PERFIL = indexer.perfil_herramientas()
+# Perfil esencial: lo que usa un agente casi siempre. Cada definicion se paga en cada turno en los
+# clientes que no cargan las herramientas bajo demanda (SYNRAG configure --perfil esencial).
+ESENCIALES = {"search_desktop", "get_file_outline", "get_impact_radius", "repo_map", "run_test_isolated"}
+
+
 def herramienta():
     """Registra una herramienta sin outputSchema: todas devuelven texto, y ese esquema repetido
-    costaba ~170 caracteres por herramienta en cada sesion del agente."""
-    try:
-        return mcp.tool(structured_output=False)
-    except TypeError:  # versiones del SDK sin ese parametro
-        return mcp.tool()
+    costaba ~170 caracteres por herramienta en cada sesion del agente. Con el perfil esencial, las
+    que no estan en ESENCIALES no se registran (siguen siendo funciones normales)."""
+    def registrar(fn):
+        if PERFIL == "esencial" and fn.__name__ not in ESENCIALES:
+            return fn
+        try:
+            return mcp.tool(structured_output=False)(fn)
+        except TypeError:  # versiones del SDK sin ese parametro
+            return mcp.tool()(fn)
+    return registrar
 SNIPPET = 800  # caracteres maximos por resultado con detalle=true
 SNIPPET_PRIMERO = 2400  # el primer resultado va completo (un bloque AST mide como mucho 2.400)
 SNIPPET_EXACTO = 8000  # definicion exacta unida desde varios trozos: entera salvo que sea enorme
@@ -121,7 +132,14 @@ def _linea_de_usos(r: dict) -> str:
         return "Usos: ninguno fuera de su definicion."
     proyecto = r.get("project", "")
     codigo = [s for s in sitios if not indexer._es_prueba(s[0])]
-    partes = [f"{_ruta_corta(a, proyecto)}:{n}" + (f" {s}" if s else "") for a, n, s in codigo[:MAX_USOS]]
+    mostrados = codigo[:MAX_USOS]
+    nombres = {os.path.basename(a) for a, _, _ in mostrados}
+    ambiguo = len(nombres) < len({a for a, _, _ in mostrados})
+    partes, previo = [], None
+    for a, n, s in mostrados:  # sessions.py:324 open_session, :373 save_session
+        archivo = "" if a == previo else (_ruta_corta(a, proyecto) if ambiguo else os.path.basename(a))
+        partes.append(f"{archivo}:{n}" + (f" {s}" if s else ""))
+        previo = a
     texto = "Usos: " + (", ".join(partes) if partes else "ninguno en el codigo")
     if len(codigo) > MAX_USOS:
         texto += f" (y {len(codigo) - MAX_USOS} mas)"

@@ -169,6 +169,8 @@ def main():
             sys.exit(1)
 
         print(f"[OK] Total herramientas verificadas: {len(tools)}")
+        caracteres = len(json.dumps(tools, ensure_ascii=False, separators=(",", ":")))
+        print(f"[OK] Definiciones: {caracteres} caracteres (~{caracteres // 4} tokens a 4 caracteres por token)")
         print(f"[OK] Ninguna herramienta incluye outputSchema (ahorro de tokens verificado).")
 
     finally:

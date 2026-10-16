@@ -409,6 +409,52 @@ def configure_filtro_largas() -> str:
         return ERROR
 
 
+def _archivo_perfil() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "synrag" / "perfil"
+
+
+def valor_de_perfil(args: List[str]) -> str:
+    """`--perfil esencial` o `--perfil=esencial` -> "esencial" ("" si no viene)."""
+    for i, a in enumerate(args):
+        if a.startswith("--perfil="):
+            return a.split("=", 1)[1].strip().lower()
+        if a == "--perfil" and i + 1 < len(args):
+            return args[i + 1].strip().lower()
+    return ""
+
+
+def configure_perfil(valor: str) -> str:
+    """Elige que herramientas MCP expone el servidor: `esencial` (5) o `completo` (todas)."""
+    if valor not in ("esencial", "completo"):
+        _log(ERROR, "perfil", f"'{valor}' no existe; usa esencial o completo")
+        return ERROR
+    destino = _archivo_perfil()
+    try:
+        if destino.is_file() and destino.read_text(encoding="utf-8").strip() == valor:
+            _log(YA, f"perfil de herramientas {valor} en {destino}")
+            return YA
+        if not DRY_RUN:
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            destino.write_text(valor + "\n", encoding="utf-8")
+        _log(OK, f"perfil de herramientas {valor} en {destino}", "simulado" if DRY_RUN else "reinicia la IA para que lo cargue")
+        return OK
+    except Exception as e:  # noqa: BLE001
+        _log(ERROR, str(destino), str(e))
+        return ERROR
+
+
+def uninstall_perfil() -> str:
+    """Vuelve al perfil completo (todas las herramientas)."""
+    destino = _archivo_perfil()
+    if not destino.is_file():
+        _log(YA, "perfil de herramientas completo (no habia archivo de perfil)")
+        return YA
+    if not DRY_RUN:
+        destino.unlink()
+    _log(OK, f"perfil de herramientas: quitado {destino} (vuelve a completo)", "simulado" if DRY_RUN else "")
+    return OK
+
+
 def uninstall_filtro_largas() -> str:
     """Quita el hook PostToolUse de ~/.claude/settings.json conservando otros hooks y configuraciones."""
     target = HOME / ".claude" / "settings.json"
@@ -670,7 +716,12 @@ def run_full_installation() -> None:
 
 
 if __name__ == "__main__":
-    if "--conciso" in sys.argv:
+    if any(a == "--perfil" or a.startswith("--perfil=") for a in sys.argv):
+        if "--uninstall" in sys.argv or "uninstall" in sys.argv:
+            uninstall_perfil()
+        else:
+            configure_perfil(valor_de_perfil(sys.argv))
+    elif "--conciso" in sys.argv:
         import conciso
         if "--uninstall" in sys.argv or "uninstall" in sys.argv:
             conciso.desactivar()

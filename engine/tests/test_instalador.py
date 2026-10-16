@@ -126,3 +126,28 @@ def test_el_instalador_copia_todo_el_motor():
     motor = RAIZ_REPO / "engine"
     archivos = {p.relative_to(motor).as_posix() for p in [*motor.glob("*.py"), *motor.glob("tools/*.py")]}
     assert archivos - lista == set()
+
+
+def test_perfil_esencial_registra_solo_cinco_herramientas(casa, monkeypatch):
+    import importlib
+    import indexer
+    import installer
+    importlib.reload(installer)
+    assert indexer.perfil_herramientas() == "completo"
+    assert installer.configure_perfil("nada") == installer.ERROR
+    assert installer.configure_perfil("esencial") == installer.OK
+    assert installer.configure_perfil("esencial") == installer.YA
+    assert indexer.perfil_herramientas() == "esencial"
+
+    import server_mcp
+    importlib.reload(server_mcp)
+    nombres = {t.name for t in server_mcp.mcp._tool_manager.list_tools()}
+    assert nombres == server_mcp.ESENCIALES
+    assert callable(server_mcp.list_projects)  # las demas siguen siendo funciones
+
+    assert installer.uninstall_perfil() == installer.OK
+    monkeypatch.setenv("SYNRAG_PERFIL", "esencial")
+    assert indexer.perfil_herramientas() == "esencial"
+    monkeypatch.delenv("SYNRAG_PERFIL")
+    importlib.reload(server_mcp)
+    assert len(server_mcp.mcp._tool_manager.list_tools()) >= 26

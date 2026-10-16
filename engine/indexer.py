@@ -55,6 +55,25 @@ def archivo_de_carpetas() -> Path:
     return base / "synrag" / "carpetas.txt"
 
 
+PERFILES = ("completo", "esencial")
+
+
+def archivo_de_perfil() -> Path:
+    return archivo_de_carpetas().with_name("perfil")
+
+
+def perfil_herramientas() -> str:
+    """Que herramientas MCP expone el servidor: `completo` (todas) o `esencial` (las 5 que mas se usan,
+    para clientes que pagan las definiciones en cada turno). SYNRAG_PERFIL manda sobre el archivo."""
+    valor = os.environ.get("SYNRAG_PERFIL", "").strip().lower()
+    if not valor:
+        try:
+            valor = archivo_de_perfil().read_text(encoding="utf-8").strip().lower()
+        except OSError:
+            valor = ""
+    return valor if valor in PERFILES else "completo"
+
+
 def _parsear_carpeta(linea: str) -> Optional[tuple]:
     linea = linea.split("#", 1)[0].strip()
     if not linea:
