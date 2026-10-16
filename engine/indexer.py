@@ -676,6 +676,143 @@ def buscar_definiciones(tbl, query: str, project: str | None = None, limit: int 
     return salida[:limit]
 
 
+def _abs_home(rel: str) -> str:
+    """rel_path / imported_by son relativas al HOME salvo fuera de el."""
+    return rel if rel.startswith("/") else os.path.normpath(str(HOME / rel))
+
+
+_RESOLUTORES: Dict[str, tuple] = {}  # proyecto -> (instante, Resolutor)
+VIDA_RESOLUTOR_S = 60  # el observador reindexa archivos sueltos: la lista de archivos se renueva sola
+
+
+def _resolutor(db, proyecto: str):
+    import resolver
+    ahora = time.time()
+    guardado = _RESOLUTORES.get(proyecto)
+    if guardado and ahora - guardado[0] < VIDA_RESOLUTOR_S:
+        return guardado[1]
+    filas = db.open_table(TABLE_NAME).search().where(f"project = '{proyecto.replace(chr(39), '')}'") \
+        .select(["file_path"]).limit(1_000_000).to_list()
+    archivos = {f["file_path"] for f in filas}
+    raiz = raiz_de_proyecto(proyecto) or (Path(os.path.commonpath(list(archivos))) if archivos else HOME)
+    res = resolver.Resolutor(Path(raiz), archivos)
+    _RESOLUTORES[proyecto] = (ahora, res)
+    return res
+
+
+def consumidores(simbolo: str, project: str | None = None) -> Optional[Dict[str, Any]]:
+    """Que archivos dependen de cada definicion de `simbolo` (no de cualquiera que se llame igual):
+    resuelve cada import (relativo, alias de tsconfig, paquete del monorepo, modulo de Python) y sigue
+    los barrels. Devuelve {"definiciones": {archivo: [archivos que lo usan]}, "externos": {origen: n},
+    "sin_resolver": [(archivo, origen)], "proyectos": {archivo: proyecto}} con rutas absolutas, o None
+    si no hay indice o tabla de impacto."""
+    db = get_db()
+    if TABLE_NAME not in db.table_names() or impact.IMPACT_TABLE not in db.table_names():
+        return None
+    nombre = simbolo.strip().replace("'", "")
+    if not nombre:
+        return None
+    filtro_p = f" AND project = '{project.replace(chr(39), '')}'" if project else ""
+    defs = db.open_table(TABLE_NAME).search() \
+        .where(f"symbol_name = '{nombre}' AND symbol_kind NOT IN ('method', 'field', 'imports'){filtro_p}") \
+        .select(["file_path", "project"]).limit(500).to_list()
+    imp_tbl = db.open_table(impact.IMPACT_TABLE)
+    filas = imp_tbl.search().where(f"symbol = '{nombre}'{filtro_p}") \
+        .select(["imported_by", "source", "project"]).limit(20000).to_list()
+    proyectos: Dict[str, str] = {}
+    por_proyecto: Dict[str, Dict[str, Any]] = {}
+    for d in defs:
+        por_proyecto.setdefault(d["project"], {"defs": set(), "imps": []})["defs"].add(os.path.normpath(d["file_path"]))
+        proyectos[os.path.normpath(d["file_path"])] = d["project"]
+    for f in filas:
+        if f.get("imported_by") and f["imported_by"] != "__init__":
+            por_proyecto.setdefault(f["project"], {"defs": set(), "imps": []})["imps"].append(
+                (_abs_home(f["imported_by"]), f.get("source") or ""))
+
+    salida: Dict[str, Any] = {"definiciones": {}, "externos": {}, "sin_resolver": [], "proyectos": proyectos}
+    for proyecto, datos in por_proyecto.items():
+        res = _resolutor(db, proyecto)
+        cache_re: Dict[tuple, List[str]] = {}
+
+        def reexports_de(archivo: str, sim: str, _p=proyecto) -> List[str]:
+            clave = (archivo, sim)
+            if clave not in cache_re:
+                rel = os.path.relpath(archivo, HOME) if archivo.startswith(str(HOME)) else archivo
+                try:
+                    rows = imp_tbl.search().where(
+                        f"imported_by = '{rel.replace(chr(39), '')}' AND symbol IN ('{sim}', '*') AND project = '{_p.replace(chr(39), '')}'"
+                    ).select(["source"]).limit(50).to_list()
+                    cache_re[clave] = [r["source"] for r in rows if r.get("source")]
+                except Exception:
+                    cache_re[clave] = []
+            return cache_re[clave]
+
+        grupo = impact.agrupar_consumidores(nombre, datos["defs"], datos["imps"], reexports_de, res)
+        salida["definiciones"].update(grupo["por_definicion"])
+        for origen, n in grupo["externos"].items():
+            salida["externos"][origen] = salida["externos"].get(origen, 0) + n
+        salida["sin_resolver"] += grupo["sin_resolver"]
+    return salida
+
+
+RE_LINEA_IMPORT = re.compile(r"^\s*(import\b|from\s+\S+\s+import\b|export\s+(\*|\{[^}]*\})\s*from\b)")
+
+
+def _es_prueba(ruta: str) -> bool:
+    nombre = os.path.basename(ruta).lower()
+    return bool(re.search(r"(^test_|_test\.py$|\.(test|spec)\.[jt]sx?$)", nombre)) or "/tests/" in ruta or "/__tests__/" in ruta
+
+
+def usos_de(simbolo: str, archivo_def: str, project: str = "", rango_def: tuple = (0, 0), max_archivos: int = 12) -> Dict[str, Any]:
+    """Donde se usa una definicion: su propio archivo y los que la importan (resueltos, no por nombre).
+    Devuelve {"sitios": [(archivo, linea, simbolo_que_lo_contiene)], "importadores": n, "pruebas": n}
+    sin la definicion (rango_def) ni los imports; primero el codigo y despues las pruebas."""
+    vacio = {"sitios": [], "importadores": 0, "pruebas": 0}
+    if not RE_IDENTIFICADOR.match(simbolo or ""):
+        return vacio
+    archivo_def = os.path.normpath(archivo_def)
+    importadores: List[str] = []
+    try:
+        datos = consumidores(simbolo, project or None)
+        if datos:
+            importadores = sorted(datos["definiciones"].get(archivo_def, []))
+    except Exception:
+        pass
+    pruebas = [a for a in importadores if _es_prueba(a)]
+    archivos = [archivo_def] + [a for a in importadores if a not in pruebas] + pruebas
+    patron = re.compile(rf"(?<![\w$.]){re.escape(simbolo)}\b|\.{re.escape(simbolo)}\s*\(")
+    definicion = re.compile(rf"\b(def|class|function\*?|interface|type|enum|const|let|var)\s+{re.escape(simbolo)}\b")
+    hallados: Dict[str, List[int]] = {}
+    for archivo in archivos[:max_archivos]:
+        try:
+            lineas = Path(archivo).read_text(encoding="utf-8", errors="ignore").splitlines()
+        except Exception:
+            continue
+        ns = [n for n, l in enumerate(lineas, 1)
+              if patron.search(l) and not RE_LINEA_IMPORT.match(l) and not definicion.search(l)
+              and not (archivo == archivo_def and rango_def[0] <= n <= rango_def[1])
+              and not l.lstrip().startswith(("#", "//", "*", "/*"))]
+        if ns:
+            hallados[archivo] = ns
+    trozos: Dict[str, List[Dict[str, Any]]] = {}
+    if hallados:
+        lista = ", ".join(f"'{a.replace(chr(39), '')}'" for a in hallados)
+        try:
+            for f in get_db().open_table(TABLE_NAME).search().where(f"file_path IN ({lista})") \
+                    .select(["file_path", "line", "end_line", "symbol_name", "symbol_kind"]).limit(100000).to_list():
+                if f.get("symbol_name") and f.get("symbol_kind") != "imports":
+                    trozos.setdefault(os.path.normpath(f["file_path"]), []).append(f)
+        except Exception:
+            pass
+    sitios = []
+    for archivo, ns in hallados.items():
+        for n in ns:
+            dentro = [t for t in trozos.get(archivo, []) if int(t["line"]) <= n <= int(t.get("end_line") or t["line"])]
+            dentro.sort(key=lambda t: int(t.get("end_line") or t["line"]) - int(t["line"]))
+            sitios.append((archivo, n, dentro[0]["symbol_name"] if dentro else ""))
+    return {"sitios": sitios, "importadores": len(importadores), "pruebas": len(pruebas)}
+
+
 def search_desktop(
     query: str,
     limit: int = 5,

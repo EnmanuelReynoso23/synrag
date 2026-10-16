@@ -11,6 +11,7 @@ import re
 import chunker
 import impact
 import indexer
+import resolver
 
 try:
     from tools.inspect_tools import _alias_locales
@@ -315,6 +316,17 @@ def mapa_del_repo(proyecto: str, foco: str = "", tokens: int = 1024) -> str:
             .limit(100000)
             .to_list()
         )
+        # Resolucion como la de get_impact_radius (tsconfig, paquetes del monorepo, barrels); si no
+        # llega a una definicion, la heuristica por nombre de archivo de siempre.
+        resolutor = resolver.Resolutor(Path(raiz_norm) if raiz_norm else Path("/"), archivos_map_norm.values())
+        abs_a_rel = {v: k for k, v in archivos_map_norm.items()}
+        reexports: Dict[tuple, List[str]] = {}
+        for r in filas_impact:
+            reexports.setdefault((archivos_map_norm.get(r.get("imported_by")), r.get("symbol")), []).append(r.get("source", ""))
+
+        def reexports_de(archivo: str, simbolo: str) -> List[str]:
+            return reexports.get((archivo, simbolo), []) + reexports.get((archivo, "*"), [])
+
         for r in filas_impact:
             imported_by = r.get("imported_by")
             sym = r.get("symbol")
@@ -327,14 +339,21 @@ def mapa_del_repo(proyecto: str, foco: str = "", tokens: int = 1024) -> str:
                 continue
 
             fp_imp_str = archivos_map_norm[imported_by]
-            definidor = resolver_definidor_local(
-                source=source,
-                fp_imp_str=fp_imp_str,
-                definidores=definidores,
-                archivos_map_norm=archivos_map_norm,
-                alias_cache=alias_cache,
-                raiz_norm=raiz_norm,
-            )
+            definidor = None
+            destino = resolutor.resolver(source, fp_imp_str)
+            if destino:
+                final = impact.destino_final(sym, destino, {archivos_map_norm[d] for d in definidores},
+                                             reexports_de, resolutor)
+                definidor = abs_a_rel.get(final) if final else None
+            if definidor is None:
+                definidor = resolver_definidor_local(
+                    source=source,
+                    fp_imp_str=fp_imp_str,
+                    definidores=definidores,
+                    archivos_map_norm=archivos_map_norm,
+                    alias_cache=alias_cache,
+                    raiz_norm=raiz_norm,
+                )
 
             if definidor and definidor != imported_by:
                 out_links[imported_by].add(definidor)

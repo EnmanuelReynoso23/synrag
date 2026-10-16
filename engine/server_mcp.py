@@ -67,7 +67,8 @@ def _ubicacion(r: dict) -> str:
 def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool = False, tipo: str = "") -> str:
     """Localiza codigo, notas o config por palabras. Con un nombre de simbolo exacto da su definicion primero y entera; el resto sale como `ruta:lineas tipo nombre | firma`. detalle=true trae el codigo de todos. project filtra; tipo filtra por 'docs' o 'codigo'."""
     t0 = time.time()
-    results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None, tipo=tipo)
+    results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None, tipo=tipo,
+                                     check_impact=False)
     elapsed_ms = (time.time() - t0) * 1000
 
     telemetry.record_search_event(
@@ -93,14 +94,40 @@ def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool 
             out.append(texto[:tope])
             if len(texto) > tope:
                 out.append(f"[... recortado; el bloque llega hasta la linea {r.get('end_line')}]")
-            deps = r.get("dependents") or []
-            if deps and i == 0:
-                out.append(f"(importado en {len(deps)} archivo(s); detalles: get_impact_radius)")
+            if i == 0 and r.get("exacto"):
+                usos = _linea_de_usos(r)
+                if usos:
+                    out.append(usos)
             if not detalle and len(results) > 1:
                 out.append("\nOtros:")
         else:
             out.append(f"- {_ubicacion(r)} | {_firma(r.get('content', ''))}")
     return "\n".join(out)
+
+
+MAX_USOS = 6  # sitios en la linea de usos del primer resultado: los suficientes para planear un cambio
+
+
+def _linea_de_usos(r: dict) -> str:
+    """Una linea con donde se usa la definicion exacta (llamadas en su archivo y en los que la importan,
+    resueltos): ahorra el grep que el agente haria despues para planear un cambio."""
+    try:
+        u = indexer.usos_de(r.get("symbol_name", ""), r.get("file_path", ""), r.get("project", ""),
+                            rango_def=(int(r.get("line", 0)), int(r.get("end_line", 0))))
+    except Exception:
+        return ""
+    sitios = u["sitios"]
+    if not sitios and not u["importadores"]:
+        return "Usos: ninguno fuera de su definicion."
+    proyecto = r.get("project", "")
+    codigo = [s for s in sitios if not indexer._es_prueba(s[0])]
+    partes = [f"{_ruta_corta(a, proyecto)}:{n}" + (f" {s}" if s else "") for a, n, s in codigo[:MAX_USOS]]
+    texto = "Usos: " + (", ".join(partes) if partes else "ninguno en el codigo")
+    if len(codigo) > MAX_USOS:
+        texto += f" (y {len(codigo) - MAX_USOS} mas)"
+    if u["importadores"]:
+        texto += f"; lo importan {u['importadores']} archivo(s)" + (f", {u['pruebas']} de pruebas" if u["pruebas"] else "")
+    return texto
 
 
 RE_MIEMBRO = re.compile(
@@ -167,9 +194,54 @@ def get_file_outline(file_path: str, project: str = "") -> str:
         return f"[SyntaxRAG Outline] Error al parsear archivo: {e}"
 
 
+def _ruta_corta(ruta: str, proyecto: str = "") -> str:
+    """Ruta relativa a la raiz de su proyecto (o al HOME): lo que el agente necesita, sin prefijos largos."""
+    raiz = indexer.raiz_de_proyecto(proyecto) if proyecto else None
+    for base in ([str(raiz)] if raiz else []) + [str(indexer.HOME)]:
+        if ruta.startswith(base.rstrip("/") + "/"):
+            return ruta[len(base.rstrip("/")) + 1:]
+    return ruta
+
+
+def _impacto_resuelto(symbol: str, project: str, archivo: str) -> Optional[str]:
+    datos = indexer.consumidores(symbol, project or None)
+    if datos is None:
+        return None
+    defs = datos["definiciones"]
+    if archivo:
+        defs = {d: v for d, v in defs.items() if d.endswith(archivo.lstrip("./"))}
+    if not defs and not datos["externos"]:
+        return None
+    out = []
+    total = len({f for v in defs.values() for f in v})
+    if len(defs) > 1:
+        out.append(f"'{symbol}': {len(defs)} definiciones; cada una con los archivos que dependen de ELLA.")
+    for d, usuarios in sorted(defs.items(), key=lambda kv: -len(kv[1])):
+        proyecto = datos["proyectos"].get(d, project)
+        out.append(f"{_ruta_corta(d, proyecto)} -> {len(usuarios)} archivo(s) lo importan" + (":" if usuarios else ""))
+        out += [f"  {_ruta_corta(u, proyecto)}" for u in sorted(usuarios)[:15]]
+        if len(usuarios) > 15:
+            out.append(f"  ... y {len(usuarios) - 15} mas")
+    if datos["externos"]:
+        ext = sorted(datos["externos"].items(), key=lambda kv: -kv[1])[:5]
+        out.append("Con el mismo nombre, de paquetes externos: " + ", ".join(f"{o} ({n})" for o, n in ext))
+    if datos["sin_resolver"]:
+        sr = datos["sin_resolver"]
+        out.append(f"Sin resolver ({len(sr)}): " + ", ".join(f"{_ruta_corta(a)} <- '{o}'" for a, o in sr[:5]))
+    if not total and not datos["sin_resolver"]:
+        out.append("Ningun archivo local lo importa.")
+    return "\n".join(out)
+
+
 @herramienta()
-def get_impact_radius(symbol: str, project: str = "") -> str:
-    """Archivos que importan un simbolo (que se rompe si lo cambias)."""
+def get_impact_radius(symbol: str, project: str = "", archivo: str = "") -> str:
+    """Archivos que dependen de un simbolo (que se rompe si lo cambias), separados por definicion; archivo= elige una."""
+    try:
+        resuelto = _impacto_resuelto(symbol, project, archivo)
+        if resuelto:
+            return resuelto
+    except Exception:
+        pass  # sin resolucion: la busqueda por nombre de siempre
     try:
         db = indexer.get_db()
         if impact.IMPACT_TABLE not in db.table_names():
