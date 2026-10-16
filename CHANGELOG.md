@@ -1,5 +1,20 @@
 # Cambios
 
+## 1.6.0 (16-oct-2026)
+
+Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md` (filas 34-40). Aún sin medir con un agente real: ver "No afirmado".
+
+### Arreglado
+- Clases y objetos grandes perdían código: solo se guardaban los `method_definition`, y los campos con función flecha (`json = () => {}` en el `Context` de Hono) y lo que había entre ellos quedaban fuera del índice. Hono: 441 -> 226 líneas de código fuera de todo fragmento (`src/context.ts` 92 -> 0). Los objetos literales grandes (`const servicio = { listar() {}, crear: async () => {} }`) se trocean por miembro: +663 símbolos con nombre en un monorepo TS real (`benchmarks/cobertura.py`).
+- El grafo de impacto no veía los imports de varias líneas, `import D, { a } from` ni los re-export, y tomaba texto de docstrings como imports. Ahora salen del AST: cobertura 100 % y precisión 100 % frente al compilador de TypeScript y `ast` de Python (antes Hono 75 %, un monorepo TS real 48 %) (`benchmarks/imports.py`).
+- `get_impact_radius` cortaba en 30 filas y mezclaba los consumidores de símbolos con el mismo nombre.
+
+### Nuevo
+- Resolución de imports (`engine/resolver.py`): rutas relativas, `paths` y `baseUrl` del tsconfig con `extends` y el `tsconfig.app.json` de Vite, paquetes del monorepo por su `package.json` y módulos de Python con `src/`; sigue los barrels hasta la definición. Mismo archivo que TypeScript en el 100 % de los imports locales (`benchmarks/resolucion.py`).
+- `get_impact_radius` separa las definiciones (`archivo=` elige una). Precisión en símbolos con nombre repetido: 15-18 % -> 93-100 %, cobertura 100 %. `repo_map` usa la misma resolución.
+- `search_desktop`: línea de usos bajo la definición exacta (llamadas en su archivo y en los que la importan, primero el código); `objeto.miembro` y `Clase miembro` dan la definición del miembro; las pruebas van detrás del código salvo que la consulta las pida. Costo de la línea de usos en búsquedas por nombre: Flask -37/-39 % -> -36/-38 %, Hono -54 % -> -52 %.
+- Perfil esencial (`SYNRAG configure --perfil esencial`): 5 herramientas MCP, definiciones de ~2.000 a ~445 tokens.
+
 ## 1.5.0 (15-oct-2026)
 
 Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md`.

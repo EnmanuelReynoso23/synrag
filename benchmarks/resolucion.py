@@ -41,7 +41,7 @@ def main():
     ap.add_argument("--ejemplos", type=int, default=3)
     a = ap.parse_args()
     sys.path.insert(0, str(a.engine.resolve()))
-    sys.path.insert(0, str(AQUI))
+    sys.path.append(str(AQUI))  # al final: benchmarks/mapa.py no debe tapar engine/mapa.py
     import chunker
     import impact
     import resolver

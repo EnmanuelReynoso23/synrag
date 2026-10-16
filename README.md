@@ -20,9 +20,9 @@ Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejem
 
 **SyntaxRAG (SYNRAG)** resuelve este problema analizando el árbol sintáctico abstracto (AST) del código en tu máquina local:
 
-- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases (las grandes, método por método), tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript y Python). La documentación (Markdown, MDX, reStructuredText, AsciiDoc) se trocea en fragmentos de ~200 tokens con su ruta de títulos; SQL por sentencias.
-- **Localizar antes que leer:** Con un nombre de símbolo devuelve su definición primero y entera; el resto de resultados ocupa una línea (`ruta:líneas tipo nombre | firma`). Los nombres compuestos se indexan también partidos (`esSinCupo` se encuentra con "sin cupo"). Candidatos por BM25 (Tantivy sobre LanceDB) reordenados en CPU con TinyBERT (FlashRank). Mediana medida: 61-89 ms por consulta nueva.
-- **Grafo de Impacto de Dependencias:** Guarda en una tabla de LanceDB qué archivos importan cada símbolo, para avisar a los agentes de qué depende de lo que van a editar. Detecta imports; no sigue llamadas dinámicas.
+- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases y objetos grandes (miembro por miembro, también los campos con función flecha como `json = () => {}` y los servicios `const x = { listar() {}, crear: async () => {} }`), tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript y Python). La documentación (Markdown, MDX, reStructuredText, AsciiDoc) se trocea en fragmentos de ~200 tokens con su ruta de títulos; SQL por sentencias.
+- **Localizar antes que leer:** Con un nombre de símbolo (o `objeto.miembro`, o `Clase miembro`) devuelve su definición primero y entera, con una línea de usos (`sessions.py:324 open_session, :373 save_session; lo importan 3 archivo(s)`); el resto de resultados ocupa una línea (`ruta:líneas tipo nombre | firma`). Los nombres compuestos se indexan también partidos (`esSinCupo` se encuentra con "sin cupo"). Candidatos por BM25 (Tantivy sobre LanceDB) reordenados en CPU con TinyBERT (FlashRank). Mediana medida: 61-89 ms por consulta nueva.
+- **Grafo de Impacto de Dependencias:** Lee los imports del AST (también los de varias líneas y los re-export de los barrels) y resuelve cada uno a su archivo: rutas relativas, `paths`/`baseUrl` del tsconfig (con `extends`), paquetes del propio monorepo y módulos de Python. Así, si dos archivos definen `useAuth`, `get_impact_radius` dice qué archivos dependen de cada uno. Medido contra el compilador de TypeScript: mismo archivo en el 100 % de los imports locales. No sigue llamadas dinámicas ni `import()`.
 - **Caché de consultas repetidas:** Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local (~3-4 ms). No es una caché semántica y se vacía al reindexar. La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo que los lee.
 - **Observador de cambios (opcional):** Un servicio de systemd de usuario (`lancedb-watcher.service`) reindexa solo el archivo que guardas: ~8 ms por archivo pequeño (mediana medida), tras 0,6 s de espera para agrupar guardados. Usa unos 250-300 MB de RAM; compacta la base cada cierto número de cambios y detecta carpetas nuevas sin reiniciar.
 
@@ -35,12 +35,14 @@ Cada cifra sale de un guion de `benchmarks/` que cualquiera puede repetir en su 
 |---|---|---|
 | Sistema completo con un agente real (Gemini con function calling): 10 tareas de varios pasos (localizar, entender, planear un cambio, correr pruebas) x 2 rondas, contando todos los tokens que cobra la API | **-29,2 % tokens** (191.567 frente a 270.717), calidad 87 % -> 90 %; gana en 7 de 10 (planear un cambio -81 %, pruebas con salida larga -38 %, entender -20 %); pierde en tareas muy cortas (+124 %: las definiciones de las herramientas pesan más que la tarea) y en 2 de 3 de Flask (+10 % y +30 %). Varianza alta: ronda 1 -15 %, ronda 2 -48 % | `benchmarks/agente/completo.py` |
 | Agente real, solo ubicar: 16 preguntas x 2 rondas, con y sin SynRAG | **-11,5 % tokens**, 16/16 aciertos en ambos modos; gana en 7 de 16 (hasta -79 % en lenguaje natural en un repo grande; pierde con nombres exactos en un repo chico, donde `grep` devuelve una línea) | `benchmarks/agente/agente.py` |
-| Encontrar y leer una función por su nombre, frente a grep + leer el tramo | Flask -27 a -30 %, Hono -45 %; la definición sale primera en el 92-100 % | `benchmarks/ahorro.py --indexar` |
-| Lo mismo con preguntas en lenguaje natural | Flask -31 % | `benchmarks/ahorro.py --naturales` |
+| Encontrar y leer una función por su nombre, frente a grep + leer el tramo (v1.6, con la línea de usos) | Flask -36 a -38 %, Hono -52 % (v1.5.0 en las mismas condiciones: -37 a -39 % y -54 %); la definición sale primera en el 92-100 % | `benchmarks/ahorro.py --indexar --semilla N` |
+| Lo mismo con preguntas en lenguaje natural | Flask -37 % | `benchmarks/ahorro.py --naturales` |
+| Precisión del grafo de impacto en símbolos con nombre repetido (contra TypeScript) | Por nombre (v1.5.0): 15-18 %. Resuelto (v1.6): 93-100 %, cobertura 100 % | `benchmarks/resolucion.py` |
+| Imports que llegan al grafo (contra el compilador de TypeScript y `ast` de Python) | v1.5.0: Hono 75 %, un monorepo TS real 48 %. v1.6: 100 % con precisión 100 % | `benchmarks/imports.py` |
 | Documentación (fragmentos de ~200 tokens) | -22 % frente a grep, -91 % frente al archivo entero | `benchmarks/docs.py` |
 | Empaquetar un repo solo con firmas (como Repomix `--compress`) | Flask -76 %, Hono -84 % frente al repo completo | `benchmarks/mapa.py` |
 | Salidas largas de terminal (filtro opcional) | -87 a -99 % conservando todas las líneas de error; la salida completa queda en un archivo | `benchmarks/filtro.py` |
-| Costo fijo: definiciones de las 28 herramientas MCP | ~2.000 tokens por sesión | `scripts/ci/mcp_tools_list.py` |
+| Costo fijo: definiciones de las 28 herramientas MCP | ~2.000 tokens por turno (8.139 caracteres); con `SYNRAG configure --perfil esencial`, 5 herramientas: ~445 (1.781 caracteres) | `scripts/ci/mcp_tools_list.py` |
 
 Lo que más pesa en una sesión real no es ninguna herramienta: es la longitud de la sesión, porque cada turno reenvía todo el historial. `context_budget_alert` y `session_handoff` ayudan a cortar a tiempo. Detalle y límites de cada cifra: `CLAIMS.md`.
 
@@ -102,10 +104,10 @@ rm -rf ~/.local/opt/lancedb-hub   # opcional: borra tambien el motor y su indice
 
 ## Herramientas MCP para Agentes de IA
 
-Cualquier agente conectado a SyntaxRAG tiene 28 herramientas (las dos de Gemini solo aparecen si configuras tu propia `GEMINI_API_KEY`; sin ella el motor no usa la red):
+Cualquier agente conectado a SyntaxRAG tiene 28 herramientas (las dos de Gemini solo aparecen si configuras tu propia `GEMINI_API_KEY`; sin ella el motor no usa la red). Con `SYNRAG configure --perfil esencial` expone solo `search_desktop`, `get_file_outline`, `get_impact_radius`, `repo_map` y `run_test_isolated`: útil en clientes que cobran las definiciones en cada turno o limitan el número de herramientas (Claude Code las carga bajo demanda y no lo necesita). `SYNRAG uninstall --perfil` vuelve a todas.
 
 - **Buscar y orientarse:** `search_desktop` (con `tipo="docs"` o `"codigo"`), `get_file_outline` (incluye los métodos de objetos y clases grandes), `repo_map` (firmas de los archivos más importantes por PageRank, dentro de un presupuesto de tokens), `list_projects`, `reindex_desktop`.
-- **Antes de editar:** `get_impact_radius`, `find_related_tests`, `find_callers_exact`, `get_symbol_contract`, `extract_type_definition`, `get_import_graph`, `check_breaking_callsites`, `check_circular_imports`, `verify_dependency_exists` (entiende monorepos y workspaces), `find_code_duplicates`.
+- **Antes de editar:** `get_impact_radius` (separado por definición; `archivo=` elige una), `find_related_tests`, `find_callers_exact`, `get_symbol_contract`, `extract_type_definition`, `get_import_graph`, `check_breaking_callsites`, `check_circular_imports`, `verify_dependency_exists` (entiende monorepos y workspaces), `find_code_duplicates`.
 - **Editar:** `patch_function_body`, `add_import_clean`, `rename_symbol_scoped`, `remove_unused_imports` (conservan saltos de línea y sangría; si el nombre del archivo es ambiguo no tocan nada; respaldo fuera del repo).
 - **Ejecutar con salida corta:** `run_test_isolated`, `lint_summary`, `run_typecheck_focus`, `tail_clean_logs`.
 - **Sesión:** `session_handoff`, `context_budget_alert`, `git_staged_overview`, `extract_todo_status`, `get_savings_report`.
@@ -161,6 +163,7 @@ SYNRAG empaquetar ~/mi-proyecto --salida paquete.md [--sin-comprimir]
 SYNRAG configure --filtro-largas   # recorta salidas largas de la terminal en Claude Code (hook PostToolUse)
 SYNRAG configure --filtro          # resume salidas de instalar/compilar/probar
 SYNRAG configure --conciso         # respuestas cortas (basado en Caveman de Julius Brussee, Apache-2.0)
+SYNRAG configure --perfil esencial # solo 5 herramientas MCP (~445 tokens de definiciones en vez de ~2.000)
 
 # Ver log en vivo del demonio reactivo (Ctrl+S)
 SYNRAG watch

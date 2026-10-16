@@ -57,7 +57,7 @@ TAREAS: List[Dict[str, Any]] = [
      "hechos": ["18", "pas|passed"]},
     {"id": "synrag_suite_v", "repo": "synrag", "tipo": "correr pruebas (salida larga)",
      "pregunta": "Corre la suite completa del motor en modo detallado: `cd engine && python -m pytest -v`. Dime cuantas pruebas pasan, cuantas fallan y cual es la que se marca como xfail.",
-     "hechos": ["181", "xfail", "test_"]},
+     "hechos": ["197|196", "xfail", "test_"]},  # 196 sin una clave de Gemini valida (una prueba usa la red)
     {"id": "synrag_orden_busqueda", "repo": "synrag", "tipo": "entender",
      "pregunta": "Explica como decide search_desktop (engine/indexer.py) el orden de los resultados cuando la consulta es un nombre de simbolo exacto.",
      "hechos": ["buscar_definiciones", "exact|exacto", "PRIORIDAD_KIND|function|funcion", "export"]},
