@@ -55,7 +55,7 @@ def archivo_de_carpetas() -> Path:
     return base / "synrag" / "carpetas.txt"
 
 
-PERFILES = ("completo", "esencial")
+PERFILES = ("completo", "esencial", "bajo_demanda")
 
 
 def archivo_de_perfil() -> Path:
@@ -63,8 +63,9 @@ def archivo_de_perfil() -> Path:
 
 
 def perfil_herramientas() -> str:
-    """Que herramientas MCP expone el servidor: `completo` (todas) o `esencial` (las 5 que mas se usan,
-    para clientes que pagan las definiciones en cada turno). SYNRAG_PERFIL manda sobre el archivo."""
+    """Que herramientas MCP expone el servidor: `completo` (todas), `esencial` (las 5 que mas se usan,
+    para clientes que pagan las definiciones en cada turno) o `bajo_demanda` (search_desktop y synrag_mas;
+    el resto se activa al pedirlo). SYNRAG_PERFIL manda sobre el archivo."""
     valor = os.environ.get("SYNRAG_PERFIL", "").strip().lower()
     if not valor:
         try:

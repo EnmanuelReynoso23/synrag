@@ -425,9 +425,10 @@ def valor_de_perfil(args: List[str]) -> str:
 
 
 def configure_perfil(valor: str) -> str:
-    """Elige que herramientas MCP expone el servidor: `esencial` (5) o `completo` (todas)."""
-    if valor not in ("esencial", "completo"):
-        _log(ERROR, "perfil", f"'{valor}' no existe; usa esencial o completo")
+    """Elige que herramientas MCP expone el servidor: `esencial` (5), `bajo_demanda` (2, el resto al pedirlo)
+    o `completo` (todas)."""
+    if valor not in ("esencial", "completo", "bajo_demanda"):
+        _log(ERROR, "perfil", f"'{valor}' no existe; usa esencial, bajo_demanda o completo")
         return ERROR
     destino = _archivo_perfil()
     try:

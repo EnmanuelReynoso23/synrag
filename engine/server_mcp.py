@@ -19,9 +19,9 @@ from typing import Optional, List, Dict, Any
 
 # MCP 2.x support
 try:
-    from mcp.server.mcpserver import MCPServer
+    from mcp.server.mcpserver import MCPServer, Context
 except ImportError:
-    from mcp.server.fastmcp import FastMCP as MCPServer
+    from mcp.server.fastmcp import FastMCP as MCPServer, Context
 
 sys.path.insert(0, str(Path(__file__).parent))
 import indexer
@@ -37,19 +37,32 @@ PERFIL = indexer.perfil_herramientas()
 # Perfil esencial: lo que usa un agente casi siempre. Cada definicion se paga en cada turno en los
 # clientes que no cargan las herramientas bajo demanda (SYNRAG configure --perfil esencial).
 ESENCIALES = {"search_desktop", "get_file_outline", "get_impact_radius", "repo_map", "run_test_isolated"}
+# Perfil bajo_demanda: arranca solo con search_desktop y synrag_mas; el resto se registra al llamar
+# synrag_mas y el servidor avisa con notifications/tools/list_changed.
+INICIALES_BAJO_DEMANDA = {"search_desktop"}
+_pendientes = []  # funciones que el perfil bajo_demanda aun no registra
+_activas = []  # nombres ya registrados por synrag_mas (no se repiten)
+
+
+def _registrar(fn):
+    try:
+        return mcp.tool(structured_output=False)(fn)
+    except TypeError:  # versiones del SDK sin ese parametro
+        return mcp.tool()(fn)
 
 
 def herramienta():
     """Registra una herramienta sin outputSchema: todas devuelven texto, y ese esquema repetido
     costaba ~170 caracteres por herramienta en cada sesion del agente. Con el perfil esencial, las
-    que no estan en ESENCIALES no se registran (siguen siendo funciones normales)."""
+    que no estan en ESENCIALES no se registran (siguen siendo funciones normales). Con bajo_demanda
+    se guardan en _pendientes hasta que synrag_mas las active."""
     def registrar(fn):
         if PERFIL == "esencial" and fn.__name__ not in ESENCIALES:
             return fn
-        try:
-            return mcp.tool(structured_output=False)(fn)
-        except TypeError:  # versiones del SDK sin ese parametro
-            return mcp.tool()(fn)
+        if PERFIL == "bajo_demanda" and fn.__name__ not in INICIALES_BAJO_DEMANDA:
+            _pendientes.append(fn)
+            return fn
+        return _registrar(fn)
     return registrar
 SNIPPET = 800  # caracteres maximos por resultado con detalle=true
 SNIPPET_PRIMERO = 2400  # el primer resultado va completo (un bloque AST mide como mucho 2.400)
@@ -451,6 +464,38 @@ import argon
 if argon.disponible():
     herramienta()(argon.ask_synrag_architect)
     herramienta()(argon.explain_blast_radius)
+
+
+async def synrag_mas(ctx: Context) -> str:
+    """Activa el resto de herramientas de SynRAG: impacto, esquema, mapa, pruebas, edicion."""
+    nuevas = []
+    while _pendientes:
+        fn = _pendientes.pop(0)
+        _registrar(fn)
+        _activas.append(fn.__name__)
+        nuevas.append(fn.__name__)
+    if not nuevas:
+        return f"Ya estaban activas {len(_activas)} herramientas: {', '.join(_activas)}."
+    _compactar_esquemas()
+    await ctx.session.send_tool_list_changed()
+    return f"Activadas {len(nuevas)} herramientas: {', '.join(nuevas)}."
+
+
+def _anunciar_list_changed():
+    """MCPServer no expone NotificationOptions: el initialize sale de create_initialization_options()
+    sin argumentos, asi que esa llamada fija tools_changed=True (tools.listChanged en el initialize)."""
+    from mcp.server.lowlevel.server import NotificationOptions
+    original = mcp._lowlevel_server.create_initialization_options
+
+    def con_cambios(notification_options=None, *args, **kwargs):
+        return original(notification_options or NotificationOptions(tools_changed=True), *args, **kwargs)
+
+    mcp._lowlevel_server.create_initialization_options = con_cambios
+
+
+if PERFIL == "bajo_demanda":
+    _registrar(synrag_mas)
+    _anunciar_list_changed()
 
 
 def _compactar_esquemas():
