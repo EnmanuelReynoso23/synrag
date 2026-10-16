@@ -2,7 +2,10 @@
 
 ## 1.6.0 (16-oct-2026)
 
-Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md` (filas 34-40). Aún sin medir con un agente real: ver "No afirmado".
+Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md` (filas 34-41).
+
+### Cuánto ahorra (medido)
+- Sistema completo con un agente real (mismas 10 tareas x 2 rondas que en 1.5.0): **-63,9 %** de tokens frente a no usar SynRAG, calidad 87 % -> 94 % (IC95 -83 % a -24 %). La 1.5.0, el mismo día: -4,6 %. La mejora entre versiones sale de 2 tareas (buscar métodos dentro de clases); en las otras 8 quedan parecidas (fila 41).
 
 ### Arreglado
 - Clases y objetos grandes perdían código: solo se guardaban los `method_definition`, y los campos con función flecha (`json = () => {}` en el `Context` de Hono) y lo que había entre ellos quedaban fuera del índice. Hono: 441 -> 226 líneas de código fuera de todo fragmento (`src/context.ts` 92 -> 0). Los objetos literales grandes (`const servicio = { listar() {}, crear: async () => {} }`) se trocean por miembro: +663 símbolos con nombre en un monorepo TS real (`benchmarks/cobertura.py`).
