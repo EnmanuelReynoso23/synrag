@@ -114,9 +114,8 @@ TAREAS: List[Dict[str, Any]] = [
 BASE = ("Eres un asistente de programacion trabajando en el repositorio '{repo}' (la raiz del repositorio es el "
         "directorio actual de las herramientas). Investiga con las herramientas; no inventes. Cuando tengas la "
         "respuesta, contestala directamente sin llamar mas herramientas.")
-EXTRA_CON = ("\nPara localizar codigo usa primero search_desktop (con un nombre de simbolo devuelve la definicion "
-             "entera), get_file_outline para ver la estructura de un archivo y repo_map para orientarte en el "
-             "proyecto; usa grep o read_file solo si eso no basta.\n")
+EXTRA_CON = ("\nLocaliza codigo con search_desktop primero; get_file_outline para la estructura de un archivo; "
+             "repo_map para orientarte. grep o read_file solo si no basta.\n")
 
 
 def _decl(nombre, desc, props, req):
@@ -132,9 +131,9 @@ TOOLS_BASE = [
     _decl("run", "Ejecuta un comando de terminal en la raiz del repositorio y devuelve su salida.", {"comando": S}, ["comando"]),
 ]
 TOOLS_SYNRAG = [
-    _decl("search_desktop", "Localiza codigo por palabras o por nombre de simbolo (definicion exacta primero y entera); tipo='docs' o 'codigo' filtra.", {"consulta": S, "tipo": S}, ["consulta"]),
-    _decl("get_file_outline", "Esquema de un archivo: simbolos con sus lineas y metodos de clases grandes, sin el codigo.", {"ruta": S}, ["ruta"]),
-    _decl("repo_map", "Firmas de los archivos mas importantes del proyecto (PageRank) dentro de un presupuesto de tokens.", {"foco": S, "tokens": I}, []),
+    _decl("search_desktop", "Localiza codigo por palabras o nombre de simbolo (definicion entera primero); tipo='docs' o 'codigo'.", {"consulta": S, "tipo": S}, ["consulta"]),
+    _decl("get_file_outline", "Esquema de un archivo: simbolos y lineas, sin codigo.", {"ruta": S}, ["ruta"]),
+    _decl("repo_map", "Firmas principales del proyecto por relevancia, dentro de un presupuesto de tokens.", {"foco": S, "tokens": I}, []),
 ]
 
 

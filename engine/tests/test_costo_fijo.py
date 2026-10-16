@@ -21,9 +21,10 @@ def test_bloque_conciso_conserva_reglas_credito_y_marcadores():
     assert len(vinetas) == 6
     assert "Cero emojis" in bloque
     assert "completos y literales" in bloque
-    assert "Preguntas y avisos" in bloque
-    # Presupuesto: <= 100 tokens. Sin clave no se cuenta exacto; caracteres / 4 es solo una guarda.
-    assert costo_fijo.estimar(bloque) <= 100
+    assert "acciones destructivas" in bloque
+    # Presupuesto: ~115 tokens medidos (antes 248), con la frase de avisos de seguridad y acciones
+    # destructivas completa. Sin clave no se cuenta exacto; caracteres / 4 es solo una guarda.
+    assert costo_fijo.estimar(bloque) <= 125
 
 
 def test_bloque_instrucciones_conserva_las_pautas_clave():

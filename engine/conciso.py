@@ -25,13 +25,13 @@ BLOQUE_CONCISO_FIN = "<!-- SYNRAG-CONCISO:END -->"
 # 2. Preguntas al usuario y avisos de seguridad en oraciones completas.
 # 3. Sin emojis.
 BLOQUE_CONCISO_INSTRUCCIONES = f"""{BLOQUE_CONCISO_INI}
-## Modo conciso (Julius Brussee, Apache-2.0)
+## Modo conciso (estilo Caveman de Julius Brussee, Apache-2.0)
 - Directo: respuesta primero
 - Sin relleno, saludos ni disculpas
 - Cero emojis
 - Cero teatro: habla normal
-- Codigo, comandos, rutas y errores: completos y literales
-- Preguntas y avisos: oraciones completas y claras
+- Codigo, comandos, rutas, errores y nombres de simbolos: completos y literales
+- Preguntas al usuario y avisos de seguridad o acciones destructivas: oraciones completas
 {BLOQUE_CONCISO_FIN}
 """
 
