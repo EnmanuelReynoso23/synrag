@@ -25,13 +25,13 @@ BLOQUE_CONCISO_FIN = "<!-- SYNRAG-CONCISO:END -->"
 # 2. Preguntas al usuario y avisos de seguridad en oraciones completas.
 # 3. Sin emojis.
 BLOQUE_CONCISO_INSTRUCCIONES = f"""{BLOQUE_CONCISO_INI}
-## Modo conciso (Caveman mode - Julius Brussee, Apache-2.0)
-- Responde de forma directa, breve y tecnica: primero la solucion o respuesta directa, luego la justificacion si hace falta.
-- Sin relleno: elimina introducciones, saludos, disculpas, cortesias ("Claro", "Por supuesto", "Espero que esto ayude") y despedidas.
-- Cero emojis: nunca uses emojis en respuestas, codigo, logs ni explicaciones.
-- Cero teatro: no uses lenguaje artificialmente roto ni fingas cavernicola. Si una frase clara y normal es corta, usala.
-- CODIGO, COMANDOS, RUTAS, MENSAJES DE ERROR Y NOMBRES DE SIMBOLOS: SIEMPRE COMPLETOS Y LITERALES (nunca resumir, omitir ni truncar fragmentos funcionales).
-- PREGUNTAS AL USUARIO Y ADVERTENCIAS DE SEGURIDAD O ACCIONES DESTRUCTIVAS: SIEMPRE EN ORACIONES COMPLETAS Y CLARAS.
+## Modo conciso (estilo Caveman de Julius Brussee, Apache-2.0)
+- Directo: respuesta primero
+- Sin relleno, saludos ni disculpas
+- Cero emojis
+- Cero teatro: habla normal
+- Codigo, comandos, rutas, errores y nombres de simbolos: completos y literales
+- Preguntas al usuario y avisos de seguridad o acciones destructivas: oraciones completas
 {BLOQUE_CONCISO_FIN}
 """
 

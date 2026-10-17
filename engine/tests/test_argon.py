@@ -40,3 +40,21 @@ def test_call_gemini_model_execution():
 def test_explain_blast_radius_empty():
     res = argon.explain_blast_radius("simbolo_inexistente_xyz_12345")
     assert "no tiene dependientes" in res
+
+
+def test_explain_blast_radius_usa_los_dependientes_de_una_definicion(casa, monkeypatch):
+    from conftest import crear_proyecto
+    crear_proyecto(casa, "mono", {
+        "web/hooks/useAuth.ts": "export function useAuth() {\n  return 1\n}\n",
+        "web/Home.tsx": "import { useAuth } from './hooks/useAuth'\nexport const Home = () => useAuth()\n",
+        "auth/useAuth.ts": "export function useAuth() {\n  return 2\n}\n",
+        "auth/Panel.tsx": "import { useAuth } from './useAuth'\nexport const Panel = () => useAuth()\n",
+    })
+    import indexer
+    indexer._RESOLUTORES.clear()
+    indexer.index_desktop()
+    prompts = []
+    monkeypatch.setattr(argon, "call_gemini_model", lambda p: prompts.append(p) or {"success": True, "text": "ok", "model": "x"})
+    argon.explain_blast_radius("useAuth", "mono", archivo="auth/useAuth.ts")
+    assert "auth/Panel.tsx" in prompts[0] and "Home.tsx" not in prompts[0]
+    assert "DEFINIDO EN:" in prompts[0] and "auth/useAuth.ts" in prompts[0]

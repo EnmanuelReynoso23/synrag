@@ -14,7 +14,7 @@ set -euo pipefail
 REPO_RAW="${SYNRAG_RAW_URL:-https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main}"
 INSTALL_DIR="${SYNRAG_HOME:-$HOME/.local/opt/lancedb-hub}"
 PYTHON_CMD="${PYTHON_CMD:-python3}"
-ENGINE_FILES=(argon.py cache.py chunker.py cli.py conciso.py empaquetar.py filtro.py hook_filtro.py impact.py indexer.py installer.py mapa.py ranker.py server_mcp.py telemetry.py watcher.py
+ENGINE_FILES=(argon.py cache.py chunker.py cli.py conciso.py empaquetar.py filtro.py hook_filtro.py hook_pista.py impact.py indexer.py installer.py mapa.py ranker.py resolver.py server_mcp.py telemetry.py watcher.py
               tools/__init__.py tools/context_tools.py tools/inspect_tools.py tools/patch_tools.py tools/runner_tools.py tools/safety_tools.py)
 DEPENDENCIAS=(lancedb rich tree-sitter tree-sitter-language-pack flashrank mcp watchdog pandas)
 
@@ -70,6 +70,9 @@ echo "[2/4] Instalando dependencias (primera vez puede tardar unos minutos) ..."
     || fallo "no se pudieron instalar las dependencias (${DEPENDENCIAS[*]}). Ejecuta sin --quiet para ver el motivo: $VENV_PY -m pip install ${DEPENDENCIAS[*]}"
 "$VENV_PY" -c 'import lancedb, rich, tree_sitter, tree_sitter_language_pack, flashrank, mcp, watchdog' \
     || fallo "las dependencias se instalaron pero no se pueden importar."
+# Las gramaticas de tree-sitter se descargan una vez aqui: despues el motor no usa la red.
+"$VENV_PY" -c 'import tree_sitter_language_pack as t; t.download(["python", "typescript", "tsx", "javascript", "rust", "go"])' \
+    || echo "[AVISO] no pude descargar las gramaticas ahora; se descargaran la primera vez que indexes."
 
 # --- 3. Configurar las IAs instaladas ----------------------------------------
 echo "[3/4] Configurando las IAs instaladas en este equipo ..."

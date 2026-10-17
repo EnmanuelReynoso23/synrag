@@ -19,9 +19,9 @@ from typing import Optional, List, Dict, Any
 
 # MCP 2.x support
 try:
-    from mcp.server.mcpserver import MCPServer
+    from mcp.server.mcpserver import MCPServer, Context
 except ImportError:
-    from mcp.server.fastmcp import FastMCP as MCPServer
+    from mcp.server.fastmcp import FastMCP as MCPServer, Context
 
 sys.path.insert(0, str(Path(__file__).parent))
 import indexer
@@ -33,13 +33,37 @@ import mapa
 mcp = MCPServer("desktop-lancedb")
 
 
+PERFIL = indexer.perfil_herramientas()
+# Perfil esencial: lo que usa un agente casi siempre. Cada definicion se paga en cada turno en los
+# clientes que no cargan las herramientas bajo demanda (SYNRAG configure --perfil esencial).
+ESENCIALES = {"search_desktop", "get_file_outline", "get_impact_radius", "repo_map", "run_test_isolated"}
+# Perfil bajo_demanda: arranca solo con search_desktop y synrag_mas; el resto se registra al llamar
+# synrag_mas y el servidor avisa con notifications/tools/list_changed.
+INICIALES_BAJO_DEMANDA = {"search_desktop"}
+_pendientes = []  # funciones que el perfil bajo_demanda aun no registra
+_activas = []  # nombres ya registrados por synrag_mas (no se repiten)
+
+
+def _registrar(fn):
+    try:
+        return mcp.tool(structured_output=False)(fn)
+    except TypeError:  # versiones del SDK sin ese parametro
+        return mcp.tool()(fn)
+
+
 def herramienta():
     """Registra una herramienta sin outputSchema: todas devuelven texto, y ese esquema repetido
-    costaba ~170 caracteres por herramienta en cada sesion del agente."""
-    try:
-        return mcp.tool(structured_output=False)
-    except TypeError:  # versiones del SDK sin ese parametro
-        return mcp.tool()
+    costaba ~170 caracteres por herramienta en cada sesion del agente. Con el perfil esencial, las
+    que no estan en ESENCIALES no se registran (siguen siendo funciones normales). Con bajo_demanda
+    se guardan en _pendientes hasta que synrag_mas las active."""
+    def registrar(fn):
+        if PERFIL == "esencial" and fn.__name__ not in ESENCIALES:
+            return fn
+        if PERFIL == "bajo_demanda" and fn.__name__ not in INICIALES_BAJO_DEMANDA:
+            _pendientes.append(fn)
+            return fn
+        return _registrar(fn)
+    return registrar
 SNIPPET = 800  # caracteres maximos por resultado con detalle=true
 SNIPPET_PRIMERO = 2400  # el primer resultado va completo (un bloque AST mide como mucho 2.400)
 SNIPPET_EXACTO = 8000  # definicion exacta unida desde varios trozos: entera salvo que sea enorme
@@ -65,9 +89,10 @@ def _ubicacion(r: dict) -> str:
 
 @herramienta()
 def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool = False, tipo: str = "") -> str:
-    """Localiza codigo, notas o config por palabras. Con un nombre de simbolo exacto da su definicion primero y entera; el resto sale como `ruta:lineas tipo nombre | firma`. detalle=true trae el codigo de todos. project filtra; tipo filtra por 'docs' o 'codigo'."""
+    """Localiza codigo, notas o config por palabras. Un nombre de simbolo exacto da su definicion entera primero. Salida `ruta:lineas tipo nombre | firma`. project filtra; tipo='docs' o 'codigo'; detalle=true trae el codigo."""
     t0 = time.time()
-    results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None, tipo=tipo)
+    results = indexer.search_desktop(query, limit=min(max(limit, 1), 10), project=project or None, tipo=tipo,
+                                     check_impact=False)
     elapsed_ms = (time.time() - t0) * 1000
 
     telemetry.record_search_event(
@@ -93,14 +118,69 @@ def search_desktop(query: str, limit: int = 5, project: str = "", detalle: bool 
             out.append(texto[:tope])
             if len(texto) > tope:
                 out.append(f"[... recortado; el bloque llega hasta la linea {r.get('end_line')}]")
-            deps = r.get("dependents") or []
-            if deps and i == 0:
-                out.append(f"(importado en {len(deps)} archivo(s); detalles: get_impact_radius)")
+            if i == 0 and r.get("exacto") and r.get("symbol_kind") in ("class", "variable"):
+                miembros = _linea_de_miembros(r)
+                if miembros:
+                    out.append(miembros)
+            if i == 0 and r.get("exacto"):
+                usos = _linea_de_usos(r)
+                if usos:
+                    out.append(usos)
             if not detalle and len(results) > 1:
                 out.append("\nOtros:")
         else:
             out.append(f"- {_ubicacion(r)} | {_firma(r.get('content', ''))}")
     return "\n".join(out)
+
+
+MAX_USOS = 6  # sitios en la linea de usos del primer resultado: los suficientes para planear un cambio
+
+
+MAX_MIEMBROS = 40
+
+
+def _linea_de_miembros(r: dict) -> str:
+    """Clase u objeto grande: el bloque devuelto es solo su cabecera (cada miembro es su propio
+    fragmento), asi que se listan los miembros con su linea para no tener que abrir el archivo."""
+    try:
+        miembros = chunker.miembros_de_definicion(Path(r.get("file_path", "")), int(r.get("line", 1)))
+    except Exception:
+        return ""
+    miembros = [m for m in miembros if m[0] > int(r.get("end_line", 0))]
+    if not miembros:
+        return ""
+    partes = [f"{n}:{ln}" for ln, n, _ in miembros[:MAX_MIEMBROS]]
+    resto = f" (y {len(miembros) - MAX_MIEMBROS} mas)" if len(miembros) > MAX_MIEMBROS else ""
+    return f"Miembros ({len(miembros)}): " + ", ".join(partes) + resto
+
+
+def _linea_de_usos(r: dict) -> str:
+    """Una linea con donde se usa la definicion exacta (llamadas en su archivo y en los que la importan,
+    resueltos): ahorra el grep que el agente haria despues para planear un cambio."""
+    try:
+        u = indexer.usos_de(r.get("symbol_name", ""), r.get("file_path", ""), r.get("project", ""),
+                            rango_def=(int(r.get("line", 0)), int(r.get("end_line", 0))))
+    except Exception:
+        return ""
+    sitios = u["sitios"]
+    if not sitios and not u["importadores"]:
+        return "Usos: ninguno fuera de su definicion."
+    proyecto = r.get("project", "")
+    codigo = [s for s in sitios if not indexer._es_prueba(s[0])]
+    mostrados = codigo[:MAX_USOS]
+    nombres = {os.path.basename(a) for a, _, _ in mostrados}
+    ambiguo = len(nombres) < len({a for a, _, _ in mostrados})
+    partes, previo = [], None
+    for a, n, s in mostrados:  # sessions.py:324 open_session, :373 save_session
+        archivo = "" if a == previo else (_ruta_corta(a, proyecto) if ambiguo else os.path.basename(a))
+        partes.append(f"{archivo}:{n}" + (f" {s}" if s else ""))
+        previo = a
+    texto = "Usos: " + (", ".join(partes) if partes else "ninguno en el codigo")
+    if len(codigo) > MAX_USOS:
+        texto += f" (y {len(codigo) - MAX_USOS} mas)"
+    if u["importadores"]:
+        texto += f"; lo importan {u['importadores']} archivo(s)" + (f", {u['pruebas']} de pruebas" if u["pruebas"] else "")
+    return texto
 
 
 RE_MIEMBRO = re.compile(
@@ -125,7 +205,7 @@ def _miembros(lineas: list, ini: int, fin: int) -> list:
 
 @herramienta()
 def get_file_outline(file_path: str, project: str = "") -> str:
-    """Esquema de un archivo: simbolos con sus lineas y los metodos de objetos/clases grandes, sin el codigo. Acepta ruta o solo el nombre del archivo."""
+    """Esquema de un archivo: simbolos con sus lineas y metodos de clases grandes, sin codigo. Acepta ruta o solo el nombre."""
     resolved_path, otras = indexer.resolver_archivo(file_path, project or None)
     if not resolved_path:
         return f"No se encontro '{file_path}' en los proyectos indexados" + (f" ('{project}')." if project else ".")
@@ -167,9 +247,54 @@ def get_file_outline(file_path: str, project: str = "") -> str:
         return f"[SyntaxRAG Outline] Error al parsear archivo: {e}"
 
 
+def _ruta_corta(ruta: str, proyecto: str = "") -> str:
+    """Ruta relativa a la raiz de su proyecto (o al HOME): lo que el agente necesita, sin prefijos largos."""
+    raiz = indexer.raiz_de_proyecto(proyecto) if proyecto else None
+    for base in ([str(raiz)] if raiz else []) + [str(indexer.HOME)]:
+        if ruta.startswith(base.rstrip("/") + "/"):
+            return ruta[len(base.rstrip("/")) + 1:]
+    return ruta
+
+
+def _impacto_resuelto(symbol: str, project: str, archivo: str) -> Optional[str]:
+    datos = indexer.consumidores(symbol, project or None)
+    if datos is None:
+        return None
+    defs = datos["definiciones"]
+    if archivo:
+        defs = {d: v for d, v in defs.items() if d.endswith(archivo.lstrip("./"))}
+    if not defs and not datos["externos"]:
+        return None
+    out = []
+    total = len({f for v in defs.values() for f in v})
+    if len(defs) > 1:
+        out.append(f"'{symbol}': {len(defs)} definiciones; cada una con los archivos que dependen de ELLA.")
+    for d, usuarios in sorted(defs.items(), key=lambda kv: -len(kv[1])):
+        proyecto = datos["proyectos"].get(d, project)
+        out.append(f"{_ruta_corta(d, proyecto)} -> {len(usuarios)} archivo(s) lo importan" + (":" if usuarios else ""))
+        out += [f"  {_ruta_corta(u, proyecto)}" for u in sorted(usuarios)[:15]]
+        if len(usuarios) > 15:
+            out.append(f"  ... y {len(usuarios) - 15} mas")
+    if datos["externos"]:
+        ext = sorted(datos["externos"].items(), key=lambda kv: -kv[1])[:5]
+        out.append("Con el mismo nombre, de paquetes externos: " + ", ".join(f"{o} ({n})" for o, n in ext))
+    if datos["sin_resolver"]:
+        sr = datos["sin_resolver"]
+        out.append(f"Sin resolver ({len(sr)}): " + ", ".join(f"{_ruta_corta(a)} <- '{o}'" for a, o in sr[:5]))
+    if not total and not datos["sin_resolver"]:
+        out.append("Ningun archivo local lo importa.")
+    return "\n".join(out)
+
+
 @herramienta()
-def get_impact_radius(symbol: str, project: str = "") -> str:
-    """Archivos que importan un simbolo (que se rompe si lo cambias)."""
+def get_impact_radius(symbol: str, project: str = "", archivo: str = "") -> str:
+    """Archivos que dependen de un simbolo (se rompen si lo cambias), por definicion; archivo= elige una."""
+    try:
+        resuelto = _impacto_resuelto(symbol, project, archivo)
+        if resuelto:
+            return resuelto
+    except Exception:
+        pass  # sin resolucion: la busqueda por nombre de siempre
     try:
         db = indexer.get_db()
         if impact.IMPACT_TABLE not in db.table_names():
@@ -290,7 +415,7 @@ def reindex_desktop() -> str:
 
 @herramienta()
 def repo_map(project: str, foco: str = "", tokens: int = 1024) -> str:
-    """Mapa de firmas del proyecto ordenado por relevancia (PageRank) dentro de un presupuesto de tokens."""
+    """Mapa de firmas del proyecto por relevancia (PageRank) en un presupuesto de tokens."""
     return mapa.mapa_del_repo(proyecto=project, foco=foco, tokens=tokens)
 
 
@@ -339,6 +464,38 @@ import argon
 if argon.disponible():
     herramienta()(argon.ask_synrag_architect)
     herramienta()(argon.explain_blast_radius)
+
+
+async def synrag_mas(ctx: Context) -> str:
+    """Activa el resto de herramientas de SynRAG: impacto, esquema, mapa, pruebas, edicion."""
+    nuevas = []
+    while _pendientes:
+        fn = _pendientes.pop(0)
+        _registrar(fn)
+        _activas.append(fn.__name__)
+        nuevas.append(fn.__name__)
+    if not nuevas:
+        return f"Ya estaban activas {len(_activas)} herramientas: {', '.join(_activas)}."
+    _compactar_esquemas()
+    await ctx.session.send_tool_list_changed()
+    return f"Activadas {len(nuevas)} herramientas: {', '.join(nuevas)}."
+
+
+def _anunciar_list_changed():
+    """MCPServer no expone NotificationOptions: el initialize sale de create_initialization_options()
+    sin argumentos, asi que esa llamada fija tools_changed=True (tools.listChanged en el initialize)."""
+    from mcp.server.lowlevel.server import NotificationOptions
+    original = mcp._lowlevel_server.create_initialization_options
+
+    def con_cambios(notification_options=None, *args, **kwargs):
+        return original(notification_options or NotificationOptions(tools_changed=True), *args, **kwargs)
+
+    mcp._lowlevel_server.create_initialization_options = con_cambios
+
+
+if PERFIL == "bajo_demanda":
+    _registrar(synrag_mas)
+    _anunciar_list_changed()
 
 
 def _compactar_esquemas():

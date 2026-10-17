@@ -185,7 +185,7 @@ def _extract_test_failures(salida: str) -> List[str]:
 
 
 def run_test_isolated(test_command: str = "", cwd: str = "") -> str:
-    """Corre un comando de pruebas y devuelve solo el resumen y los fallos."""
+    """Corre pruebas y devuelve solo el resumen y los fallos."""
     target_dir = _resolve_cwd(cwd)
     try:
         cmd, error_msg = _resolve_test_command(test_command, target_dir)

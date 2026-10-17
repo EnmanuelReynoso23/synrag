@@ -70,3 +70,49 @@ def format_impact_warning(dependents: List[str], symbol_name: str) -> str:
         f"{deps_list}{more}\n"
         f"Verifica la compatibilidad de tipos y firmas antes de modificarlo."
     )
+
+
+# ------------------------------------------------------------------------------------------------
+# Consumidores resueltos: que archivos dependen de ESTA definicion del simbolo (no de cualquiera
+# que se llame igual), siguiendo alias de tsconfig, paquetes del monorepo y barrels.
+# ------------------------------------------------------------------------------------------------
+PROFUNDIDAD_BARRELS = 6
+
+
+def destino_final(simbolo: str, archivo: str, definidores: set, reexports_de, resolutor, profundidad: int = 0) -> Optional[str]:
+    """Archivo que define `simbolo` llegando desde `archivo`: el mismo si lo define; si es un barrel
+    (`export { x } from`, `export * from`, `from .mod import x` en un __init__.py), sigue la cadena."""
+    if archivo in definidores:
+        return archivo
+    if profundidad >= PROFUNDIDAD_BARRELS:
+        return None
+    for src in reexports_de(archivo, simbolo):
+        destino = resolutor.resolver(src, archivo)
+        if destino and destino != archivo:
+            final = destino_final(simbolo, destino, definidores, reexports_de, resolutor, profundidad + 1)
+            if final:
+                return final
+    return None
+
+
+def agrupar_consumidores(simbolo: str, definidores: set, importaciones: List[tuple], reexports_de, resolutor) -> Dict[str, Any]:
+    """importaciones: [(archivo_que_importa, origen)] de `simbolo`, con rutas absolutas.
+    Devuelve {"por_definicion": {definidor: [archivos]}, "externos": {origen: n}, "sin_resolver": [(archivo, origen)]}."""
+    por_def: Dict[str, List[str]] = {d: [] for d in definidores}
+    externos: Dict[str, int] = {}
+    sin_resolver: List[tuple] = []
+    for archivo, origen in importaciones:
+        destino = resolutor.resolver(origen, archivo)
+        if destino is None:
+            if origen.startswith("."):  # relativo que no resuelve: archivo no indexado
+                sin_resolver.append((archivo, origen))
+            else:
+                externos[origen] = externos.get(origen, 0) + 1
+            continue
+        final = destino_final(simbolo, destino, definidores, reexports_de, resolutor)
+        if final:
+            if archivo not in por_def[final]:
+                por_def[final].append(archivo)
+        else:
+            sin_resolver.append((archivo, origen))
+    return {"por_definicion": por_def, "externos": externos, "sin_resolver": sin_resolver}

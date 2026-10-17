@@ -55,6 +55,26 @@ def archivo_de_carpetas() -> Path:
     return base / "synrag" / "carpetas.txt"
 
 
+PERFILES = ("completo", "esencial", "bajo_demanda")
+
+
+def archivo_de_perfil() -> Path:
+    return archivo_de_carpetas().with_name("perfil")
+
+
+def perfil_herramientas() -> str:
+    """Que herramientas MCP expone el servidor: `completo` (todas), `esencial` (las 5 que mas se usan,
+    para clientes que pagan las definiciones en cada turno) o `bajo_demanda` (search_desktop y synrag_mas;
+    el resto se activa al pedirlo). SYNRAG_PERFIL manda sobre el archivo."""
+    valor = os.environ.get("SYNRAG_PERFIL", "").strip().lower()
+    if not valor:
+        try:
+            valor = archivo_de_perfil().read_text(encoding="utf-8").strip().lower()
+        except OSError:
+            valor = ""
+    return valor if valor in PERFILES else "completo"
+
+
 def _parsear_carpeta(linea: str) -> Optional[tuple]:
     linea = linea.split("#", 1)[0].strip()
     if not linea:
@@ -649,13 +669,26 @@ def buscar_definiciones(tbl, query: str, project: str | None = None, limit: int 
     except Exception:
         return []
     # Un bloque largo queda partido en varios trozos con el mismo nombre: se unen en uno y el texto
-    # se lee del archivo (cubre la definicion entera y esta al dia aunque el indice no).
+    # se lee del archivo (cubre la definicion entera y esta al dia aunque el indice no). Solo se unen
+    # trozos seguidos: dos definiciones con el mismo nombre en un archivo (el metodo de la clase base
+    # y el de la subclase) son dos resultados, no un bloque con todo lo que hay entre ellas.
     grupos: Dict[tuple, List[Dict[str, Any]]] = {}
     for r in filas:
         grupos.setdefault((r.get("rel_path"), r.get("symbol_name")), []).append(r)
-    salida = []
+    bloques: List[List[Dict[str, Any]]] = []
     for trozos in grupos.values():
-        trozos.sort(key=lambda r: r.get("chunk_index", 0))
+        trozos.sort(key=lambda r: (int(r.get("line", 1)), r.get("chunk_index", 0)))
+        actual = [trozos[0]]
+        for t in trozos[1:]:
+            fin = max(int(x.get("end_line", x.get("line", 1))) for x in actual)
+            if int(t.get("line", 1)) <= fin + 1:
+                actual.append(t)
+            else:
+                bloques.append(actual)
+                actual = [t]
+        bloques.append(actual)
+    salida = []
+    for trozos in bloques:
         r = dict(trozos[0])
         r.pop("vector", None)
         r["line"] = min(int(t.get("line", 1)) for t in trozos)
@@ -674,6 +707,198 @@ def buscar_definiciones(tbl, query: str, project: str | None = None, limit: int 
     elif tipo == "codigo":
         salida = [r for r in salida if not _es_doc(r)]
     return salida[:limit]
+
+
+RE_MIEMBRO_PUNTO = re.compile(r"^([A-Za-z_$][A-Za-z0-9_$]*)\.([A-Za-z_$][A-Za-z0-9_$]{2,})\(?\)?$")
+
+
+def definiciones_de_consulta(tbl, query: str, project: str | None = None, limit: int = 5, tipo: str = "") -> List[Dict[str, Any]]:
+    """Definiciones exactas que pide la consulta: `nombre`; `objeto.miembro` (c.json, self.open_session)
+    da las del miembro, primero las de la clase `objeto` si existe; `Clase miembro` (Config from_envvar)
+    da el miembro definido en el archivo de esa clase."""
+    q = query.strip()
+    if RE_IDENTIFICADOR.match(q):
+        return buscar_definiciones(tbl, q, project=project, limit=limit, tipo=tipo)
+    m = RE_MIEMBRO_PUNTO.match(q)
+    palabras = q.split()
+    if m:
+        dueno, miembro = m.group(1), m.group(2)
+    elif len(palabras) == 2 and all(RE_IDENTIFICADOR.match(w) for w in palabras):
+        dueno, miembro = palabras
+    else:
+        return []
+    def de_la_clase(dueno: str, miembro: str):
+        defs = buscar_definiciones(tbl, miembro, project=project, limit=max(limit, 10), tipo=tipo)
+        clases: Dict[str, List[int]] = {}  # archivo -> lineas donde empieza la clase
+        for r in buscar_definiciones(tbl, dueno, project=project, limit=10, tipo=tipo):
+            if r.get("symbol_kind") in ("class", "interface", "type", "variable"):
+                clases.setdefault(r.get("rel_path"), []).append(int(r.get("line", 1)))
+        return defs, clases
+
+    defs, clases = de_la_clase(dueno, miembro)
+    if not clases and not m and len(palabras) == 2:  # tambien "from_envvar Config"
+        dueno, miembro = miembro, dueno
+        defs, clases = de_la_clase(dueno, miembro)
+
+    def orden(r):
+        # Primero el miembro definido despues del inicio de la clase y lo mas cerca de el: si la clase
+        # base del mismo archivo define un metodo con el mismo nombre, va detras.
+        inicios = [x for x in clases.get(r.get("rel_path"), []) if x <= int(r.get("line", 1))]
+        return (r.get("rel_path") not in clases, not inicios, int(r.get("line", 1)) - max(inicios) if inicios else 0)
+
+    if not m:  # dos palabras: solo cuenta si el miembro esta en el archivo de la clase
+        return sorted((r for r in defs if r.get("rel_path") in clases), key=orden)[:limit]
+    return sorted(defs, key=orden)[:limit]
+
+
+def _abs_home(rel: str) -> str:
+    """rel_path / imported_by son relativas al HOME salvo fuera de el."""
+    return rel if rel.startswith("/") else os.path.normpath(str(HOME / rel))
+
+
+_RESOLUTORES: Dict[str, tuple] = {}  # proyecto -> (instante, Resolutor)
+VIDA_RESOLUTOR_S = 60  # el observador reindexa archivos sueltos: la lista de archivos se renueva sola
+
+
+def _resolutor(db, proyecto: str):
+    import resolver
+    ahora = time.time()
+    guardado = _RESOLUTORES.get(proyecto)
+    if guardado and ahora - guardado[0] < VIDA_RESOLUTOR_S:
+        return guardado[1]
+    filas = db.open_table(TABLE_NAME).search().where(f"project = '{proyecto.replace(chr(39), '')}'") \
+        .select(["file_path"]).limit(1_000_000).to_list()
+    archivos = {f["file_path"] for f in filas}
+    raiz = raiz_de_proyecto(proyecto) or (Path(os.path.commonpath(list(archivos))) if archivos else HOME)
+    res = resolver.Resolutor(Path(raiz), archivos)
+    _RESOLUTORES[proyecto] = (ahora, res)
+    return res
+
+
+def consumidores(simbolo: str, project: str | None = None) -> Optional[Dict[str, Any]]:
+    """Que archivos dependen de cada definicion de `simbolo` (no de cualquiera que se llame igual):
+    resuelve cada import (relativo, alias de tsconfig, paquete del monorepo, modulo de Python) y sigue
+    los barrels. Devuelve {"definiciones": {archivo: [archivos que lo usan]}, "externos": {origen: n},
+    "sin_resolver": [(archivo, origen)], "proyectos": {archivo: proyecto}} con rutas absolutas, o None
+    si no hay indice o tabla de impacto."""
+    db = get_db()
+    if TABLE_NAME not in db.table_names() or impact.IMPACT_TABLE not in db.table_names():
+        return None
+    nombre = simbolo.strip().replace("'", "")
+    if not nombre:
+        return None
+    filtro_p = f" AND project = '{project.replace(chr(39), '')}'" if project else ""
+    defs = db.open_table(TABLE_NAME).search() \
+        .where(f"symbol_name = '{nombre}' AND symbol_kind NOT IN ('method', 'field', 'imports'){filtro_p}") \
+        .select(["file_path", "project"]).limit(500).to_list()
+    imp_tbl = db.open_table(impact.IMPACT_TABLE)
+    filas = imp_tbl.search().where(f"symbol = '{nombre}'{filtro_p}") \
+        .select(["imported_by", "source", "project"]).limit(20000).to_list()
+    proyectos: Dict[str, str] = {}
+    por_proyecto: Dict[str, Dict[str, Any]] = {}
+    for d in defs:
+        por_proyecto.setdefault(d["project"], {"defs": set(), "imps": []})["defs"].add(os.path.normpath(d["file_path"]))
+        proyectos[os.path.normpath(d["file_path"])] = d["project"]
+    for f in filas:
+        if f.get("imported_by") and f["imported_by"] != "__init__":
+            por_proyecto.setdefault(f["project"], {"defs": set(), "imps": []})["imps"].append(
+                (_abs_home(f["imported_by"]), f.get("source") or ""))
+
+    salida: Dict[str, Any] = {"definiciones": {}, "externos": {}, "sin_resolver": [], "proyectos": proyectos}
+    for proyecto, datos in por_proyecto.items():
+        res = _resolutor(db, proyecto)
+        cache_re: Dict[tuple, List[str]] = {}
+
+        def reexports_de(archivo: str, sim: str, _p=proyecto) -> List[str]:
+            clave = (archivo, sim)
+            if clave not in cache_re:
+                rel = os.path.relpath(archivo, HOME) if archivo.startswith(str(HOME)) else archivo
+                try:
+                    rows = imp_tbl.search().where(
+                        f"imported_by = '{rel.replace(chr(39), '')}' AND symbol IN ('{sim}', '*') AND project = '{_p.replace(chr(39), '')}'"
+                    ).select(["source"]).limit(50).to_list()
+                    cache_re[clave] = [r["source"] for r in rows if r.get("source")]
+                except Exception:
+                    cache_re[clave] = []
+            return cache_re[clave]
+
+        grupo = impact.agrupar_consumidores(nombre, datos["defs"], datos["imps"], reexports_de, res)
+        salida["definiciones"].update(grupo["por_definicion"])
+        for origen, n in grupo["externos"].items():
+            salida["externos"][origen] = salida["externos"].get(origen, 0) + n
+        salida["sin_resolver"] += grupo["sin_resolver"]
+    return salida
+
+
+RE_LINEA_IMPORT = re.compile(r"^\s*(import\b|from\s+\S+\s+import\b|export\s+(\*|\{[^}]*\})\s*from\b)")
+# Imports de varias lineas: `import {\n a,\n} from 'x'`, `export { a } from`, `from x import (\n a,\n)`
+RE_IMPORT_MULTILINEA = re.compile(
+    r"^[ \t]*(?:import\b[^;'\"]*?\bfrom\s*['\"][^'\"]*['\"]|export\s*(?:type\s*)?\{[^}]*\}\s*from\s*['\"][^'\"]*['\"]"
+    r"|from\s+[\w.]+\s+import\s*\([^)]*\))", re.M | re.S)
+
+
+def _lineas_de_imports(texto: str) -> set:
+    lineas = set()
+    for m in RE_IMPORT_MULTILINEA.finditer(texto):
+        ini = texto.count("\n", 0, m.start()) + 1
+        lineas.update(range(ini, ini + m.group(0).count("\n") + 1))
+    return lineas
+
+
+def _es_prueba(ruta: str) -> bool:
+    nombre = os.path.basename(ruta).lower()
+    return bool(re.search(r"(^test_|_test\.py$|\.(test|spec)\.[jt]sx?$)", nombre)) or "/tests/" in ruta or "/__tests__/" in ruta
+
+
+def usos_de(simbolo: str, archivo_def: str, project: str = "", rango_def: tuple = (0, 0), max_archivos: int = 12) -> Dict[str, Any]:
+    """Donde se usa una definicion: su propio archivo y los que la importan (resueltos, no por nombre).
+    Devuelve {"sitios": [(archivo, linea, simbolo_que_lo_contiene)], "importadores": n, "pruebas": n}
+    sin la definicion (rango_def) ni los imports; primero el codigo y despues las pruebas."""
+    vacio = {"sitios": [], "importadores": 0, "pruebas": 0}
+    if not RE_IDENTIFICADOR.match(simbolo or ""):
+        return vacio
+    archivo_def = os.path.normpath(archivo_def)
+    importadores: List[str] = []
+    try:
+        datos = consumidores(simbolo, project or None)
+        if datos:
+            importadores = sorted(datos["definiciones"].get(archivo_def, []))
+    except Exception:
+        pass
+    pruebas = [a for a in importadores if _es_prueba(a)]
+    archivos = [archivo_def] + [a for a in importadores if a not in pruebas] + pruebas
+    patron = re.compile(rf"(?<![\w$.]){re.escape(simbolo)}\b|\.{re.escape(simbolo)}\s*\(")
+    definicion = re.compile(rf"\b(def|class|function\*?|interface|type|enum|const|let|var)\s+{re.escape(simbolo)}\b")
+    hallados: Dict[str, List[int]] = {}
+    for archivo in archivos[:max_archivos]:
+        try:
+            texto = Path(archivo).read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        de_imports = _lineas_de_imports(texto)
+        ns = [n for n, l in enumerate(texto.splitlines(), 1)
+              if patron.search(l) and n not in de_imports and not RE_LINEA_IMPORT.match(l) and not definicion.search(l)
+              and not (archivo == archivo_def and rango_def[0] <= n <= rango_def[1])
+              and not l.lstrip().startswith(("#", "//", "*", "/*"))]
+        if ns:
+            hallados[archivo] = ns
+    trozos: Dict[str, List[Dict[str, Any]]] = {}
+    if hallados:
+        lista = ", ".join(f"'{a.replace(chr(39), '')}'" for a in hallados)
+        try:
+            for f in get_db().open_table(TABLE_NAME).search().where(f"file_path IN ({lista})") \
+                    .select(["file_path", "line", "end_line", "symbol_name", "symbol_kind"]).limit(100000).to_list():
+                if f.get("symbol_name") and f.get("symbol_kind") != "imports":
+                    trozos.setdefault(os.path.normpath(f["file_path"]), []).append(f)
+        except Exception:
+            pass
+    sitios = []
+    for archivo, ns in hallados.items():
+        for n in ns:
+            dentro = [t for t in trozos.get(archivo, []) if int(t["line"]) <= n <= int(t.get("end_line") or t["line"])]
+            dentro.sort(key=lambda t: int(t.get("end_line") or t["line"]) - int(t["line"]))
+            sitios.append((archivo, n, dentro[0]["symbol_name"] if dentro else ""))
+    return {"sitios": sitios, "importadores": len(importadores), "pruebas": len(pruebas)}
 
 
 def search_desktop(
@@ -709,7 +934,7 @@ def search_desktop(
 
     tbl = db.open_table(TABLE_NAME)
     candidates = []
-    exactos = buscar_definiciones(tbl, query, project=project, limit=limit, tipo=tipo)
+    exactos = definiciones_de_consulta(tbl, query, project=project, limit=limit, tipo=tipo)
 
     condiciones = []
     if project:
@@ -776,6 +1001,11 @@ def search_desktop(
     # notas no cambia nada. Para buscar solo en docs: tipo="docs".
     if not tipo:
         reranked = [r for r in reranked if not _es_doc(r)] + [r for r in reranked if _es_doc(r)]
+    # Las pruebas repiten los nombres que se buscan y ganaban a la implementacion ("c.json" daba un
+    # test). Van detras salvo que la consulta las pida.
+    if not re.search(r"(?i)test|spec|prueba", query):
+        reranked = [r for r in reranked if not _es_prueba(r.get("rel_path", ""))] + \
+                   [r for r in reranked if _es_prueba(r.get("rel_path", ""))]
 
     # 3. Grafo de Impacto
     if check_impact:

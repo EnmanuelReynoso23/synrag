@@ -97,8 +97,89 @@ def extract_symbol_and_kind(node_text: str, ntype: str) -> Tuple[Optional[str], 
     return name, kind
 
 
-def extract_imports_and_exports(text: str) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    """Extrae dependencias de importación y exportación de forma rápida y segura."""
+PY_CONTENEDORES = {
+    "module", "block", "function_definition", "class_definition", "decorated_definition",
+    "if_statement", "elif_clause", "else_clause", "try_statement", "except_clause", "except_group_clause",
+    "finally_clause", "with_statement", "for_statement", "while_statement", "match_statement", "case_clause",
+}
+
+
+def _texto(nodo) -> str:
+    return nodo.text.decode("utf-8", errors="ignore") if nodo is not None else ""
+
+
+def imports_del_arbol(raiz, lang: str) -> List[Dict[str, str]]:
+    """Imports leidos del AST: los de varias lineas, `import D, { a } from`, los re-export de los
+    barrels (`export { a } from`, `export * from`) y, en Python, los de parentesis, los separados por
+    coma y los de dentro de funciones. Nunca toma texto de comentarios ni de cadenas."""
+    imps: List[Dict[str, str]] = []
+
+    def agregar(simbolo: str, origen: str):
+        simbolo, origen = simbolo.strip("'\"`"), origen.strip("'\"`")
+        if simbolo and origen:
+            imps.append({"symbol": simbolo, "source": origen})
+
+    if lang == "python":
+        pila = [raiz]
+        while pila:
+            n = pila.pop()
+            if n.type == "import_statement":
+                for h in n.children_by_field_name("name"):
+                    ruta = _texto(h.child_by_field_name("name") if h.type == "aliased_import" else h)
+                    agregar(ruta.split(".")[-1], ruta)
+            elif n.type in ("import_from_statement", "future_import_statement"):
+                modulo = _texto(n.child_by_field_name("module_name")) or "__future__"
+                if any(h.type == "wildcard_import" for h in n.children):
+                    agregar("*", modulo)
+                for h in n.children_by_field_name("name"):
+                    agregar(_texto(h.child_by_field_name("name") if h.type == "aliased_import" else h), modulo)
+            elif n.type in PY_CONTENEDORES:
+                pila.extend(n.children)
+        return imps
+
+    for n in raiz.children:  # TS/JS: imports y re-exports solo existen en el nivel superior
+        fuente = n.child_by_field_name("source") if n.type in ("import_statement", "export_statement") else None
+        if fuente is None:
+            continue
+        origen = _texto(fuente)
+        for h in n.children:
+            if h.type == "import_clause":
+                for c in h.children:
+                    if c.type == "identifier":
+                        agregar(_texto(c), origen)
+                    elif c.type == "namespace_import":
+                        agregar(next((_texto(i) for i in c.children if i.type == "identifier"), ""), origen)
+                    elif c.type == "named_imports":
+                        for spec in c.children:
+                            if spec.type == "import_specifier":
+                                agregar(_texto(spec.child_by_field_name("name")), origen)
+            elif h.type == "export_clause":
+                for spec in h.children:
+                    if spec.type == "export_specifier":
+                        agregar(_texto(spec.child_by_field_name("name")), origen)
+            elif h.type == "namespace_export":
+                agregar(next((_texto(i) for i in h.children if i.type == "identifier"), ""), origen)
+            elif h.type == "*" and n.type == "export_statement":
+                agregar("*", origen)
+    return imps
+
+
+def extract_imports_and_exports(text: str, ext: str = "") -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    """Imports y exports de un archivo. Con la extension de un lenguaje con gramatica, los imports
+    salen del AST (imports_del_arbol); si no, de expresiones regulares linea por linea."""
+    lang = LANG_MAP.get(ext.lower()) if ext else None
+    parser = get_parser_for_lang(lang) if lang in ("typescript", "tsx", "javascript", "python") else None
+    if parser is not None:
+        try:
+            imps = imports_del_arbol(parser.parse(text.encode("utf-8", errors="ignore")).root_node, lang)
+            return imps, _imports_y_exports_por_lineas(text)[1]
+        except Exception:
+            pass
+    return _imports_y_exports_por_lineas(text)
+
+
+def _imports_y_exports_por_lineas(text: str) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
+    """Respaldo sin gramatica: un import por linea (no ve los de varias lineas)."""
     imports = []
     exports = []
 
@@ -148,29 +229,102 @@ CLASES = {"class_definition", "class_declaration", "abstract_class_declaration",
 METODOS = {"function_definition", "decorated_definition", "method_definition"}
 
 
-def _miembros_de_clase(nodo) -> List[Tuple[int, int, str]]:
-    """(inicio, fin, nombre) de los metodos de una clase de primer nivel, con su comentario pegado."""
-    clase = nodo
+VALORES_FUNCION = {"arrow_function", "function_expression", "function", "generator_function"}
+ENVOLTORIOS = {"as_expression", "satisfies_expression", "parenthesized_expression", "non_null_expression"}
+
+
+def _cuerpo_con_miembros(nodo):
+    """Cuerpo de una clase (`class X {}`) o de un objeto literal (`const x = { ... }`), o None."""
     if nodo.type in ("export_statement", "decorated_definition"):
-        clase = nodo.child_by_field_name("declaration") or nodo.child_by_field_name("definition")
-    if clase is None or clase.type not in CLASES:
-        return []
-    cuerpo = clase.child_by_field_name("body")
+        nodo = nodo.child_by_field_name("declaration") or nodo.child_by_field_name("definition")
+    if nodo is None:
+        return None
+    if nodo.type in CLASES:
+        return nodo.child_by_field_name("body")
+    if nodo.type in ("lexical_declaration", "variable_declaration"):
+        declaradores = [h for h in nodo.named_children if h.type == "variable_declarator"]
+        valor = declaradores[0].child_by_field_name("value") if len(declaradores) == 1 else None
+        while valor is not None and valor.type in ENVOLTORIOS and valor.named_children:
+            valor = valor.named_children[0]
+        if valor is not None and valor.type == "object":
+            return valor
+    return None
+
+
+def _nombre_miembro(hijo) -> Tuple[Optional[str], bool]:
+    """(nombre, es_funcion) de un miembro de clase u objeto."""
+    nodo = hijo.child_by_field_name("definition") if hijo.type == "decorated_definition" else hijo
+    if nodo is None:
+        return None, False
+    if nodo.type in METODOS:
+        nombre = nodo.child_by_field_name("name")
+        return (nombre.text.decode("utf-8", errors="ignore") if nombre is not None else None), True
+    if nodo.type in ("public_field_definition", "field_definition", "pair"):
+        nombre = nodo.child_by_field_name("name") or nodo.child_by_field_name("property") or nodo.child_by_field_name("key")
+        valor = nodo.child_by_field_name("value")
+        texto = nombre.text.decode("utf-8", errors="ignore").strip("'\"`") if nombre is not None else None
+        return texto, valor is not None and valor.type in VALORES_FUNCION
+    return None, False
+
+
+def _miembros_de_clase(nodo) -> List[Tuple[int, int, str, str]]:
+    """(inicio, fin, nombre, tipo) de los miembros de una clase u objeto literal grande, con su
+    comentario pegado. Cada metodo (tambien `json = () => {}` y `listar: async () => {}`) va solo;
+    los campos y atributos entre metodos se agrupan para que ningun tramo del cuerpo se pierda. Lo
+    que hay antes del primer metodo queda en la cabecera."""
+    cuerpo = _cuerpo_con_miembros(nodo)
     if cuerpo is None:
         return []
-    miembros, comentario = [], None
-    for hijo in cuerpo.children:
+    miembros: List[Tuple[int, int, str, str]] = []
+    grupo: List[Any] = []  # [inicio, fin, nombres]
+    comentario = None
+
+    def cerrar_grupo():
+        if grupo and miembros:  # antes del primer metodo: cabecera
+            nombres = grupo[2]
+            miembros.append((grupo[0], grupo[1], nombres[0] if len(nombres) == 1 else "", "field"))
+        grupo.clear()
+
+    for hijo in cuerpo.named_children:
         if hijo.type == "comment":
             comentario = comentario if comentario is not None else int(hijo.start_byte)
             continue
-        if hijo.type in METODOS:
-            definicion = hijo.child_by_field_name("definition") if hijo.type == "decorated_definition" else hijo
-            nombre = definicion.child_by_field_name("name") if definicion is not None else None
-            if nombre is not None:
-                inicio = comentario if comentario is not None else int(hijo.start_byte)
-                miembros.append((inicio, int(hijo.end_byte), nombre.text.decode("utf-8", errors="ignore")))
+        inicio = comentario if comentario is not None else int(hijo.start_byte)
         comentario = None
+        nombre, es_funcion = _nombre_miembro(hijo)
+        if es_funcion and nombre:
+            cerrar_grupo()
+            miembros.append((inicio, int(hijo.end_byte), nombre, "method"))
+        elif grupo:
+            grupo[1] = int(hijo.end_byte)
+            if nombre:
+                grupo[2].append(nombre)
+        else:
+            grupo.extend([inicio, int(hijo.end_byte), [nombre] if nombre else []])
+    cerrar_grupo()
     return miembros
+
+
+def miembros_de_definicion(file_path: Path, linea: int) -> List[Tuple[int, str, str]]:
+    """(linea, nombre, tipo) de los miembros de la clase u objeto grande que empieza en `linea`
+    (o justo despues, si `linea` es la de su JSDoc). Vacio si ahi no hay una clase u objeto."""
+    lang = LANG_MAP.get(file_path.suffix.lower())
+    parser = get_parser_for_lang(lang) if lang else None
+    if parser is None:
+        return []
+    try:
+        code_bytes = file_path.read_bytes()
+        raiz = parser.parse(code_bytes).root_node
+    except Exception:
+        return []
+    for nodo in raiz.children:
+        if nodo.type == "comment" or nodo.end_point[0] + 1 < linea:
+            continue
+        if nodo.start_point[0] + 1 > linea + 40:  # JSDoc largo como mucho
+            break
+        return [(code_bytes.count(b"\n", 0, ini) + 1, nombre, tipo)
+                for ini, _, nombre, tipo in _miembros_de_clase(nodo) if nombre]
+    return []
 
 
 def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[Dict[str, Any]], List[Dict[str, str]], List[Dict[str, str]]]:
@@ -184,6 +338,7 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
             return fallback_chunks, imps, exps
 
         tree = parser.parse(code_bytes)
+        imps_arbol = imports_del_arbol(tree.root_node, lang) if lang in ("typescript", "tsx", "javascript", "python") else None
         raw_nodes = [
             (str(n.type), int(n.start_byte), int(n.end_byte))
             for n in tree.root_node.children
@@ -204,7 +359,9 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
         imps, exps = extract_imports_and_exports(text)
         return fallback_chunks, imps, exps
 
-    imps, exps = extract_imports_and_exports(text)
+    imps, exps = _imports_y_exports_por_lineas(text)
+    if imps_arbol is not None:
+        imps = imps_arbol
 
     chunks = []
     import_nodes_coords = []
@@ -259,18 +416,30 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
         if miembros:
             # Clase grande: cabecera + un fragmento por metodo, en vez de cortes ciegos por tamano
             cabecera = code_bytes[start_byte:miembros[0][0]].decode("utf-8", errors="ignore").strip()
-            if len(cabecera) >= MIN_CHUNK_CHARS:
+            ultimo = None  # (fragmento, byte de inicio): donde se pegan los miembros diminutos
+            if len(cabecera) > MAX_CHUNK_CHARS:
+                chunks.extend(chunk_fallback(cabecera, start_offset_line=start_line, symbol_name=name or "", symbol_kind=kind))
+            elif len(cabecera) >= MIN_CHUNK_CHARS or (name and cabecera):  # `export const x = {` lleva el nombre
                 chunks.append({"line": start_line,
                                "end_line": code_bytes.count(b"\n", 0, miembros[0][0]),
                                "symbol_name": name or "", "symbol_kind": kind, "content": cabecera})
-            for m_ini, m_fin, m_nombre in miembros:
+                ultimo = (chunks[-1], start_byte)
+            for m_ini, m_fin, m_nombre, m_tipo in miembros:
                 texto_m = code_bytes[m_ini:m_fin].decode("utf-8", errors="ignore")
                 linea_m = code_bytes.count(b"\n", 0, m_ini) + 1
+                if len(texto_m.strip()) < MIN_CHUNK_CHARS:
+                    # `LIMITE: 50,` o `private constructor() {}`: va con el fragmento anterior
+                    if ultimo and m_fin - ultimo[1] <= MAX_CHUNK_CHARS:
+                        ultimo[0]["content"] = code_bytes[ultimo[1]:m_fin].decode("utf-8", errors="ignore").strip()
+                        ultimo[0]["end_line"] = linea_m + texto_m.count("\n")
+                    continue
                 if len(texto_m) > MAX_CHUNK_CHARS:
-                    chunks.extend(chunk_fallback(texto_m, start_offset_line=linea_m, symbol_name=m_nombre, symbol_kind="method"))
+                    chunks.extend(chunk_fallback(texto_m, start_offset_line=linea_m, symbol_name=m_nombre, symbol_kind=m_tipo))
+                    ultimo = None
                 else:
                     chunks.append({"line": linea_m, "end_line": linea_m + texto_m.count("\n"),
-                                   "symbol_name": m_nombre, "symbol_kind": "method", "content": texto_m.rstrip()})
+                                   "symbol_name": m_nombre, "symbol_kind": m_tipo, "content": texto_m.rstrip()})
+                    ultimo = (chunks[-1], m_ini)
             continue
 
         if len(chunk_text) > MAX_CHUNK_CHARS:

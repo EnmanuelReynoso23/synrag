@@ -185,3 +185,109 @@ func CalcularTotal(a int, b int) int {
 """
     chunks_go = chunker.chunk_file(Path("main.go"), codigo_go)
     assert chunks_go[0]["symbol_name"] == "CalcularTotal"
+
+
+def _cubiertas(chunks):
+    lineas = set()
+    for c in chunks:
+        lineas.update(range(c["line"], c["end_line"] + 1))
+    return lineas
+
+
+def test_clase_grande_con_campos_flecha_no_pierde_codigo():
+    """Como `c.json` en Hono: `json = () => {}` es un campo, no un method_definition, y antes se perdia."""
+    relleno = "\n".join(f"    const v{i} = 'relleno para que la clase supere el tamano maximo {i}'" for i in range(12))
+    codigo = (
+        "export class Contexto {\n"
+        "  #estado: number = 200\n"
+        f"  constructor(req: Request) {{\n{relleno}\n  }}\n"
+        "  /** Responde texto plano */\n"
+        f"  text = (texto: string) => {{\n{relleno}\n    return new Response(texto)\n  }}\n"
+        "  #cabeceras: Headers | undefined\n"
+        "  static VERSION = '1.0'\n"
+        f"  json: Respond = <T>(objeto: T) => {{\n{relleno}\n    return 'application/json'\n  }}\n"
+        "}\n"
+    )
+    assert len(codigo) > chunker.MAX_CHUNK_CHARS
+    chunks = chunker.chunk_file(Path("contexto.ts"), codigo)
+    por_nombre = {c["symbol_name"]: c for c in chunks}
+    assert por_nombre["json"]["symbol_kind"] == "method"
+    assert "application/json" in por_nombre["json"]["content"]
+    assert por_nombre["text"]["content"].startswith("/** Responde texto plano */")
+    assert "#estado" in por_nombre["Contexto"]["content"]  # campos antes del primer metodo: cabecera
+    lineas = codigo.splitlines()
+    for n in (lineas.index("  #cabeceras: Headers | undefined") + 1, lineas.index("  static VERSION = '1.0'") + 1):
+        assert n in _cubiertas(chunks)
+
+
+def test_objeto_servicio_grande_se_trocea_por_metodo():
+    relleno = "\n".join(f"    const v{i} = 'relleno para que el objeto supere el tamano maximo {i}'" for i in range(20))
+    codigo = (
+        "export const apuntesServicio = {\n"
+        f"  async listarMios(id: string) {{\n{relleno}\n    return []\n  }},\n"
+        "  LIMITE: 50,\n"
+        f"  crear: async (datos: Apunte) => {{\n{relleno}\n    return datos\n  }},\n"
+        "};\n"
+    )
+    assert len(codigo) > chunker.MAX_CHUNK_CHARS
+    chunks = chunker.chunk_file(Path("apuntes.servicio.ts"), codigo)
+    nombres = [(c["symbol_name"], c["symbol_kind"]) for c in chunks]
+    assert ("apuntesServicio", "variable") in nombres  # la cabecera, aunque sea corta, lleva el nombre
+    assert ("listarMios", "method") in nombres and ("crear", "method") in nombres
+    assert 1 + codigo.splitlines().index("  LIMITE: 50,") in _cubiertas(chunks)
+
+
+def test_clase_python_grande_conserva_atributos_entre_metodos():
+    relleno = "\n".join(f"        x{i} = 'relleno para superar el tamano maximo del fragmento {i}'" for i in range(20))
+    codigo = (
+        "class Config(dict):\n"
+        '    """Configuracion."""\n'
+        f"    def from_envvar(self, variable):\n{relleno}\n        return True\n\n"
+        "    silencioso_por_defecto = False\n\n"
+        f"    def from_pyfile(self, archivo):\n{relleno}\n        return True\n"
+    )
+    chunks = chunker.chunk_file(Path("config.py"), codigo)
+    nombres = {c["symbol_name"] for c in chunks}
+    assert {"Config", "from_envvar", "from_pyfile"} <= nombres
+    assert 1 + codigo.splitlines().index("    silencioso_por_defecto = False") in _cubiertas(chunks)
+
+
+def _aristas(texto, ext):
+    imps, _ = chunker.extract_imports_and_exports(texto, ext)
+    return {(i["symbol"], i["source"]) for i in imps}
+
+
+def test_imports_ts_de_varias_lineas_default_y_reexports():
+    texto = (
+        "import React, { useState } from 'react'\n"
+        "import {\n  listar,\n  crear as nuevo,\n  type Apunte,\n} from '@/modulos/apuntes'\n"
+        "import * as fs from 'node:fs'\n"
+        "import './estilos.css'\n"
+        "export * from './barril'\n"
+        "export { a, default as B } from './otro'\n"
+        "// import { falso } from 'comentario'\n"
+        "const s = \"import { tampoco } from 'cadena'\"\n"
+    )
+    assert _aristas(texto, ".ts") == {
+        ("React", "react"), ("useState", "react"), ("listar", "@/modulos/apuntes"), ("crear", "@/modulos/apuntes"),
+        ("Apunte", "@/modulos/apuntes"), ("fs", "node:fs"), ("*", "./barril"), ("a", "./otro"), ("default", "./otro"),
+    }
+
+
+def test_imports_python_con_parentesis_coma_y_dentro_de_funciones():
+    texto = (
+        "from __future__ import annotations\n"
+        "import os, sys\n"
+        "from .app import (\n    Flask,\n    request as req,\n)\n"
+        "def f():\n    import json\n"
+        '"""\nfrom docstring import Falso\n"""\n'
+    )
+    assert _aristas(texto, ".py") == {
+        ("annotations", "__future__"), ("os", "os"), ("sys", "sys"), ("Flask", ".app"), ("request", ".app"), ("json", "json"),
+    }
+
+
+def test_parse_and_chunk_file_usa_los_imports_del_arbol():
+    texto = "import {\n  a,\n  b,\n} from './m'\n\nexport function usar() { return a + b }\n"
+    _, imps, _ = chunker.parse_and_chunk_file(Path("x.ts"), texto)
+    assert {(i["symbol"], i["source"]) for i in imps} == {("a", "./m"), ("b", "./m")}

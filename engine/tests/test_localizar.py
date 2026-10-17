@@ -58,6 +58,35 @@ def test_definicion_exacta_primero_y_entera(casa):
     assert res[0]["line"] == 1 and "ULTIMA_LINEA" in res[0]["content"]  # trozos unidos
 
 
+def test_dos_definiciones_con_el_mismo_nombre_no_se_unen(casa):
+    # Flask: SessionInterface.open_session y SecureCookieSessionInterface.open_session en el mismo
+    # archivo. Antes salian unidas en un bloque con todo lo que habia entre las dos.
+    relleno = "".join(f"    def metodo_{i}(self):\n        return 'relleno para que la clase sea grande {i}'\n\n" for i in range(60))
+    crear_proyecto(casa, "demo", {
+        "sessions.py": (
+            "class SessionInterface:\n"
+            "    def open_session(self, app, request):\n"
+            "        raise NotImplementedError()\n"
+            "\n" + relleno +
+            "\n"
+            "\n"
+            "def entre_medias():\n"
+            "    return 'NO_DEBE_SALIR'\n"
+            "\n"
+            "\n"
+            "class SecureCookieSessionInterface(SessionInterface):\n" + relleno +
+            "    def open_session(self, app, request):\n"
+            "        return 'LA_DE_LA_SUBCLASE'\n"
+        ),
+    })
+    indexer.index_desktop()
+    res = [r for r in indexer.search_desktop("open_session", project="demo", use_rerank=False) if r.get("exacto")]
+    assert len(res) == 2
+    assert all("NO_DEBE_SALIR" not in r["content"] for r in res)
+    res = indexer.search_desktop("SecureCookieSessionInterface open_session", project="demo", use_rerank=False)
+    assert res[0].get("exacto") and "LA_DE_LA_SUBCLASE" in res[0]["content"]
+
+
 def test_palabras_sueltas_encuentran_nombres_compuestos(casa):
     crear_proyecto(casa, "demo", {
         "lecturas.ts": "export function esSinCupo(error: unknown): boolean {\n  return String(error).includes('429');\n}\n",
@@ -66,3 +95,42 @@ def test_palabras_sueltas_encuentran_nombres_compuestos(casa):
     indexer.index_desktop()
     res = indexer.search_desktop("sin cupo", project="demo", use_rerank=False)
     assert res and res[0]["rel_path"].endswith("lecturas.ts")
+
+
+def test_objeto_punto_miembro_y_clase_miembro_dan_la_definicion(casa):
+    relleno = "\n".join(f"    const v{i} = 'relleno para que la clase supere el tamano maximo {i}'" for i in range(20))
+    crear_proyecto(casa, "web", {
+        "src/context.ts": (
+            "export class Context {\n"
+            f"  json = (objeto: unknown) => {{\n{relleno}\n    return 'application/json'\n  }}\n"
+            f"  text = (texto: string) => {{\n{relleno}\n    return texto\n  }}\n"
+            "}\n"
+        ),
+        "src/request.ts": "export class HonoRequest {\n  json() {\n    return this.raw.json()\n  }\n}\n",
+        "src/context.test.ts": "describe('c.json', () => {\n  it('json', () => { c.json({}) ; c.json({}) })\n})\n",
+    })
+    indexer.index_desktop()
+    for consulta in ("c.json", "Context json", "json Context", "Context.json"):
+        res = indexer.search_desktop(consulta, project="web", use_rerank=False)
+        assert res[0]["rel_path"].endswith("src/context.ts"), consulta
+        assert res[0]["symbol_name"] == "json" and res[0].get("exacto")
+    # las pruebas van detras del codigo salvo que se pidan
+    res = indexer.search_desktop("json objeto", project="web", use_rerank=False)
+    assert not res[0]["rel_path"].endswith(".test.ts")
+
+
+def test_definicion_de_objeto_grande_lista_sus_miembros(casa):
+    relleno = "\n".join(f"    const v{i} = 'relleno para que el objeto supere el tamano maximo {i}'" for i in range(20))
+    crear_proyecto(casa, "web", {
+        "src/apuntes.servicio.ts": (
+            "export const apuntesServicio = {\n"
+            f"  async listarMios(id: string) {{\n{relleno}\n    return []\n  }},\n"
+            f"  crear: async (datos: unknown) => {{\n{relleno}\n    return datos\n  }},\n"
+            "};\n"
+        ),
+    })
+    indexer.index_desktop()
+    import server_mcp
+    salida = server_mcp.search_desktop("apuntesServicio", project="web")
+    miembros = next(l for l in salida.splitlines() if l.startswith("Miembros"))
+    assert miembros.startswith("Miembros (2): listarMios:2, crear:")

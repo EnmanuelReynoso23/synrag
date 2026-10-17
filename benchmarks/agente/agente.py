@@ -203,7 +203,7 @@ def llamar_gemini(
     modelo: str,
     body: Dict[str, Any],
     api_key: str,
-    max_reintentos: int = 5,
+    max_reintentos: int = 8,  # 503 en rachas de varios minutos cuando el modelo esta saturado
     pausa_base: float = 3.0
 ) -> Dict[str, Any]:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}"
@@ -229,6 +229,11 @@ def llamar_gemini(
         except urllib.error.URLError as e:
             tiempo_espera = pausa_base * (intento + 1)
             sys.stderr.write(f"[URLError {e.reason}] Reintentando en {tiempo_espera:.1f}s...\n")
+            time.sleep(tiempo_espera)
+            continue
+        except (TimeoutError, ConnectionError, OSError) as e:  # la API a veces corta la lectura (30 s)
+            tiempo_espera = pausa_base * (intento + 1)
+            sys.stderr.write(f"[{type(e).__name__}] Reintentando en {tiempo_espera:.1f}s...\n")
             time.sleep(tiempo_espera)
             continue
 

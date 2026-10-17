@@ -1,5 +1,31 @@
 # Cambios
 
+## 1.6.0 (16-oct-2026)
+
+### Después de la medición (17-oct-2026, sin medir con el agente)
+- Arreglado: dos definiciones con el mismo nombre en un archivo (el método de la clase base y el de la subclase, como `open_session` en `flask/sessions.py`) salían unidas en un solo bloque con todo el código que hay entre ellas (87 líneas en vez de 13). Ahora solo se unen los trozos seguidos de una misma definición, y con "Clase miembro" va primero el miembro de esa clase.
+- Perfil `bajo_demanda` (`SYNRAG configure --perfil bajo_demanda`): arranca solo con `search_desktop` y `synrag_mas`, que registra el resto de herramientas cuando el agente lo pide. Su costo fijo no está medido todavía.
+- Pista por hook en Claude Code (`SYNRAG configure --pista`): un aviso corto para usar SynRAG, una sola vez por sesión y solo en mensajes que parecen de código, en lugar del bloque fijo del CLAUDE.md.
+- Recortados el bloque conciso (~100 tokens), la instrucción de uso (108 caracteres) y las descripciones de las herramientas esenciales. Guion nuevo `benchmarks/costo_fijo.py` para medir el costo fijo por turno con el contador de la API.
+- Web rehecha: explica el proyecto con las cifras de este archivo y de `CLAIMS.md`, sin simulaciones; el ejemplo de búsqueda es una salida real sobre Flask.
+
+Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md` (filas 34-41).
+
+### Cuánto ahorra (medido)
+- Sistema completo con un agente real (mismas 10 tareas x 2 rondas que en 1.5.0): **-63,9 %** de tokens frente a no usar SynRAG, calidad 87 % -> 94 % (IC95 -83 % a -24 %). La 1.5.0, el mismo día: -4,6 %. La mejora entre versiones sale de 2 tareas (buscar métodos dentro de clases); en las otras 8 quedan parecidas (fila 41).
+
+### Arreglado
+- Clases y objetos grandes perdían código: solo se guardaban los `method_definition`, y los campos con función flecha (`json = () => {}` en el `Context` de Hono) y lo que había entre ellos quedaban fuera del índice. Hono: 441 -> 226 líneas de código fuera de todo fragmento (`src/context.ts` 92 -> 0). Los objetos literales grandes (`const servicio = { listar() {}, crear: async () => {} }`) se trocean por miembro: +663 símbolos con nombre en un monorepo TS real (`benchmarks/cobertura.py`).
+- El grafo de impacto no veía los imports de varias líneas, `import D, { a } from` ni los re-export, y tomaba texto de docstrings como imports. Ahora salen del AST: cobertura 100 % y precisión 100 % frente al compilador de TypeScript y `ast` de Python (antes Hono 75 %, un monorepo TS real 48 %) (`benchmarks/imports.py`).
+- `get_impact_radius` cortaba en 30 filas y mezclaba los consumidores de símbolos con el mismo nombre.
+
+### Nuevo
+- Resolución de imports (`engine/resolver.py`): rutas relativas, `paths` y `baseUrl` del tsconfig con `extends` y el `tsconfig.app.json` de Vite, paquetes del monorepo por su `package.json` y módulos de Python con `src/`; sigue los barrels hasta la definición. Mismo archivo que TypeScript en el 100 % de los imports locales (`benchmarks/resolucion.py`).
+- `get_impact_radius` separa las definiciones (`archivo=` elige una). Precisión en símbolos con nombre repetido: 15-18 % -> 93-100 %, cobertura 100 %. `repo_map` usa la misma resolución.
+- `search_desktop`: línea de usos bajo la definición exacta (llamadas en su archivo y en los que la importan, primero el código); `objeto.miembro` y `Clase miembro` dan la definición del miembro; las pruebas van detrás del código salvo que la consulta las pida. Costo de la línea de usos en búsquedas por nombre: Flask -37/-39 % -> -36/-38 %, Hono -54 % -> -52 %.
+- Perfil esencial (`SYNRAG configure --perfil esencial`): 5 herramientas MCP, definiciones de ~2.000 a ~445 tokens.
+- La definición exacta de una clase u objeto grande trae la lista de sus miembros con su línea (`Miembros (9): __init__:94, from_envvar:102, ...`): el bloque es solo la cabecera porque cada miembro es su propio fragmento.
+
 ## 1.5.0 (15-oct-2026)
 
 Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md`.

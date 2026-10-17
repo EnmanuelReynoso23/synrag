@@ -1,6 +1,6 @@
 # Afirmaciones verificables
 
-Cada cifra y cada afirmación que aparece en el README o en la web tiene aquí su fecha, su método y el comando que la reproduce. Lo que no se pudo medir figura como "no afirmado". Última revisión: 15-oct-2026 (las filas 1-9 son del 6-oct salvo donde se indica).
+Cada cifra y cada afirmación que aparece en el README o en la web tiene aquí su fecha, su método y el comando que la reproduce. Lo que no se pudo medir figura como "no afirmado". Última revisión: 16-oct-2026 (las filas 1-9 son del 6-oct salvo donde se indica).
 
 Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76 proyectos, 96.318 fragmentos y 23.721 relaciones. Las cifras de latencia dependen de tu equipo y de la carga que tenga: ejecuta los guiones en el tuyo.
 
@@ -59,15 +59,31 @@ Equipo del autor, en reposo salvo donde se indica. Repos públicos clonados con 
 | 32 | Instalación limpia en un `HOME` vacío (Linux) | Instala, detecta `~/Projects`, indexa, busca y arranca el MCP con 28 herramientas | `bash scripts/ci/test_clean_install.sh` |
 | 33 | Sistema completo (búsqueda + filtro de salidas largas + modo conciso) con un agente real en tareas de varios pasos | -29,2 % de tokens cobrados por la API (191.567 frente a 270.717; 10 tareas x 2 rondas, Gemini 3.5 Flash-Lite); calidad (hechos esperados en la respuesta) 87 % -> 90 %. Por tipo: planear un cambio -81 %, pruebas con salida larga -38 %, orientarse -29 %, localizar y entender -23 %, entender -20 %. Pierde en pruebas con salida corta (+124 %, ~900 tokens de definiciones por turno) y en 2 de 3 tareas de Flask (+10 % y +30 %; en esta la calidad baja de 100 % a 83 %). Ronda 1 -15 %, ronda 2 -48 %: con 2 rondas el margen de error es amplio. Filas crudas en `benchmarks/agente/completo-resultados-2026-10-15.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2` |
 
+## Medido el 16-oct-2026 (versión 1.6)
+
+Mismo equipo. Flask `d086db8`, Hono `08807ce` (`git clone --depth 1`) y, como monorepo TypeScript real, el del autor (pnpm, ~1.800 archivos indexables, no público). "v1.5.0" es `origin/main` medido el mismo día con los mismos guiones. Los guiones de las filas 34-37 no usan ningún modelo: comparan contra el compilador de TypeScript (`typescript` de `node_modules`) y el módulo `ast` de Python, que hacen de oráculo.
+
+| # | Afirmación | Resultado | Cómo reproducirlo |
+|---|---|---|---|
+| 34 | El troceador ya no deja código fuera en clases y objetos grandes | Líneas de código (sin comentarios) fuera de todo fragmento: Hono 441 -> 226 (`src/context.ts` 92 -> 0, donde vivían `c.json`, `c.text` y `c.header`); Flask 50 -> 39; monorepo 1.175 -> 1.149. Símbolos con nombre propio en el monorepo: 12.841 -> 13.504 (los métodos de los objetos servicio) | `python benchmarks/cobertura.py <repos> [--engine <motor viejo>]` |
+| 35 | Los imports del grafo de impacto coinciden con los del compilador | Cobertura / precisión de las aristas (archivo, símbolo, origen): Flask 100 % / 96,0 % -> 100 % / 100 %; Hono 74,7 % / 93,9 % -> 100 % / 100 %; monorepo 48,0 % / 94,3 % -> 100 % / 100 % (13.688 imports). Mismo tiempo de troceo (1,49 -> 1,48 s en 1.805 archivos) | `python benchmarks/imports.py <repos> [--engine <motor viejo>]` |
+| 36 | Cada import se resuelve al mismo archivo que TypeScript | 100 % de los imports locales (Hono 960, monorepo 3.564). Resuelve de más 46 en Hono (paquetes del propio monorepo que TypeScript no encontró porque el clon no tenía `node_modules`) y 2 en el monorepo | `python benchmarks/resolucion.py <repos>` |
+| 37 | `get_impact_radius` separa las definiciones con el mismo nombre | Precisión de los consumidores de cada definición, símbolos con nombre repetido: por nombre (v1.5.0) Hono 18,4 %, monorepo 15,4 %; resuelto (v1.6) 93,2 % y 99,9 %. Todos los símbolos: 38,8 / 43,7 % -> 96,9 / 100 %. Cobertura 100 % en todos los casos. Ejemplo: `useAuth` definido en dos paquetes, 54 y 21 consumidores; v1.5.0 decía 30 (cortaba en 30 filas) | `python benchmarks/resolucion.py <repos>` |
+| 38 | Costo de la línea de usos en las búsquedas por nombre | Encontrar y leer una función frente a grep + tramo, 3 semillas: Flask -37 a -39 % (v1.5.0) -> -36 a -38 % (v1.6); Hono -54 % -> -52 %; lenguaje natural Flask -37 % en ambas. Definición primera en 23-25 de 25 y 16 de 16 en ambas | `python benchmarks/ahorro.py --repo <repo> --indexar --semilla N` |
+| 39 | Perfil esencial de herramientas MCP | 5 herramientas, 1.781 caracteres (~445 tokens); el perfil completo, 30 con las dos de Gemini, 8.139 caracteres (~2.034 tokens) | `SYNRAG_PERFIL=esencial python scripts/ci/mcp_tools_list.py` |
+| 40 | La línea de usos no hace más lenta la búsqueda | 30 consultas nuevas por nombre (10 símbolos al azar por repo: Flask, Hono y el monorepo; semilla 1): mediana 59 ms (v1.5.0) frente a 60 ms (v1.6), p90 82 frente a 86 ms. `get_impact_radius` resuelto: 18-42 ms (5 símbolos). La primera consulta de cada proyecto carga la lista de sus archivos y la guarda 60 s | `python benchmarks/latencia_usos.py <repos> [--engine <motor viejo>]` |
+| 41 | Sistema completo con un agente real, v1.6 frente a v1.5 el mismo día | Mismas 10 tareas x 2 rondas que la fila 33, Gemini 3.5 Flash-Lite, tokens cobrados por la API. **v1.6: -63,9 %** frente a no usar SynRAG (305.736 -> 110.338; IC95 por tareas -83 % a -24 %), calidad 87 % -> 94 %; rondas -67 % y -61 %. **v1.5 el mismo día: -4,6 %** (232.681 -> 222.035; IC95 -34 % a +15 %), calidad 87 % -> 92 % (el 15-oct midió -29,2 %: entre días varía mucho). Con SynRAG, la v1.6 gasta un 50 % menos que la v1.5 (110.338 frente a 222.035), pero el IC95 va de -80 % a +29 %: la diferencia sale de 2 tareas (`hono_c_json` -94 %, que la v1.6 resuelve y la v1.5 falla en una de dos rondas; métodos de `Config` -76 %, por la lista de miembros); en las otras 8 quedan parecidas. Sigue perdiendo en pruebas con salida corta (+117 %, costo fijo por turno) y en firma de la sesión de Flask (+38 %). Las 4 tareas sobre el propio repo de SynRAG no son una comparación limpia (cada versión pregunta por su propio código). Filas crudas: `benchmarks/agente/completo-resultados-2026-10-16-v1.6.json` y `-v1.5.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2`, en esta versión y en un `git worktree` de la anterior |
+
 Descartado con mediciones: LLMLingua-2 (comprime ~50 % pero rompe el código, borra resultados de pruebas en logs y pesa 1,9-6,6 GB). Ver `investigacion/llmlingua.md`.
 
 ## No afirmado
 
 - **Ahorro en dinero o en sesiones completas de trabajo.** Lo medido son tareas acotadas (filas 19-25 y 33). No hay una medición de sesiones largas reales con y sin SynRAG. `get_savings_report` sigue mostrando una referencia contrafactual, no un ahorro medido.
+- **Que la mejora de la fila 41 entre versiones sea general.** Viene de 2 de 10 tareas y el intervalo de confianza incluye el cero; con un solo modelo y 2 rondas. El ahorro de la v1.6 frente a no usar SynRAG sí excluye el cero (IC95 -83 % a -24 %).
 - **Que la fila 33 valga para cualquier agente.** Son 10 tareas, un solo modelo (Gemini 3.5 Flash-Lite) y 2 rondas con mucha varianza. No está medido con Claude ni en sesiones largas.
 - **Rust y Go.** El chunker trae sus gramáticas y devuelve fragmentos, pero sin nombre de símbolo (probado el 6-oct-2026) y `ALLOWED_EXTENSIONS` de `engine/indexer.py` no incluye `.rs` ni `.go`, así que esos archivos no se indexan. No están soportados.
 - **Compatibilidad** con Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS y Windows con WSL. Se configuran según su documentación, pero no se han probado. La integración continua (`.github/workflows/pruebas.yml`) prueba Linux y macOS cuando se suba a GitHub.
-- **Las demos de la web** (explorador, terminal, observador) son simulaciones con datos de ejemplo.
+- **La web** ya no tiene demos simuladas (17-oct-2026). Sus cifras salen de `src/data/medido.ts`, que copia filas de este archivo; el ejemplo de búsqueda es una salida real sobre Flask `d086db8`.
 
 ## Cómo añadir o cambiar una afirmación
 

@@ -534,23 +534,31 @@ def main():
     elif arg1 in ("watch", "--watch", "-w"):
         run_watch_ui()
     elif arg1 in ("configure", "install", "--configure"):
-        if "--conciso" in sys.argv:
+        if installer.valor_de_perfil(sys.argv) or "--perfil" in sys.argv:
+            installer.configure_perfil(installer.valor_de_perfil(sys.argv))
+        elif "--conciso" in sys.argv:
             import conciso
             conciso.activar()
         elif "--filtro-largas" in sys.argv:
             installer.configure_filtro_largas()
         elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
             installer.configure_filtro()
+        elif "--pista" in sys.argv:
+            installer.configure_pista()
         else:
             installer.run_full_installation()
     elif arg1 in ("uninstall", "--uninstall"):
-        if "--conciso" in sys.argv:
+        if any(a == "--perfil" or a.startswith("--perfil=") for a in sys.argv):
+            installer.uninstall_perfil()
+        elif "--conciso" in sys.argv:
             import conciso
             conciso.desactivar()
         elif "--filtro-largas" in sys.argv:
             installer.uninstall_filtro_largas()
         elif "--filtro" in sys.argv or "--filtro-terminal" in sys.argv:
             installer.uninstall_filtro()
+        elif "--pista" in sys.argv:
+            installer.uninstall_pista()
         else:
             installer.run_uninstall()
     elif arg1 in ("filtrar", "--filtrar"):
