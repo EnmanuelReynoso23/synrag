@@ -164,6 +164,8 @@ SYNRAG configure --filtro-largas   # recorta salidas largas de la terminal en Cl
 SYNRAG configure --filtro          # resume salidas de instalar/compilar/probar
 SYNRAG configure --conciso         # respuestas cortas (basado en Caveman de Julius Brussee, Apache-2.0)
 SYNRAG configure --perfil esencial # solo 5 herramientas MCP (~445 tokens de definiciones en vez de ~2.000)
+SYNRAG configure --perfil bajo_demanda # arranca con search_desktop; synrag_mas activa el resto (costo sin medir)
+SYNRAG configure --pista           # Claude Code: aviso de usar SynRAG una vez por sesión, solo en mensajes de código
 
 # Ver log en vivo del demonio reactivo (Ctrl+S)
 SYNRAG watch
@@ -187,14 +189,9 @@ WHERE tokens_retrieved = 631 AND tokens_original_file = 2500 AND results_count =
 
 ---
 
-## Web Dashboard & Simulador Interactivo
+## Web
 
-El repositorio incluye la aplicación web oficial (`synrag-web`), diseñada bajo el tema Dark Mode (`#0D1117`) y Neón Cyan (`#00E5FF`):
-
-- **Simulador AST en Vivo:** Visualización en 3 modos: Código fuente, Árbol jerárquico Tree-sitter y Grafo de Dependencias SVG interactivo.
-- **Calculadora de Escenarios de Tokens:** Deslizadores para estimar un escenario hipotético con supuestos que tú ajustas; no es una medición ni una promesa de ahorro.
-- **Simulador de Terminal CLI:** Simulación en el navegador, con datos ficticios, de la salida de los comandos de SYNRAG.
-- **Métricas medidas por el autor (6-oct-2026, ~75 proyectos indexados):** ~96 mil fragmentos AST, ~90 ms por consulta nueva (mediana en reposo; p90 ~110 ms), ~9 ms si se repite la consulta y 23.704 relaciones en el grafo de impacto.
+La web (`src/`, React 19 + Tailwind 4, tema `#0D1117` y cian `#00E5FF`) explica qué es SynRAG, cómo funciona y qué se midió. No tiene simulaciones ni cifras propias: todas salen de `src/data/medido.ts`, que copia las filas de `CLAIMS.md` y enlaza cada una. Si una cifra cambia en `CLAIMS.md`, se cambia en `medido.ts` el mismo día. El ejemplo de búsqueda es una salida real sobre Flask.
 
 ### Levantar la Web en Desarrollo
 
@@ -222,9 +219,9 @@ synrag/
 │   ├── installer.py              # Auto-configurador multi-IA multiplataforma
 │   ├── cli.py                    # Interfaz rica de terminal (Rich + Dark Mode)
 │   └── watcher.py                # Observador opcional de cambios (Watchdog)
-├── src/                          # Aplicación Web y Simulador (React 19 + Tailwind 4)
-│   ├── components/               # Hero, Playground, Calculator, Terminal, Metrics...
-│   ├── data/mockData.ts          # Modelos de datos del ecosistema
+├── src/                          # Aplicación web (React 19 + Tailwind 4)
+│   ├── components/               # Hero, Problema, ComoFunciona, Resultados, Herramientas, Install, Faq
+│   ├── data/medido.ts            # Cifras de la web (copiadas de CLAIMS.md, con su fila)
 │   └── index.css                 # Sistema de diseño (#0D1117 + Neón Cyan)
 ├── public/                       # Assets públicos, logos vectoriales e install.sh
 ├── install.sh                    # Script universal de instalación en 1 línea

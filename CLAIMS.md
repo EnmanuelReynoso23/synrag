@@ -83,7 +83,7 @@ Descartado con mediciones: LLMLingua-2 (comprime ~50 % pero rompe el código, bo
 - **Que la fila 33 valga para cualquier agente.** Son 10 tareas, un solo modelo (Gemini 3.5 Flash-Lite) y 2 rondas con mucha varianza. No está medido con Claude ni en sesiones largas.
 - **Rust y Go.** El chunker trae sus gramáticas y devuelve fragmentos, pero sin nombre de símbolo (probado el 6-oct-2026) y `ALLOWED_EXTENSIONS` de `engine/indexer.py` no incluye `.rs` ni `.go`, así que esos archivos no se indexan. No están soportados.
 - **Compatibilidad** con Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS y Windows con WSL. Se configuran según su documentación, pero no se han probado. La integración continua (`.github/workflows/pruebas.yml`) prueba Linux y macOS cuando se suba a GitHub.
-- **Las demos de la web** (explorador, terminal, observador) son simulaciones con datos de ejemplo.
+- **La web** ya no tiene demos simuladas (17-oct-2026). Sus cifras salen de `src/data/medido.ts`, que copia filas de este archivo; el ejemplo de búsqueda es una salida real sobre Flask `d086db8`.
 
 ## Cómo añadir o cambiar una afirmación
 
