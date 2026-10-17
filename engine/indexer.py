@@ -669,13 +669,26 @@ def buscar_definiciones(tbl, query: str, project: str | None = None, limit: int 
     except Exception:
         return []
     # Un bloque largo queda partido en varios trozos con el mismo nombre: se unen en uno y el texto
-    # se lee del archivo (cubre la definicion entera y esta al dia aunque el indice no).
+    # se lee del archivo (cubre la definicion entera y esta al dia aunque el indice no). Solo se unen
+    # trozos seguidos: dos definiciones con el mismo nombre en un archivo (el metodo de la clase base
+    # y el de la subclase) son dos resultados, no un bloque con todo lo que hay entre ellas.
     grupos: Dict[tuple, List[Dict[str, Any]]] = {}
     for r in filas:
         grupos.setdefault((r.get("rel_path"), r.get("symbol_name")), []).append(r)
-    salida = []
+    bloques: List[List[Dict[str, Any]]] = []
     for trozos in grupos.values():
-        trozos.sort(key=lambda r: r.get("chunk_index", 0))
+        trozos.sort(key=lambda r: (int(r.get("line", 1)), r.get("chunk_index", 0)))
+        actual = [trozos[0]]
+        for t in trozos[1:]:
+            fin = max(int(x.get("end_line", x.get("line", 1))) for x in actual)
+            if int(t.get("line", 1)) <= fin + 1:
+                actual.append(t)
+            else:
+                bloques.append(actual)
+                actual = [t]
+        bloques.append(actual)
+    salida = []
+    for trozos in bloques:
         r = dict(trozos[0])
         r.pop("vector", None)
         r["line"] = min(int(t.get("line", 1)) for t in trozos)
@@ -714,17 +727,28 @@ def definiciones_de_consulta(tbl, query: str, project: str | None = None, limit:
         dueno, miembro = palabras
     else:
         return []
-    defs = buscar_definiciones(tbl, miembro, project=project, limit=max(limit, 10), tipo=tipo)
-    clases = {r.get("rel_path") for r in buscar_definiciones(tbl, dueno, project=project, limit=10, tipo=tipo)
-              if r.get("symbol_kind") in ("class", "interface", "type", "variable")}
+    def de_la_clase(dueno: str, miembro: str):
+        defs = buscar_definiciones(tbl, miembro, project=project, limit=max(limit, 10), tipo=tipo)
+        clases: Dict[str, List[int]] = {}  # archivo -> lineas donde empieza la clase
+        for r in buscar_definiciones(tbl, dueno, project=project, limit=10, tipo=tipo):
+            if r.get("symbol_kind") in ("class", "interface", "type", "variable"):
+                clases.setdefault(r.get("rel_path"), []).append(int(r.get("line", 1)))
+        return defs, clases
+
+    defs, clases = de_la_clase(dueno, miembro)
     if not clases and not m and len(palabras) == 2:  # tambien "from_envvar Config"
         dueno, miembro = miembro, dueno
-        defs = buscar_definiciones(tbl, miembro, project=project, limit=max(limit, 10), tipo=tipo)
-        clases = {r.get("rel_path") for r in buscar_definiciones(tbl, dueno, project=project, limit=10, tipo=tipo)
-                  if r.get("symbol_kind") in ("class", "interface", "type", "variable")}
+        defs, clases = de_la_clase(dueno, miembro)
+
+    def orden(r):
+        # Primero el miembro definido despues del inicio de la clase y lo mas cerca de el: si la clase
+        # base del mismo archivo define un metodo con el mismo nombre, va detras.
+        inicios = [x for x in clases.get(r.get("rel_path"), []) if x <= int(r.get("line", 1))]
+        return (r.get("rel_path") not in clases, not inicios, int(r.get("line", 1)) - max(inicios) if inicios else 0)
+
     if not m:  # dos palabras: solo cuenta si el miembro esta en el archivo de la clase
-        return [r for r in defs if r.get("rel_path") in clases][:limit]
-    return sorted(defs, key=lambda r: r.get("rel_path") not in clases)[:limit]
+        return sorted((r for r in defs if r.get("rel_path") in clases), key=orden)[:limit]
+    return sorted(defs, key=orden)[:limit]
 
 
 def _abs_home(rel: str) -> str:

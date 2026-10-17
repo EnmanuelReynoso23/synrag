@@ -58,6 +58,35 @@ def test_definicion_exacta_primero_y_entera(casa):
     assert res[0]["line"] == 1 and "ULTIMA_LINEA" in res[0]["content"]  # trozos unidos
 
 
+def test_dos_definiciones_con_el_mismo_nombre_no_se_unen(casa):
+    # Flask: SessionInterface.open_session y SecureCookieSessionInterface.open_session en el mismo
+    # archivo. Antes salian unidas en un bloque con todo lo que habia entre las dos.
+    relleno = "".join(f"    def metodo_{i}(self):\n        return 'relleno para que la clase sea grande {i}'\n\n" for i in range(60))
+    crear_proyecto(casa, "demo", {
+        "sessions.py": (
+            "class SessionInterface:\n"
+            "    def open_session(self, app, request):\n"
+            "        raise NotImplementedError()\n"
+            "\n" + relleno +
+            "\n"
+            "\n"
+            "def entre_medias():\n"
+            "    return 'NO_DEBE_SALIR'\n"
+            "\n"
+            "\n"
+            "class SecureCookieSessionInterface(SessionInterface):\n" + relleno +
+            "    def open_session(self, app, request):\n"
+            "        return 'LA_DE_LA_SUBCLASE'\n"
+        ),
+    })
+    indexer.index_desktop()
+    res = [r for r in indexer.search_desktop("open_session", project="demo", use_rerank=False) if r.get("exacto")]
+    assert len(res) == 2
+    assert all("NO_DEBE_SALIR" not in r["content"] for r in res)
+    res = indexer.search_desktop("SecureCookieSessionInterface open_session", project="demo", use_rerank=False)
+    assert res[0].get("exacto") and "LA_DE_LA_SUBCLASE" in res[0]["content"]
+
+
 def test_palabras_sueltas_encuentran_nombres_compuestos(casa):
     crear_proyecto(casa, "demo", {
         "lecturas.ts": "export function esSinCupo(error: unknown): boolean {\n  return String(error).includes('429');\n}\n",
