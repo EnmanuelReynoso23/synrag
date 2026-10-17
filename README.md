@@ -42,7 +42,7 @@ Cada cifra sale de un guion de `benchmarks/` que cualquiera puede repetir en su 
 | Documentación (fragmentos de ~200 tokens) | -22 % frente a grep, -91 % frente al archivo entero | `benchmarks/docs.py` |
 | Empaquetar un repo solo con firmas (como Repomix `--compress`) | Flask -76 %, Hono -84 % frente al repo completo | `benchmarks/mapa.py` |
 | Salidas largas de terminal (filtro opcional) | -87 a -99 % conservando todas las líneas de error; la salida completa queda en un archivo | `benchmarks/filtro.py` |
-| Costo fijo: definiciones de las 28 herramientas MCP | ~2.000 tokens por turno (8.139 caracteres); con `SYNRAG configure --perfil esencial`, 5 herramientas: ~445 (1.781 caracteres) | `scripts/ci/mcp_tools_list.py` |
+| Costo fijo por turno (contado con la API de Gemini) | Definiciones: perfil completo 2.068 tokens, `esencial` (5 herramientas) 412, `bajo_demanda` (2) 159; instrucción de uso 108; bloque conciso 115 (antes del recorte: 2.091, 435, 188 y 248) | `benchmarks/costo_fijo.py` |
 
 Lo que más pesa en una sesión real no es ninguna herramienta: es la longitud de la sesión, porque cada turno reenvía todo el historial. `context_budget_alert` y `session_handoff` ayudan a cortar a tiempo. Detalle y límites de cada cifra: `CLAIMS.md`.
 
@@ -163,8 +163,8 @@ SYNRAG empaquetar ~/mi-proyecto --salida paquete.md [--sin-comprimir]
 SYNRAG configure --filtro-largas   # recorta salidas largas de la terminal en Claude Code (hook PostToolUse)
 SYNRAG configure --filtro          # resume salidas de instalar/compilar/probar
 SYNRAG configure --conciso         # respuestas cortas (basado en Caveman de Julius Brussee, Apache-2.0)
-SYNRAG configure --perfil esencial # solo 5 herramientas MCP (~445 tokens de definiciones en vez de ~2.000)
-SYNRAG configure --perfil bajo_demanda # arranca con search_desktop; synrag_mas activa el resto (costo sin medir)
+SYNRAG configure --perfil esencial # solo 5 herramientas MCP (412 tokens de definiciones en vez de 2.068)
+SYNRAG configure --perfil bajo_demanda # arranca con search_desktop; synrag_mas activa el resto (159 tokens por turno)
 SYNRAG configure --pista           # Claude Code: aviso de usar SynRAG una vez por sesión, solo en mensajes de código
 
 # Ver log en vivo del demonio reactivo (Ctrl+S)

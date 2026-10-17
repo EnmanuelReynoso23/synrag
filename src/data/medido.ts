@@ -140,9 +140,9 @@ export const HERRAMIENTAS: Grupo[] = [
 ];
 
 export const PERFILES = [
-  { nombre: 'completo', herramientas: '28 (30 con Gemini)', costo: '~2.000 tokens por turno', cuando: 'Clientes que cargan las herramientas bajo demanda, como Claude Code.', fila: '26' },
-  { nombre: 'esencial', herramientas: '5', costo: '~445 tokens por turno', cuando: 'Clientes que cobran todas las definiciones en cada turno.', fila: '39' },
-  { nombre: 'bajo_demanda', herramientas: '1 + synrag_mas', costo: 'sin medir todavía', cuando: 'Arranca solo con search_desktop; el resto se activa cuando el agente lo pide.', fila: '-' },
+  { nombre: 'completo', herramientas: '28 (30 con Gemini)', costo: '2.068 tokens por turno', cuando: 'Clientes que cargan las herramientas bajo demanda, como Claude Code.', fila: '42' },
+  { nombre: 'esencial', herramientas: '5', costo: '412 tokens por turno', cuando: 'Clientes que cobran todas las definiciones en cada turno.', fila: '42' },
+  { nombre: 'bajo_demanda', herramientas: '2 (search_desktop y synrag_mas)', costo: '159 tokens por turno', cuando: 'Arranca solo con search_desktop; el resto se activa cuando el agente lo pide.', fila: '42' },
 ];
 
 export const INTEGRACIONES = [

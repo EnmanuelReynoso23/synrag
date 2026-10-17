@@ -4,9 +4,9 @@
 
 ### Después de la medición (17-oct-2026, sin medir con el agente)
 - Arreglado: dos definiciones con el mismo nombre en un archivo (el método de la clase base y el de la subclase, como `open_session` en `flask/sessions.py`) salían unidas en un solo bloque con todo el código que hay entre ellas (87 líneas en vez de 13). Ahora solo se unen los trozos seguidos de una misma definición, y con "Clase miembro" va primero el miembro de esa clase.
-- Perfil `bajo_demanda` (`SYNRAG configure --perfil bajo_demanda`): arranca solo con `search_desktop` y `synrag_mas`, que registra el resto de herramientas cuando el agente lo pide. Su costo fijo no está medido todavía.
+- Perfil `bajo_demanda` (`SYNRAG configure --perfil bajo_demanda`): arranca solo con `search_desktop` y `synrag_mas`, que registra el resto de herramientas cuando el agente lo pide. Costo fijo: 159 tokens por turno, frente a 2.068 del perfil completo (CLAIMS fila 42).
 - Pista por hook en Claude Code (`SYNRAG configure --pista`): un aviso corto para usar SynRAG, una sola vez por sesión y solo en mensajes que parecen de código, en lugar del bloque fijo del CLAUDE.md.
-- Recortados el bloque conciso (~100 tokens), la instrucción de uso (108 caracteres) y las descripciones de las herramientas esenciales. Guion nuevo `benchmarks/costo_fijo.py` para medir el costo fijo por turno con el contador de la API.
+- Recortados el bloque conciso (248 -> 115 tokens), la instrucción de uso (188 -> 108) y las descripciones de las herramientas esenciales (435 -> 412) (CLAIMS fila 42). Guion nuevo `benchmarks/costo_fijo.py` para medir el costo fijo por turno con el contador de la API.
 - Web rehecha: explica el proyecto con las cifras de este archivo y de `CLAIMS.md`, sin simulaciones; el ejemplo de búsqueda es una salida real sobre Flask.
 
 Cada cifra sale de un guion de `benchmarks/` y tiene su fila en `CLAIMS.md` (filas 34-41).
