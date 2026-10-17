@@ -37,7 +37,7 @@ AQUI = Path(__file__).resolve().parent
 RAIZ = AQUI.parent
 MODELO = "gemini-3.5-flash-lite"
 URL_COUNT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODELO}:countTokens"
-PERFILES = ("completo", "esencial")
+PERFILES = ("completo", "esencial", "bajo_demanda")
 CLAVES_NO_GEMINI = ("title", "default", "additionalProperties", "$schema", "$defs", "definitions")
 
 
