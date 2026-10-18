@@ -56,7 +56,7 @@ The installer creates an isolated CPU-only virtualenv, adds the `SYNRAG` command
 
 ### Claude Code plugin
 
-The repo is also a Claude Code plugin marketplace. The plugin adds a skill that tells Claude when to use each SynRAG tool (~100 tokens per session):
+The repo is also a Claude Code plugin marketplace. The plugin adds a skill that tells Claude when to use each SynRAG tool (~140 tokens per session):
 
 ```bash
 claude plugin marketplace add EnmanuelReynoso23/synrag

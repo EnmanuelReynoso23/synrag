@@ -93,7 +93,7 @@ Estado de compatibilidad (6-oct-2026): **probado en la práctica con Claude Code
 
 ### Plugin de Claude Code
 
-El repositorio también es un marketplace de plugins de Claude Code. El plugin añade una skill que le dice a Claude cuándo usar cada herramienta de SynRAG (~100 tokens por sesión). No instala el motor: primero va el instalador de arriba.
+El repositorio también es un marketplace de plugins de Claude Code. El plugin añade una skill que le dice a Claude cuándo usar cada herramienta de SynRAG (~140 tokens por sesión). No instala el motor: primero va el instalador de arriba.
 
 ```bash
 claude plugin marketplace add EnmanuelReynoso23/synrag
