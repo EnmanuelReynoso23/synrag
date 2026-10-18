@@ -2,6 +2,10 @@
 
 **AST-Native MCP Engine · Búsqueda de código local · Dependency Impact Graph**
 
+Español · [English](README.en.md)
+
+<p align="center"><img src="docs/demo.gif" alt="Demo de SynRAG: indexa Flask y Hono y, al pedir SecureCookieSessionInterface open_session, devuelve ese método primero" width="600"></p>
+
 Motor local de búsqueda de código para agentes de IA, por el protocolo MCP. Probado con Claude Code y Google Antigravity; el instalador también lo configura para Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code y Zed (sin probar).
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
@@ -86,6 +90,15 @@ Al instalarse o al ejecutar `SYNRAG configure`, SyntaxRAG hace dos cosas en cada
 Garantías del instalador: no crea la carpeta de una IA que no está instalada, hace una copia `.bak-AAAAMMDD-HHMMSS` antes de modificar un archivo existente, nunca sobrescribe un JSON que no pueda leer y es idempotente (ejecutarlo dos veces no duplica nada).
 
 Estado de compatibilidad (6-oct-2026): **probado en la práctica con Claude Code y Google Antigravity.** Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code y Zed se configuran según su documentación, pero no se han probado. Si usas alguna, abre una incidencia con el resultado.
+
+### Plugin de Claude Code
+
+El repositorio también es un marketplace de plugins de Claude Code. El plugin añade una skill que le dice a Claude cuándo usar cada herramienta de SynRAG (~100 tokens por sesión). No instala el motor: primero va el instalador de arriba.
+
+```bash
+claude plugin marketplace add EnmanuelReynoso23/synrag
+claude plugin install synrag@synrag
+```
 
 ---
 

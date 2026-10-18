@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use SynRAG in your work, please cite it as below."
+title: "SyntaxRAG (SynRAG): AST-native local code search over MCP with a dependency impact graph"
+abstract: "Local MCP server that chunks code by its syntax tree with Tree-sitter, retrieves candidates with BM25 over LanceDB, reranks them on CPU with FlashRank and resolves imports into a dependency impact graph, so coding agents read the exact definition instead of whole files. Measured with a real agent on 10 multi-step tasks x 2 rounds: -63.9 % billed tokens (95 % CI -83 % to -24 %), correct answers 87 % -> 94 %. Every figure has a reproducible script in benchmarks/ and a row in CLAIMS.md."
+type: software
+authors:
+  - family-names: Reynoso
+    given-names: Enmanuel
+repository-code: "https://github.com/EnmanuelReynoso23/synrag"
+license: MIT
+version: 1.6.0
+date-released: 2026-10-16
+keywords:
+  - model context protocol
+  - code search
+  - retrieval-augmented generation
+  - tree-sitter
+  - coding agents
+  - token efficiency

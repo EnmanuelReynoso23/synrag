@@ -1,0 +1,14 @@
+{
+  "name": "synrag",
+  "displayName": "SynRAG",
+  "version": "1.6.0",
+  "description": "Local AST-native code search over MCP. Teaches Claude to locate the exact definition, its callers and its impact radius before reading or editing files, so it spends fewer tokens.",
+  "author": {
+    "name": "Enmanuel Reynoso",
+    "url": "https://github.com/EnmanuelReynoso23"
+  },
+  "homepage": "https://github.com/EnmanuelReynoso23/synrag",
+  "repository": "https://github.com/EnmanuelReynoso23/synrag",
+  "license": "MIT",
+  "keywords": ["mcp", "code-search", "tree-sitter", "rag", "tokens", "impact-analysis"]
+}
