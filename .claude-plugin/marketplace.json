@@ -1,0 +1,15 @@
+{
+  "name": "synrag",
+  "description": "SynRAG: local MCP code search that cuts the tokens your coding agent spends",
+  "owner": {
+    "name": "Enmanuel Reynoso",
+    "url": "https://github.com/EnmanuelReynoso23"
+  },
+  "plugins": [
+    {
+      "name": "synrag",
+      "source": "./plugins/synrag",
+      "description": "Teaches Claude when and how to use the SynRAG MCP server: exact definitions, impact radius and related tests instead of reading whole files"
+    }
+  ]
+}

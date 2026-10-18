@@ -96,7 +96,9 @@ def test_lint_summary_node_missing_node_modules(tmp_path):
     """En proyecto Node sin node_modules debe informar claramente."""
     (tmp_path / "package.json").write_text('{"name": "demo"}\n', encoding="utf-8")
 
-    res = runner_tools.lint_summary(cwd=str(tmp_path))
+    # Sin linters globales en el PATH: un eslint instalado en el equipo no debe cambiar el resultado
+    with patch("tools.runner_tools.shutil.which", return_value=None):
+        res = runner_tools.lint_summary(cwd=str(tmp_path))
 
     assert "No se encontró node_modules ni un linter" in res
     assert "npm install" in res or "pnpm install" in res
