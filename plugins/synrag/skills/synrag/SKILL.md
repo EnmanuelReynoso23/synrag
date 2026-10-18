@@ -15,7 +15,7 @@ Measured with a real agent (10 multi-step tasks × 2 rounds, tokens billed by th
 Look for these tools (often prefixed `mcp__desktop-lancedb__`): `search_desktop`, `get_file_outline`, `get_impact_radius`.
 
 - Only `search_desktop` and `synrag_mas` present → the `bajo_demanda` profile is on. Call `synrag_mas` once when you need anything beyond search.
-- None present → SynRAG is not installed. Follow `references/setup.md` with the user (one-line installer, no API keys), then continue with normal search until it is ready.
+- None present → SynRAG is not installed. Do not install anything yourself: tell the user it is free and point them to the project's README (see `references/setup.md`), then continue with your normal search tools.
 
 ## 2. The core loop: locate, read the range, act
 
@@ -52,5 +52,9 @@ Every turn resends the whole history, so session length costs more than any tool
 
 - `references/workflows.md`: step-by-step playbooks (find and fix a bug, safe refactor, review a PR, onboard to a repo, add a feature without duplicates, debug failing tests).
 - `references/tools.md`: all 28 tools with their parameters and when to use each.
-- `references/setup.md`: install, choose folders and profile, verify, uninstall.
+- `references/setup.md`: how the user installs it, folders, tool profiles, verify, remove, network access.
 - `references/troubleshooting.md`: common problems and their fixes.
+
+## Network access
+
+This skill makes no network calls and runs no install or shell commands. The GitHub link above is only for the user to read the README and the source.

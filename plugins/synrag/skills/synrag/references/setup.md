@@ -1,20 +1,18 @@
 # Setup
 
-SynRAG is free and open source (MIT). It runs on CPU, needs Python 3.10+, and never sends code anywhere (the two optional Gemini tools only work if the user sets their own `GEMINI_API_KEY`). Tested on Linux; macOS and WSL should work but are not tested yet.
+SynRAG is free and open source (MIT). It runs on CPU, needs Python 3.10+, and never sends code anywhere (two optional tools use Gemini only if the user sets their own `GEMINI_API_KEY`). Tested on Linux; macOS and WSL should work but are not tested yet.
 
-## Install (one line)
+## Installing is the user's job, not yours
 
-Ask the user before running it, then:
+This skill never installs, downloads or deletes anything, and you should not either. If SynRAG is missing:
 
-```bash
-curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash
-```
+1. Tell the user that this skill needs the SynRAG MCP server and that it is free.
+2. Point them to the installation section of the project's README: https://github.com/EnmanuelReynoso23/synrag#readme. Suggest they read the installer first and preview it with its dry-run option, which shows what it would change without writing anything.
+3. Ask them to restart their agent once it is installed, then continue with your normal search tools in the meantime.
 
-Or from a clone: `git clone https://github.com/EnmanuelReynoso23/synrag.git && cd synrag && ./install.sh`.
+What the installer does, so you can answer questions about it: it places the engine in `~/.local/opt/lancedb-hub` inside an isolated Python virtualenv, adds the `SYNRAG` command in `~/.local/bin`, and configures only the AI tools that are present. For each one it registers the MCP server `desktop-lancedb` and adds a short usage block to its global instructions. It backs up every file it changes, never overwrites a JSON it cannot parse, and running it twice changes nothing.
 
-What it does: copies the engine to `~/.local/opt/lancedb-hub`, creates an isolated virtualenv, installs the `SYNRAG` / `synrag` commands in `~/.local/bin`, and configures **only the AI tools that are installed**: it registers the MCP server `desktop-lancedb` and adds a short usage block to their global instructions. It backs up each file it changes (`.bak-YYYYMMDD-HHMMSS`), never overwrites a JSON it cannot parse, and is idempotent. Preview without writing anything: `./install.sh --dry-run`.
-
-| Agent | MCP config | Status |
+| Agent | MCP config file | Status |
 |---|---|---|
 | Claude Code | `~/.claude.json` | Tested |
 | Google Antigravity | `~/.gemini/config/mcp_config.json` | Tested |
@@ -25,47 +23,31 @@ What it does: copies the engine to `~/.local/opt/lancedb-hub`, creates an isolat
 | Cline / Roo Code | VS Code `cline_mcp_settings.json` | Configured, not tested |
 | Zed | `~/.config/zed/settings.json` (pure JSON only) | Configured, not tested |
 
-Restart the agent after installing so it loads the new MCP server.
+## Settings the user can change
 
-## Choose what gets indexed
+Suggest these to the user; they run them in their own terminal.
 
-By default it detects common folders such as `~/Projects`, `~/code` or `~/dev`.
+**What gets indexed.** By default SynRAG detects common folders such as `~/Projects`, `~/code` or `~/dev`. The user manages the list with `SYNRAG carpetas` (show), `SYNRAG agregar <path> [name]` (add) and `SYNRAG quitar <path>` (remove), then `SYNRAG index` to reindex. The list is stored in `~/.config/synrag/carpetas.txt`. From the agent you can refresh the index with the `reindex_desktop` tool.
 
-```bash
-SYNRAG carpetas                       # what is indexed and where the list comes from
-SYNRAG agregar ~/work/my-app my-app   # add a folder (optional project name)
-SYNRAG quitar ~/work/old-app          # stop indexing a folder
-SYNRAG index                          # reindex everything
-```
+**Tool profile.** Many clients resend tool definitions every turn, so fewer tools means fewer fixed tokens:
 
-The list lives in `~/.config/synrag/carpetas.txt` (or the `SYNRAG_CARPETAS` environment variable).
-
-## Choose a tool profile
-
-Tool definitions are resent every turn in many clients, so fewer tools means fewer fixed tokens.
-
-```bash
-SYNRAG configure --perfil esencial      # 5 tools, ~412 tokens of definitions
-SYNRAG configure --perfil bajo_demanda  # starts with 2 tools, ~159 tokens; synrag_mas adds the rest
-SYNRAG uninstall --perfil               # back to all 28 (~2,068 tokens)
-```
+| Profile | Command | Tools | Fixed cost per turn |
+|---|---|---|---|
+| Full (default) | `SYNRAG uninstall --perfil` | 28 | ~2,068 tokens |
+| Essential | `SYNRAG configure --perfil esencial` | 5 | ~412 tokens |
+| On demand | `SYNRAG configure --perfil bajo_demanda` | 2, then `synrag_mas` adds the rest | ~159 tokens |
 
 Claude Code loads tool definitions on demand, so it does not need a profile.
 
-## Verify
+## Verify from the agent
 
-```bash
-SYNRAG "some_function_name"   # search from the terminal
-SYNRAG stats                  # index size, latency and usage
-```
+- `list_projects` lists the indexed projects.
+- `search_desktop` with a function name the user knows returns its definition first.
 
-In the agent, `list_projects` should list the indexed projects.
+## Removing it
 
-## Uninstall
+The user removes SynRAG with `SYNRAG uninstall` (it only removes what the installer added; `SYNRAG uninstall --dry-run` previews it). Deleting the engine folder afterwards is optional and up to them; the README explains it.
 
-```bash
-SYNRAG uninstall                    # removes the MCP entry, the instruction block and the commands
-rm -rf ~/.local/opt/lancedb-hub     # optional: engine and index
-```
+## Network access
 
-`SYNRAG uninstall --dry-run` shows what it would remove. It only removes what the installer added.
+This skill makes no network calls. The only URL it mentions is the project's GitHub page, for the user to read the README and the source. SynRAG itself runs locally and only reaches the network if the user configures the optional Gemini tools with their own key.

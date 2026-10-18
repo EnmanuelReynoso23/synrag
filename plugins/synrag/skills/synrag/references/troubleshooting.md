@@ -3,7 +3,7 @@
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | The agent never calls SynRAG | The MCP server is not loaded, or the agent has no instruction to prefer it | Restart the agent after installing. Check the MCP config file for `desktop-lancedb` (see `setup.md`). Rerun `SYNRAG configure` to restore the instruction block |
-| No SynRAG tools at all | Not installed, or the client was open during install | Install with the one-line installer, then restart the client |
+| No SynRAG tools at all | Not installed, or the client was open during install | Ask the user to install it from the project's README, then restart the client |
 | Only `search_desktop` and `synrag_mas` | `bajo_demanda` profile | Call `synrag_mas` once, or switch profile with `SYNRAG uninstall --perfil` |
 | A search misses a file you just created | The index is not up to date | Call `reindex_desktop` (or `SYNRAG index`). The optional watcher service reindexes on save |
 | A project is missing from `list_projects` | Its folder is not indexed | `SYNRAG agregar <path> <name>`, then `SYNRAG index` |
