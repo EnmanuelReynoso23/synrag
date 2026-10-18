@@ -2,6 +2,8 @@
 
 Video de 68 s en 1080x1350 (4:5, el formato que más ocupa en el feed de LinkedIn en el móvil), sin voz: todo el mensaje va en pantalla porque LinkedIn reproduce los videos sin sonido.
 
+La música es original, sintetizada con numpy en `musica.py` (sin muestras ni canciones de terceros, así que no hay derechos que reclamar): La menor a 100 BPM, colchón y bajo desde el principio, arpegio desde "Cómo funciona", batería en las demos y los resultados, tecleo sincronizado con los comandos, un barrido en cada cambio de escena y un golpe grave cuando aparece el -63,9 %. Volumen final: -14 LUFS.
+
 | Seg. | Escena | De dónde sale |
 |---|---|---|
 | 0-5,6 | Gancho: el agente lee archivos enteros; SynRAG le da la definición exacta | README |
@@ -27,6 +29,11 @@ python video/ansi2html.py ansi '[["miembro", 8, 36], ["impact", 0, 20]]' > video
 # 2. Fotogramas sueltos para revisar, y el video completo (Chromium + ffmpeg, ~4 min)
 node video/render.cjs revisar/ 5 12 20 32 40 49 55 60 67
 node video/render.cjs synrag.mp4
+
+# 3. Música y mezcla final a -14 LUFS (el estándar de las redes)
+python video/musica.py musica.wav
+ffmpeg -i synrag.mp4 -i musica.wav -map 0:v -map 1:a -c:v copy -af "loudnorm=I=-14:TP=-1.5:LRA=11" \
+  -ar 48000 -c:a aac -b:a 192k -movflags +faststart -shortest synrag-final.mp4
 ```
 
 `render.cjs` usa Playwright; si está instalado de forma global, se le pasa con `NODE_PATH=<ruta>/node_modules`. Para verlo en el navegador basta con abrir `escenas.html` y llamar a `render(t)` desde la consola (sin `terminal.json` las terminales salen vacías).
