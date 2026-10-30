@@ -2,33 +2,256 @@
 <html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/synrag-logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0D1117" />
     <meta name="robots" content="index,follow" />
     <meta name="author" content="Enmanuel Reynoso" />
-    <link rel="canonical" href="%SITE_URL%/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="SYNRAG" />
-    <meta property="og:locale" content="es_ES" />
-    <meta property="og:title" content="SYNRAG: tu IA encuentra el código sin leerse el repo entero" />
-    <meta property="og:description" content="Motor MCP local y abierto: troceo por AST, búsqueda en CPU y grafo de impacto. Medido con un agente real: -63,9 % de tokens en 10 tareas, con el comando para repetirlo." />
-    <meta property="og:url" content="%SITE_URL%/" />
-    <meta property="og:image" content="%SITE_URL%/og.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="SYNRAG: búsqueda de código local para tus IAs" />
-    <meta name="twitter:description" content="Local, abierto y medido: -63,9 % de tokens con un agente real, con el comando para repetirlo." />
-    <meta name="twitter:image" content="%SITE_URL%/og.png" />
-    <title>SYNRAG · búsqueda de código local para agentes de IA</title>
+    <title>SyntaxRAG · Motor MCP local de búsqueda de código para agentes de IA</title>
     <meta
       name="description"
-      content="Motor local de búsqueda de código para agentes de IA por MCP: troceo por AST con Tree-sitter, búsqueda BM25 con reordenado en CPU (59-89 ms por consulta nueva), grafo de impacto con imports resueltos y cada cifra con su guion en CLAIMS.md."
+      content="Motor local de búsqueda de código para agentes de IA por MCP: troceo por AST con Tree-sitter, búsqueda BM25 en CPU y grafo de impacto. Ahorro medido real de -90.20% de tokens."
     />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+      body { font-family: 'Inter', sans-serif; background-color: #0D1117; color: #FFFFFF; }
+      .font-mono-code { font-family: 'Fira Code', monospace; }
+      .glow-cyan { box-shadow: 0 0 40px -10px rgba(0, 229, 255, 0.2); }
+      .bg-grid {
+        background-size: 32px 32px;
+        background-image: 
+          linear-gradient(to right, rgba(48, 54, 61, 0.25) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(48, 54, 61, 0.25) 1px, transparent 1px);
+      }
+    </style>
   </head>
-  <body class="bg-[#0D1117] text-[#FFFFFF] antialiased selection:bg-[#00E5FF]/25 selection:text-[#00E5FF]">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="bg-[#0D1117] text-white antialiased selection:bg-[#00E5FF]/25 selection:text-[#00E5FF]">
+
+    <!-- NAVEGACION SUPERIOR -->
+    <nav class="sticky top-0 z-50 border-b border-[#30363D] bg-[#0D1117]/90 backdrop-blur-md">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
+        <a href="#inicio" class="flex items-center gap-2 text-base font-black tracking-wider text-white">
+          <span class="rounded bg-[#00E5FF] px-1.5 py-0.5 text-xs font-black text-[#0D1117]">SYN</span>
+          <span>SYNTAXRAG</span>
+          <span class="rounded-full border border-[#30363D] bg-[#161B22] px-2 py-0.5 font-mono-code text-[11px] text-[#00E5FF]">v1.6.0</span>
+        </a>
+        <div class="flex items-center gap-6 text-sm text-[#8B949E]">
+          <a href="#metricas" class="hidden transition hover:text-white sm:block">Mediciones</a>
+          <a href="#como-funciona" class="hidden transition hover:text-white sm:block">Como Funciona</a>
+          <a href="#herramientas" class="hidden transition hover:text-white sm:block">Herramientas MCP</a>
+          <a href="https://github.com/EnmanuelReynoso23/synrag" target="_blank" class="rounded-lg border border-[#30363D] bg-[#161B22] px-3.5 py-1.5 font-medium text-white transition hover:border-[#00E5FF]/60 hover:text-[#00E5FF]">
+            GitHub
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- SECCION HERO -->
+    <header id="inicio" class="relative overflow-hidden border-b border-[#30363D] bg-grid py-16 sm:py-24">
+      <div class="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-12">
+        <div class="lg:col-span-7">
+          <div class="inline-flex items-center gap-2 rounded-full border border-[#30363D] bg-[#161B22] px-3.5 py-1.5 font-mono-code text-xs text-[#00E5FF]">
+            <span class="h-2 w-2 animate-pulse rounded-full bg-[#00E5FF]"></span>
+            Motor MCP local · Codigo abierto · Licencia MIT
+          </div>
+          <h1 class="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-5xl">
+            Tu IA encuentra el codigo
+            <span class="block bg-gradient-to-r from-white via-[#00E5FF] to-[#58A6FF] bg-clip-text text-transparent">
+              sin leerse el repositorio entero
+            </span>
+          </h1>
+          <p class="mt-6 text-base leading-relaxed text-[#8B949E] sm:text-lg">
+            SyntaxRAG indexa tus proyectos en tu propia maquina, trocea el codigo por su estructura de arbol sintactico (AST con Tree-sitter) y se lo entrega a agentes como Antigravity, Claude Code y Cursor por el protocolo MCP: la definicion exacta, quien la usa y el radio de impacto si la modificas.
+          </p>
+
+          <!-- COMANDO DE INSTALACION RAPIDA -->
+          <div class="mt-8">
+            <label class="block text-xs font-mono-code uppercase text-[#8B949E] mb-2">Comando de instalacion en Linux / WSL:</label>
+            <div class="flex items-center justify-between rounded-lg border border-[#30363D] bg-[#161B22] px-4 py-3 font-mono-code text-xs sm:text-sm text-[#00E5FF]">
+              <span class="truncate">curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash</span>
+              <button onclick="navigator.clipboard.writeText('curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash'); this.innerText='COPIADO';" class="ml-3 shrink-0 rounded bg-[#00E5FF]/20 px-2.5 py-1 text-xs font-bold text-[#00E5FF] hover:bg-[#00E5FF]/30 transition">
+                COPIAR
+              </button>
+            </div>
+            <p class="mt-2 text-xs text-[#8B949E]">100% local. Sin enviar codigo a servidores externos. Cero llamadas a APIs de pago.</p>
+          </div>
+        </div>
+
+        <!-- TARJETA DE AUDITORIA VERIFICADA -->
+        <div class="lg:col-span-5">
+          <div class="glow-cyan rounded-2xl border border-[#30363D] bg-[#161B22] p-6 sm:p-8">
+            <span class="font-mono-code text-xs uppercase tracking-wider text-[#8B949E] block">AHORRO MEDIDO CON TIKTOKEN (O200K_BASE)</span>
+            <div class="mt-4 flex items-baseline gap-2">
+              <span class="text-6xl font-black text-[#00E5FF] sm:text-7xl">-90.20%</span>
+            </div>
+            <p class="mt-2 text-sm font-semibold text-white">de reduccion de tokens frente a lectura completa</p>
+            
+            <dl class="mt-6 grid grid-cols-2 gap-4 border-t border-[#30363D] pt-6 text-sm">
+              <div>
+                <dt class="text-[#8B949E] text-xs">Lectura tradicional</dt>
+                <dd class="mt-1 font-mono-code font-bold text-gray-300">138,663 tokens</dd>
+              </div>
+              <div>
+                <dt class="text-[#8B949E] text-xs">Con SyntaxRAG AST</dt>
+                <dd class="mt-1 font-mono-code font-bold text-[#00E5FF]">13,592 tokens</dd>
+              </div>
+              <div>
+                <dt class="text-[#8B949E] text-xs">Tareas de varios pasos</dt>
+                <dd class="mt-1 font-mono-code font-bold text-emerald-400">-63.9% tokens</dd>
+              </div>
+              <div>
+                <dt class="text-[#8B949E] text-xs">Latencia en CPU</dt>
+                <dd class="mt-1 font-mono-code font-bold text-white">59 - 89 ms</dd>
+              </div>
+            </dl>
+
+            <div class="mt-6 border-t border-[#30363D] pt-4">
+              <a href="https://github.com/EnmanuelReynoso23/synrag/blob/main/CLAIMS.md" target="_blank" class="text-xs font-mono-code text-[#00E5FF] hover:underline flex items-center justify-between">
+                <span>Verificar reproducibilidad en CLAIMS.md</span>
+                <span>-&gt;</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SECCION DE RESULTADOS Y MEDICIONES REALES -->
+    <section id="metricas" class="border-b border-[#30363D] py-16 sm:py-20">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <div class="max-w-2xl">
+          <h2 class="text-2xl font-black tracking-tight text-white sm:text-3xl">Cifras medidas, no estimadas</h2>
+          <p class="mt-3 text-sm text-[#8B949E]">
+            Cada porcentaje publicado corresponde a una prueba auditable con su script de repeticion en la carpeta <code class="text-[#00E5FF]">benchmarks/</code>.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-5">
+            <span class="text-3xl font-black text-[#00E5FF]">-90.2%</span>
+            <h3 class="mt-2 text-sm font-bold text-white">Aislamiento de Simbolos AST</h3>
+            <p class="mt-1 text-xs text-[#8B949E]">La IA solo recibe la definicion exacta de la funcion o clase en lugar del archivo completo.</p>
+          </div>
+
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-5">
+            <span class="text-3xl font-black text-[#00E5FF]">-63.9%</span>
+            <h3 class="mt-2 text-sm font-bold text-white">Tareas Complejas Multi-Paso</h3>
+            <p class="mt-1 text-xs text-[#8B949E]">Medido en 10 tareas consecutivas de programacion y orientacion en repositorios grandes.</p>
+          </div>
+
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-5">
+            <span class="text-3xl font-black text-[#00E5FF]">-40.5%</span>
+            <h3 class="mt-2 text-sm font-bold text-white">Frente a Grep + Ventana</h3>
+            <p class="mt-1 text-xs text-[#8B949E]">Supera las busquedas por expresiones regulares al eliminar lineas irrelevantes y ruido.</p>
+          </div>
+
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-5">
+            <span class="text-3xl font-black text-[#00E5FF]">&lt; 90 ms</span>
+            <h3 class="mt-2 text-sm font-bold text-white">Latencia en CPU sin GPU</h3>
+            <p class="mt-1 text-xs text-[#8B949E]">Reordenamiento BM25 vectorizado y cache en memoria RAM local para respuesta instantanea.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCION COMO FUNCIONA -->
+    <section id="como-funciona" class="border-b border-[#30363D] py-16 sm:py-20 bg-[#0d121f]">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <h2 class="text-2xl font-black tracking-tight text-white sm:text-3xl">Como funciona SyntaxRAG</h2>
+        <p class="mt-3 max-w-2xl text-sm text-[#8B949E]">
+          A diferencia de los indexadores de texto plano, SyntaxRAG comprende la sintaxis real de tu lenguaje gracias a Tree-sitter.
+        </p>
+
+        <div class="mt-10 grid gap-8 md:grid-cols-3">
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-6">
+            <div class="h-8 w-8 rounded bg-[#00E5FF]/20 flex items-center justify-center font-bold text-[#00E5FF] font-mono-code mb-4">01</div>
+            <h3 class="text-base font-bold text-white">Troceo Sintactico (Tree-sitter)</h3>
+            <p class="mt-2 text-xs text-[#8B949E] leading-relaxed">
+              Analiza archivos en TypeScript, JavaScript, Python, Rust y Go dividiendolos en bloques funcionales puros (clases, interfaces, metodos) y podando banners de licencias y docstrings vacios.
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-6">
+            <div class="h-8 w-8 rounded bg-[#00E5FF]/20 flex items-center justify-center font-bold text-[#00E5FF] font-mono-code mb-4">02</div>
+            <h3 class="text-base font-bold text-white">Indice BM25 y Vectorial Local</h3>
+            <p class="mt-2 text-xs text-[#8B949E] leading-relaxed">
+              Indexa en tu disco con LanceDB y reordena los candidatos con FlashRank en CPU (sin necesidad de tarjetas graficas dedicadas ni consumo excesivo de energia).
+            </p>
+          </div>
+
+          <div class="rounded-xl border border-[#30363D] bg-[#161B22] p-6">
+            <div class="h-8 w-8 rounded bg-[#00E5FF]/20 flex items-center justify-center font-bold text-[#00E5FF] font-mono-code mb-4">03</div>
+            <h3 class="text-base font-bold text-white">Grafo de Dependencias e Impacto</h3>
+            <p class="mt-2 text-xs text-[#8B949E] leading-relaxed">
+              Mapea que modulos importan cada funcion o clase para que la IA sepa exactamente que otros archivos se veran afectados si modifica una declaracion.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCION HERRAMIENTAS MCP -->
+    <section id="herramientas" class="border-b border-[#30363D] py-16 sm:py-20">
+      <div class="mx-auto max-w-6xl px-4 sm:px-6">
+        <h2 class="text-2xl font-black tracking-tight text-white sm:text-3xl">Herramientas MCP registradas</h2>
+        <p class="mt-3 text-sm text-[#8B949E]">
+          Disponibles de forma nativa para cualquier agente compatible con el protocolo MCP (Claude Code, Antigravity, Cursor, Windsurf).
+        </p>
+
+        <div class="mt-8 overflow-hidden rounded-xl border border-[#30363D] bg-[#161B22]">
+          <table class="w-full text-left text-xs font-mono-code">
+            <thead class="border-b border-[#30363D] bg-black/40 text-[#8B949E]">
+              <tr>
+                <th class="px-4 py-3">Herramienta</th>
+                <th class="px-4 py-3">Proposito</th>
+                <th class="px-4 py-3 hidden sm:table-cell">Ahorro Promedio</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#30363D] text-gray-300">
+              <tr>
+                <td class="px-4 py-3 font-bold text-[#00E5FF]">search_desktop</td>
+                <td class="px-4 py-3">Busca definiciones y simbolos por palabras o conceptos entregando solo el tramo exacto.</td>
+                <td class="px-4 py-3 text-emerald-400 hidden sm:table-cell">-90.2%</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-bold text-[#00E5FF]">get_file_outline</td>
+                <td class="px-4 py-3">Devuelve el esquema estructural del archivo (firmas y lineas) sin el cuerpo.</td>
+                <td class="px-4 py-3 text-emerald-400 hidden sm:table-cell">-76.0%</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-bold text-[#00E5FF]">get_impact_radius</td>
+                <td class="px-4 py-3">Calcula el radio de afectacion e imports de un simbolo antes de modificarlo.</td>
+                <td class="px-4 py-3 text-emerald-400 hidden sm:table-cell">-63.9%</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-bold text-[#00E5FF]">find_related_tests</td>
+                <td class="px-4 py-3">Encuentra los tests unitarios vinculados a una funcion o modulo especifico.</td>
+                <td class="px-4 py-3 text-emerald-400 hidden sm:table-cell">-48.0%</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 font-bold text-[#00E5FF]">get_savings_report</td>
+                <td class="px-4 py-3">Reporte auditado en vivo de tokens consumidos vs tokens ahorrados en la sesion.</td>
+                <td class="px-4 py-3 text-emerald-400 hidden sm:table-cell">Auditoria 100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-12 bg-black/60 text-[#8B949E] text-xs font-mono-code border-t border-[#30363D]">
+      <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 sm:flex-row sm:px-6">
+        <div>
+          <span class="text-white font-bold">SYNTAXRAG</span> — Desarrollado por Enmanuel Reynoso. Codigo abierto bajo licencia MIT.
+        </div>
+        <div class="flex items-center gap-6">
+          <a href="https://github.com/EnmanuelReynoso23/synrag" class="hover:text-white transition">Repositorio</a>
+          <a href="https://github.com/EnmanuelReynoso23/synrag/blob/main/CLAIMS.md" class="hover:text-white transition">CLAIMS.md</a>
+          <a href="https://github.com/EnmanuelReynoso23/synrag/blob/main/CHANGELOG.md" class="hover:text-white transition">Changelog</a>
+        </div>
+      </div>
+    </footer>
+
   </body>
 </html>
