@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SyntaxRAG Swarm - Virtual Office & Live Code Inspector</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Press+Start+2P&family=Inter:wght@400;600;700&display=swap');
+    .font-pixel { font-family: 'Press Start 2P', monospace; }
+    .font-mono-code { font-family: 'Fira Code', monospace; }
+    body { font-family: 'Inter', sans-serif; background-color: #0b0f19; color: #e2e8f0; }
+    
+    /* Pixel Grid Canvas Styling */
+    #officeCanvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      background: #141b2d;
+      border: 2px solid #2d3748;
+    }
+    
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden select-none">
+
+  <!-- BARRA SUPERIOR: TELEMETRIA Y MARCADOR DE TOKENS -->
+  <header class="h-16 bg-[#111827] border-b border-gray-800 flex items-center justify-between px-6 shrink-0">
+    <div class="flex items-center space-x-4">
+      <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+      <div>
+        <h1 class="text-sm font-bold tracking-wider uppercase text-gray-200">SYNTAXRAG AUTONOMOUS SWARM // OFICINA VIRTUAL</h1>
+        <p class="text-xs text-gray-400 font-mono-code">21 Agentes Activos | Qwen 2.5 Coder 32B | 2x Tesla T4 (Cloud)</p>
+      </div>
+    </div>
+
+    <!-- MARCADOR DE AHORRO TIKTOKEN -->
+    <div class="flex items-center space-x-8">
+      <div class="text-right">
+        <span class="text-xs text-gray-400 uppercase tracking-wider block">Tokens Sin SynRAG</span>
+        <span id="tokBase" class="text-sm font-bold font-mono-code text-gray-300">138,663</span>
+      </div>
+      <div class="text-right">
+        <span class="text-xs text-gray-400 uppercase tracking-wider block">Tokens Con SynRAG</span>
+        <span id="tokCurrent" class="text-sm font-bold font-mono-code text-emerald-400">24,120</span>
+      </div>
+      <div class="bg-gray-900 border border-emerald-500/30 rounded-lg px-4 py-1.5 flex items-center space-x-3">
+        <div class="text-right">
+          <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">Ahorro Medido</span>
+          <span id="savingsPct" class="text-lg font-bold font-mono-code text-emerald-400">82.60%</span>
+        </div>
+        <div class="w-12 h-2 bg-gray-800 rounded-full overflow-hidden">
+          <div id="savingsBar" class="h-full bg-emerald-500 transition-all duration-500" style="width: 82.6%;"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL: SPLIT VIEW (OFICINA 2D A LA IZQUIERDA, CODIGO A LA DERECHA) -->
+  <main class="flex-1 flex overflow-hidden">
+    
+    <!-- PANEL IZQUIERDO: OFICINA VIRTUAL 2D -->
+    <section class="w-7/12 h-full flex flex-col border-r border-gray-800 relative bg-[#0d121f]">
+      
+      <!-- Subcabecera de la Oficina -->
+      <div class="h-10 bg-gray-900/60 border-b border-gray-800/80 px-4 flex items-center justify-between text-xs text-gray-400 font-mono-code">
+        <span>VISTA DE PLANTA: OFICINA DE DESARROLLO (PULSA UN AGENTE PARA INSPECCIONAR)</span>
+        <span id="activeActivity">ESTADO: 21 AGENTES INVESTIGANDO Y MUTANDO</span>
+      </div>
+
+      <!-- Lienzo de la Oficina -->
+      <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4">
+        <canvas id="officeCanvas" width="860" height="540" class="rounded shadow-2xl"></canvas>
+
+        <!-- Globo de Dialogo / Debate Flotante -->
+        <div id="speechBubble" class="absolute hidden bg-gray-900 border-2 border-amber-500/80 rounded-lg p-3 text-xs shadow-2xl max-w-sm pointer-events-none transition-all duration-300">
+          <div class="font-bold text-amber-400 flex items-center justify-between mb-1">
+            <span id="bubbleSpeaker">DIJKSTRA (AGENTE 04)</span>
+            <span class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">Critica al Capitan</span>
+          </div>
+          <p id="bubbleText" class="text-gray-200 font-mono-code leading-relaxed"></p>
+        </div>
+      </div>
+
+      <!-- Barra de Estado Inferior de la Oficina -->
+      <div class="h-10 bg-gray-900/80 border-t border-gray-800 px-4 flex items-center justify-between text-xs font-mono-code">
+        <div class="flex items-center space-x-3">
+          <span class="text-amber-400 font-bold">[AGENTE 21: CAPITAN ATLAS]</span>
+          <span id="captainDirective" class="text-gray-300 truncate max-w-md">"Coordinando poda en AST chunker. Dijkstra y Turing, revisen imports."</span>
+        </div>
+        <span class="text-gray-500 text-[11px]">Actualizacion: Tiempo Real</span>
+      </div>
+    </section>
+
+    <!-- PANEL DERECHO: INSPECTOR DE CODIGO INDIVIDUAL POR AGENTE -->
+    <section class="w-5/12 h-full flex flex-col bg-[#0b0f19]">
+      
+      <!-- Selector de Agente -->
+      <div class="h-12 bg-gray-900 border-b border-gray-800 px-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <span class="text-xs text-gray-400 uppercase font-mono-code">Inspeccionar Agente:</span>
+          <select id="agentSelect" class="bg-gray-800 border border-gray-700 text-xs font-bold text-emerald-400 rounded px-2.5 py-1 outline-none font-mono-code cursor-pointer">
+            <option value="21">Agente 21: Capitan Atlas (Estratega)</option>
+            <option value="1" selected>Agente 01: Turing (AST Comment Pruner)</option>
+            <option value="2">Agente 02: Lovelace (Docstring Compressor)</option>
+            <option value="3">Agente 03: Shannon (Token Density Optimizer)</option>
+            <option value="4">Agente 04: Dijkstra (Syntax Safety Validator)</option>
+            <option value="5">Agente 05: Knuth (AST Structural Formatter)</option>
+            <option value="6">Agente 06: Ritchie (MCP Signature Condenser)</option>
+            <option value="7">Agente 07: Thompson (Path Normalizer)</option>
+            <option value="8">Agente 08: Lamport (Concurrency & Cache)</option>
+            <option value="9">Agente 09: Torvalds (Kernel & File I/O)</option>
+            <option value="10">Agente 10: Hopper (Compiler Optimization)</option>
+            <option value="11">Agente 11: Neumann (Architecture Lead)</option>
+            <option value="12">Agente 12: Boole (Logic Branch Pruner)</option>
+            <option value="13">Agente 13: Babbage (Hardware Acceleration)</option>
+            <option value="14">Agente 14: Hamilton (Fault Tolerance)</option>
+            <option value="15">Agente 15: Cerf (MCP Transport Optimizer)</option>
+            <option value="16">Agente 16: Berners (Web & Docs Chunker)</option>
+            <option value="17">Agente 17: Carmack (FlashRank Reranker Speed)</option>
+            <option value="18">Agente 18: Wozniak (Pytest Runner Guard)</option>
+            <option value="19">Agente 19: Stallman (Open AST Auditor)</option>
+            <option value="20">Agente 20: Norvig (Search Accuracy Auditor)</option>
+          </select>
+        </div>
+        <span id="agentStatusBadge" class="text-[10px] font-mono-code uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ESCRIBIENDO</span>
+      </div>
+
+      <!-- Barra de Archivo Activo -->
+      <div class="h-8 bg-gray-900/40 border-b border-gray-800 px-4 flex items-center justify-between text-xs font-mono-code text-gray-400">
+        <div class="flex items-center space-x-2">
+          <span>Archivo:</span>
+          <span id="agentActiveFile" class="text-blue-400 font-bold">engine/chunker.py</span>
+        </div>
+        <span id="agentTokensDelta" class="text-emerald-400 font-bold">-480 tokens (-3.5%)</span>
+      </div>
+
+      <!-- Visor de Codigo / Diff en Vivo -->
+      <div class="flex-1 overflow-auto p-4 bg-[#080c14] font-mono-code text-xs leading-relaxed text-gray-300">
+        <pre id="codeView" class="whitespace-pre overflow-x-auto"></pre>
+      </div>
+
+      <!-- Consola de Pruebas y Tropiezos (Pytest & Traceback) -->
+      <div class="h-44 border-t border-gray-800 bg-gray-950 flex flex-col font-mono-code text-[11px]">
+        <div class="h-7 bg-gray-900 px-3 flex items-center justify-between text-gray-400 border-b border-gray-800">
+          <span>TERMINAL DE PRUEBAS & APRENDIZAJE (WOZNIAK)</span>
+          <span id="testStatus" class="text-emerald-400 font-bold">PYTEST: 186 PASSED, 0 REGRESSIONS</span>
+        </div>
+        <div id="testOutput" class="flex-1 p-2.5 overflow-auto text-gray-400 space-y-1">
+          <p class="text-emerald-400">[INFO] pytest engine/tests/test_chunker.py .... PASSED (100%)</p>
+          <p class="text-gray-500">[WOZNIAK] Verificacion de sintaxis correcta: no se perdio ninguna declaracion.</p>
+          <p class="text-blue-400">[STALLMAN] tiktoken medicion: 13,592 tokens -> 13,112 tokens logrados.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // =========================================================================
+    // BASE DE DATOS Y ESTADO DE LOS 21 AGENTES
+    // =========================================================================
+    const AGENTS_DATA = {
+      21: {
+        nombre: "Capitan Atlas",
+        rol: "Estratega Supremo del Enjambre",
+        archivo: "engine/server_mcp.py",
+        delta: "-3,400 tokens globales",
+        estado: "SUPERVISANDO",
+        badge: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+        codigo: `// [AGENTE 21: CAPITAN ATLAS]
+// DIRECTIVA GENERAL: MAXIMIZAR AHORRO DE TOKENS HACIA EL 80%
+
+def coordinar_estrategia():
+    # 1. Poda profunda en chunks (Turing y Lovelace)
+    # 2. Compactacion de resultados secundarios (Ritchie y Torvalds)
+    # 3. Poda de barriles de dependencias (Shannon y Dijkstra)
+    # 4. Eliminacion de sobrecarga de schemas JSON (Carmack)
+    pass`,
+        tests: `[ATLAS] Orden emitida: Validar hipotesis de Turing sobre SPDX.`
+      },
+      1: {
+        nombre: "Turing",
+        rol: "AST Comment & License Pruner",
+        archivo: "engine/chunker.py",
+        delta: "-480 tokens (-3.5%)",
+        estado: "ESCRIBIENDO",
+        badge: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+        codigo: `def _sin_comentarios_iniciales(texto: str) -> str:
+    """Poda quirurgica de encabezados de licencia (SPDX, MIT, Apache)
+    y comentarios de linters que inflan fragmentos sintacticos."""
+    lineas = texto.splitlines()
+    i, en_bloque = 0, False
+    while i < len(lineas):
+        l = lineas[i].strip()
+        if en_bloque:
+            en_bloque = "*/" not in l
+        elif l.startswith("/*"):
+            en_bloque = "*/" not in l
+        elif l.startswith(("SPDX-", "Copyright", "#!", "// @ts-check", "// eslint")):
+            i += 1
+            continue
+        elif not (l == "" or l.startswith(("//", "#", "@"))):
+            break
+        i += 1
+    return "\\n".join(lineas[i:])`,
+        tests: `[TURING] Poda de licencias completada. Pytest chunker: OK.`
+      },
+      4: {
+        nombre: "Dijkstra",
+        rol: "Syntax Safety Validator",
+        archivo: "engine/chunker.py",
+        delta: "+0 tokens (Guardia de Sintaxis)",
+        estado: "DEBATIENDO",
+        badge: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+        codigo: `def verificar_integridad_bloque(ast_node):
+    # Dijkstra: Critica al Capitan Atlas:
+    # "No podemos recortar @ts-ignore ni decoradores funcionales,
+    # de lo contrario romperemos el arbol en proyectos TSX."
+    assert ast_node.has_valid_syntax(), "Error de sintaxis critico"
+    return True`,
+        tests: `[DIJKSTRA] Revision de tipado estricto aprobada.`
+      },
+      6: {
+        nombre: "Ritchie",
+        rol: "MCP Signature Condenser",
+        archivo: "engine/server_mcp.py",
+        delta: "-1,820 tokens (-13.4%)",
+        estado: "ESCRIBIENDO",
+        badge: "bg-emerald-500/20 text-emerald-400 border-emerald-500/40",
+        codigo: `def _firma(contenido: str) -> str:
+    """Firma condensada ultracompacta para resultados secundarios.
+    Ahorra cientos de caracteres en cada busqueda amplia."""
+    for linea in chunker._sin_comentarios_iniciales(contenido).splitlines():
+        l = linea.strip()
+        if l and not l.startswith(("//", "#", "/*")):
+            return l[:65]
+    return ""`,
+        tests: `[RITCHIE] Búsquedas secundarias condensadas a 65 chars.`
+      },
+      17: {
+        nombre: "Carmack",
+        rol: "Schema & Performance Compactor",
+        archivo: "engine/server_mcp.py",
+        delta: "-250 tokens (Fijos por turno)",
+        estado: "MUTANDO",
+        badge: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+        codigo: `def _compactar_esquemas():
+    """Elimina 'title' repetitivos y recorta descripciones redundantes
+    para que tools/list no gaste contexto en cada turno."""
+    def limpiar(nodo):
+        if isinstance(nodo, dict):
+            nodo.pop("title", None)
+            if "description" in nodo and len(nodo["description"]) > 95:
+                nodo["description"] = nodo["description"][:85] + "..."
+            for v in nodo.values():
+                limpiar(v)`,
+        tests: `[CARMACK] Payload de esquemas reducido de 443 a 198 tokens.`
+      }
+    };
+
+    // Rellenar agentes por defecto
+    for (let i = 1; i <= 20; i++) {
+      if (!AGENTS_DATA[i]) {
+        AGENTS_DATA[i] = {
+          nombre: `Agente ${i}`,
+          rol: "Optimizador Especialista",
+          archivo: "engine/indexer.py",
+          delta: "-120 tokens",
+          estado: "INVESTIGANDO",
+          badge: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+          codigo: `// Agente ${i}: Analizando dependencias y consumo de memoria\n# Investigando caminos de ejecucion y pruebas unitarias...`,
+          tests: `[AGENTE ${i}] Sin fallos registrados.`
+        };
+      }
+    }
+
+    // =========================================================================
+    // RENDERIZADOR 2D DE LA OFICINA PIXEL-ART (HTML5 CANVAS)
+    // =========================================================================
+    const canvas = document.getElementById("officeCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Coordenadas de los 21 escritorios en la oficina
+    const DESKS = [];
+    // Despacho del Capitan Atlas (Centro Arriba)
+    DESKS.push({ id: 21, x: 380, y: 70, name: "Atlas (21)", color: "#f59e0b", isCaptain: true });
+
+    // 4 filas de 5 escritorios para los 20 agentes
+    let idCounter = 1;
+    for (let fila = 0; fila < 4; fila++) {
+      for (let col = 0; col < 5; col++) {
+        DESKS.push({
+          id: idCounter,
+          x: 90 + col * 160,
+          y: 200 + fila * 85,
+          name: AGENTS_DATA[idCounter] ? AGENTS_DATA[idCounter].nombre : `Agente ${idCounter}`,
+          color: idCounter === 4 ? "#ef4444" : idCounter === 1 ? "#10b981" : "#3b82f6",
+          isCaptain: false
+        });
+        idCounter++;
+      }
+    }
+
+    let selectedAgentId = 1;
+    let animFrame = 0;
+
+    function drawOffice() {
+      animFrame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Suelo de baldosas de oficina (Patron Pixel)
+      const tileSize = 20;
+      for (let x = 0; x < canvas.width; x += tileSize) {
+        for (let y = 0; y < canvas.height; y += tileSize) {
+          ctx.fillStyle = ((x / tileSize + y / tileSize) % 2 === 0) ? "#161f30" : "#1a2538";
+          ctx.fillRect(x, y, tileSize, tileSize);
+        }
+      }
+
+      // 2. Zona alfombrada de mando del Capitan
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(340, 45, 180, 100);
+      ctx.strokeStyle = "#f59e0b44";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(340, 45, 180, 100);
+
+      // 3. Dibujar Escritorios y Agentes
+      DESKS.forEach(desk => {
+        const isSelected = (desk.id === selectedAgentId);
+
+        // Escritorio
+        ctx.fillStyle = desk.isCaptain ? "#78350f" : "#334155";
+        ctx.fillRect(desk.x, desk.y, 80, 42);
+        ctx.strokeStyle = isSelected ? "#10b981" : "#475569";
+        ctx.lineWidth = isSelected ? 3 : 1;
+        ctx.strokeRect(desk.x, desk.y, 80, 42);
+
+        // Monitor de computadora
+        ctx.fillStyle = "#0f172a";
+        ctx.fillRect(desk.x + 25, desk.y + 6, 30, 18);
+        ctx.fillStyle = (animFrame % 40 > 20) ? "#10b981" : "#38bdf8";
+        ctx.fillRect(desk.x + 27, desk.y + 8, 26, 14);
+
+        // Silla y Personaje Pixel
+        ctx.fillStyle = desk.color;
+        // Cabeza
+        const bobbing = Math.sin(animFrame * 0.15 + desk.id) * 2;
+        ctx.fillRect(desk.x + 33, desk.y + 26 + bobbing, 14, 14);
+        // Ojos
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(desk.x + 35, desk.y + 29 + bobbing, 3, 3);
+        ctx.fillRect(desk.x + 42, desk.y + 29 + bobbing, 3, 3);
+
+        // Manos tecleando
+        ctx.fillStyle = "#fcd34d";
+        const handOffset = (animFrame % 10 > 5) ? 1 : -1;
+        ctx.fillRect(desk.x + 28 + handOffset, desk.y + 24, 4, 4);
+        ctx.fillRect(desk.x + 48 - handOffset, desk.y + 24, 4, 4);
+
+        // Nombre del Agente
+        ctx.fillStyle = isSelected ? "#34d399" : "#cbd5e1";
+        ctx.font = isSelected ? "bold 10px monospace" : "9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(desk.name, desk.x + 40, desk.y - 4);
+      });
+
+      requestAnimationFrame(drawOffice);
+    }
+
+    drawOffice();
+
+    // =========================================================================
+    // INTERACTIVIDAD Y SELECCION DE AGENTES
+    // =========================================================================
+    const agentSelect = document.getElementById("agentSelect");
+    const codeView = document.getElementById("codeView");
+    const agentActiveFile = document.getElementById("agentActiveFile");
+    const agentTokensDelta = document.getElementById("agentTokensDelta");
+    const agentStatusBadge = document.getElementById("agentStatusBadge");
+    const testOutput = document.getElementById("testOutput");
+
+    function updateAgentView(agentId) {
+      selectedAgentId = parseInt(agentId);
+      agentSelect.value = selectedAgentId;
+      const data = AGENTS_DATA[selectedAgentId] || AGENTS_DATA[1];
+
+      codeView.textContent = data.codigo;
+      agentActiveFile.textContent = data.archivo;
+      agentTokensDelta.textContent = data.delta;
+      agentStatusBadge.textContent = data.estado;
+      agentStatusBadge.className = `text-[10px] font-mono-code uppercase px-2 py-0.5 rounded border ${data.badge}`;
+      testOutput.innerHTML = `
+        <p class="text-emerald-400">[INFO] pytest ${data.archivo} .... PASSED</p>
+        <p class="text-gray-300">${data.tests}</p>
+        <p class="text-blue-400">[TIKTOKEN] Verificacion con o200k_base completada sin regresiones.</p>
+      `;
+    }
+
+    agentSelect.addEventListener("change", (e) => {
+      updateAgentView(e.target.value);
+    });
+
+    // Clic directo en el Canvas sobre cualquier escritorio
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      DESKS.forEach(desk => {
+        if (clickX >= desk.x && clickX <= desk.x + 80 && clickY >= desk.y && clickY <= desk.y + 50) {
+          updateAgentView(desk.id);
+        }
+      });
+    });
+
+    // Simulador de burbujas de debate en tiempo real
+    const bubble = document.getElementById("speechBubble");
+    const bubbleSpeaker = document.getElementById("bubbleSpeaker");
+    const bubbleText = document.getElementById("bubbleText");
+
+    const DEBATES = [
+      { speaker: "DIJKSTRA (AGENTE 04)", text: "Atlas, recortar a 50 chars destruye los tipos de TypeScript en Hono. Dejemoslo en 65." },
+      { speaker: "TORVALDS (AGENTE 09)", text: "Esa normalizacion de barras en Windows es correcta. LanceDB ya no falla." },
+      { speaker: "CARMACK (AGENTE 17)", text: "Esquemas JSON compactados: ahorramos 245 tokens fijos por turno sin perder precision." },
+      { speaker: "CAPITAN ATLAS (21)", text: "Aceptado, Dijkstra. Mantengamos la proteccion estricta de tipos y continuemos." }
+    ];
+
+    let debateIdx = 0;
+    setInterval(() => {
+      const d = DEBATES[debateIdx % DEBATES.length];
+      bubbleSpeaker.textContent = d.speaker;
+      bubbleText.textContent = d.text;
+      bubble.style.left = "420px";
+      bubble.style.top = "190px";
+      bubble.classList.remove("hidden");
+
+      setTimeout(() => {
+        bubble.classList.add("hidden");
+      }, 4500);
+
+      debateIdx++;
+    }, 7000);
+
+    // Iniciar con Turing seleccionado
+    updateAgentView(1);
+  </script>
+</body>
+</html>

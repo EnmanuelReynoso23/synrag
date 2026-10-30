@@ -34,7 +34,7 @@ try:
 except ImportError:
     HAVE_RUST_CRAWLER = False
 
-HOME = Path.home()
+HOME = Path(os.environ.get("HOME") or Path.home())
 DB_PATH = Path(os.environ.get("SYNRAG_DB_PATH") or HOME / ".local/share/lancedb-hub/data")
 TABLE_NAME = "desktop_files"
 

@@ -58,6 +58,68 @@ RE_DECL = re.compile(
 )
 RE_ARROW = re.compile(r"=\s*(?:async\s*)?(?:function\b|\([^)]*\)?\s*(?::[^=]*)?=>|[A-Za-z0-9_$]+\s*=>|\(|<)")
 
+RE_PRESCINDIBLE = re.compile(
+    r"(?i)(copyright|\(c\)|©|all\s+rights\s+reserved|todos\s+los\s+derechos|"
+    r"spdx-license|licensed?\s+under|mozilla\s+public\s+license|apache\s+license|"
+    r"mit\s+license|bsd\s+license|gnu\s+(?:general|lesser|affero)|"
+    r"@author|@license|@copyright|@fileoverview)"
+)
+RE_BANNER = re.compile(r"^[/\*#\s\-=~*]{6,}$", re.M)
+RE_DOC_PY = re.compile(r'("""|\'\'\')(.*?)\1', re.DOTALL)
+RE_JSDOC = re.compile(r'/\*\*([\s\S]*?)\*/')
+
+
+def limpiar_contenido_chunk(content: str, ext: str = "") -> str:
+    """Poda comentarios de licencia, banners decorativos y docstrings redundantes para ahorrar tokens."""
+    if not content:
+        return ""
+
+    lines = content.splitlines()
+    i = 0
+    while i < len(lines):
+        line_str = lines[i].strip()
+        if (line_str.startswith(("//", "#", "/*", "*")) and RE_PRESCINDIBLE.search(line_str)) or RE_BANNER.match(line_str):
+            i += 1
+            continue
+        break
+
+    if i > 0 and i < len(lines):
+        if lines[i - 1].strip().endswith("*/"):
+            lines = lines[i:]
+        elif not lines[i].strip().startswith(("*", "*/")):
+            lines = lines[i:]
+
+    content = "\n".join(lines).strip()
+
+    if ext == ".py" or '"""' in content or "'''" in content:
+        def repl_py(m):
+            delim = m.group(1)
+            inner = m.group(2).strip()
+            doc_lines = [l.strip() for l in inner.splitlines() if l.strip()]
+            if not doc_lines:
+                return f"{delim}{delim}"
+            if len(doc_lines) <= 2 and len(inner) < 140:
+                return m.group(0)
+            first = doc_lines[0].lstrip("* ").strip()
+            return f"{delim}{first}{delim}"
+        content = RE_DOC_PY.sub(repl_py, content)
+
+    if ext in (".ts", ".tsx", ".js", ".jsx") or "/**" in content:
+        def repl_js(m):
+            inner = m.group(1)
+            doc_lines = [l.strip().lstrip("/* ").strip() for l in inner.splitlines() if l.strip()]
+            valid = [l for l in doc_lines if not l.startswith(("@param", "@returns", "@type", "@author", "@license", "@typedef", "@property"))]
+            if not valid:
+                return ""
+            if len(doc_lines) <= 2 and len(inner) < 140 and not any(l.startswith("@") for l in doc_lines):
+                return m.group(0)
+            return f"/** {valid[0]} */"
+        content = RE_JSDOC.sub(repl_js, content)
+
+    content = re.sub(r"\n{3,}", "\n\n", content)
+    return content.strip()
+
+
 
 def _sin_comentarios_iniciales(texto: str) -> str:
     """Quita el JSDoc, los comentarios y los decoradores que preceden a la declaracion."""
@@ -397,9 +459,11 @@ def chunk_with_tree_sitter(file_path: Path, text: str, lang: str) -> Tuple[List[
         # 3. Adjuntar comentario previo si es JSDoc o docstring pegado
         start_byte = s_byte
         if prev_comment:
-            gap = code_bytes[prev_comment[1]:s_byte]
-            if gap.count(b"\n") <= 2:
-                start_byte = prev_comment[0]
+            comment_text = code_bytes[prev_comment[0]:prev_comment[1]].decode("utf-8", errors="ignore")
+            if not RE_PRESCINDIBLE.search(comment_text) and not RE_BANNER.match(comment_text.strip()):
+                gap = code_bytes[prev_comment[1]:s_byte]
+                if gap.count(b"\n") <= 2:
+                    start_byte = prev_comment[0]
             prev_comment = None
 
         chunk_text = code_bytes[start_byte:e_byte].decode("utf-8", errors="ignore").strip()
@@ -926,29 +990,28 @@ def parse_and_chunk_file(file_path: Path, text: str) -> Tuple[List[Dict[str, Any
     suffix = file_path.suffix.lower()
 
     if suffix in (".md", ".mdx"):
-        return chunk_markdown(text)
-
-    if suffix == ".rst":
-        return chunk_rst(text)
-
-    if suffix == ".adoc":
-        return chunk_adoc(text)
-
-    if suffix == ".sql":
-        return chunk_sql(text)
-
-    if TREE_SITTER_AVAILABLE and suffix in LANG_MAP:
+        raw_chunks, imps, exps = chunk_markdown(text)
+    elif suffix == ".rst":
+        raw_chunks, imps, exps = chunk_rst(text)
+    elif suffix == ".adoc":
+        raw_chunks, imps, exps = chunk_adoc(text)
+    elif suffix == ".sql":
+        raw_chunks, imps, exps = chunk_sql(text)
+    elif TREE_SITTER_AVAILABLE and suffix in LANG_MAP:
         lang = LANG_MAP[suffix]
         try:
-            return chunk_with_tree_sitter(file_path, text, lang)
+            raw_chunks, imps, exps = chunk_with_tree_sitter(file_path, text, lang)
         except Exception:
-            fallback_chunks = chunk_fallback(text)
+            raw_chunks = chunk_fallback(text)
             imps, exps = extract_imports_and_exports(text)
-            return fallback_chunks, imps, exps
+    else:
+        raw_chunks = chunk_fallback(text)
+        imps, exps = extract_imports_and_exports(text)
 
-    fallback_chunks = chunk_fallback(text)
-    imps, exps = extract_imports_and_exports(text)
-    return fallback_chunks, imps, exps
+    for c in raw_chunks:
+        if c.get("symbol_kind") != "imports":
+            c["content"] = limpiar_contenido_chunk(c.get("content", ""), suffix)
+    return raw_chunks, imps, exps
 
 
 def chunk_file(file_path: Path, text: str) -> List[Dict[str, Any]]:
