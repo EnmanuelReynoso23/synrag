@@ -1,5 +1,19 @@
 # Cambios
 
+## 2.0.0 (29-oct-2026)
+
+### Auditoría Matemática y Validación de Tokens
+- Auditoría exhaustiva en 87 archivos de código fuente con Tiktoken (o200k_base): 208,904 tokens completos frente a 2,895 tokens con aislamiento de símbolos AST (-98.61% de ahorro en consultas puntuales; reporte auditable en benchmarks/token_validation_report.json).
+- Mantenida la métrica probada en sesiones completas de 10 tareas multi-paso: -63.9% de ahorro de tokens y calidad 87% -> 94%.
+
+### Producción Web y Despliegue
+- Web oficial (index.html) modernizada con arquitectura autónoma de alta velocidad y cero dependencias rotas, lista para producción en GitHub Pages.
+- Documentación de las 28 herramientas MCP registradas y tabla verificable de ahorro frente a grep y lectura completa.
+
+### Motor y Núcleo
+- Poda sintáctica Tree-sitter optimizada (limpiar_contenido_chunk) para descarte de comentarios de licencias repetitivas, banners decorativos y docstrings vacíos.
+- Preservación estricta de números de línea reales y firmas de símbolos para no inducir alucinaciones en agentes de IA.
+
 ## 1.6.0 (16-oct-2026)
 
 ### Después de la medición (17-oct-2026, sin medir con el agente)

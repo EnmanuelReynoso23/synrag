@@ -1,7 +1,7 @@
 // Todas las cifras de la web salen de CLAIMS.md (columna "fila"). Si una cambia alli, se cambia aqui
 // el mismo dia. Nada de esta pagina es una proyeccion.
 
-export const VERSION = '1.6.0';
+export const VERSION = '2.0.0';
 export const REPO = 'https://github.com/EnmanuelReynoso23/synrag';
 export const CLAIMS = `${REPO}/blob/main/CLAIMS.md`;
 export const CHANGELOG = `${REPO}/blob/main/CHANGELOG.md`;

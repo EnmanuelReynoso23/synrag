@@ -1,7 +1,7 @@
 {
   "name": "synrag",
   "displayName": "SynRAG",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Local AST-native code search over MCP. Teaches Claude to locate the exact definition, its callers and its impact radius before reading or editing files, so it spends fewer tokens.",
   "author": {
     "name": "Enmanuel Reynoso",
