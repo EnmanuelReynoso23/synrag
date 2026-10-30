@@ -34,7 +34,7 @@
           <h1 class="text-sm font-bold tracking-wider uppercase text-gray-200">SYNTAXRAG // MONITOR DE INFERENCIA EN VIVO</h1>
           <span id="connBadge" class="text-[9px] font-mono-code px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 border border-blue-500/40">SERVIDOR KAGGLE CONECTADO</span>
         </div>
-        <p class="text-xs text-gray-400 font-mono-code">Qwen 2.5 Coder | Google Cloud | 21 Agentes</p>
+        <p class="text-xs text-gray-400 font-mono-code">Tripulacion Completa: 21 Agentes (Atlas #21 + 20 Especialistas)</p>
       </div>
     </div>
 
@@ -63,19 +63,19 @@
   <!-- CONTENEDOR PRINCIPAL: SPLIT VIEW -->
   <main class="flex-1 flex overflow-hidden">
     
-    <!-- PANEL IZQUIERDO: OFICINA VIRTUAL 2D -->
+    <!-- PANEL IZQUIERDO: OFICINA VIRTUAL 2D (TODOS LOS 21 PUESTOS) -->
     <section class="w-6/12 h-full flex flex-col border-r border-gray-800 relative bg-[#0d121f]">
       <div class="h-10 bg-gray-900/60 border-b border-gray-800/80 px-4 flex items-center justify-between text-xs text-gray-400 font-mono-code">
-        <span>SALA DE TRABAJO 2D // PULSA UN AGENTE PARA VER SU ESTADO</span>
-        <span id="lastSyncTime" class="text-emerald-400">ESTADO LIMPIO Y SINCRONIZADO</span>
+        <span>SALA DE TRABAJO 2D // 21 PUESTOS ACTIVOS (PULSA CUALQUIERA PARA INSPECCIONAR)</span>
+        <span id="lastSyncTime" class="text-emerald-400">21 ESCRITORIOS CONECTADOS</span>
       </div>
 
       <!-- Lienzo de la Oficina -->
-      <div class="flex-1 relative overflow-hidden flex items-center justify-center p-4">
+      <div class="flex-1 relative overflow-hidden flex items-center justify-center p-3">
         <canvas id="officeCanvas" width="760" height="520" class="rounded shadow-2xl"></canvas>
       </div>
 
-      <!-- Barra de Estado Inferior de la Oficina -->
+      <!-- Barra de Estado Inferior -->
       <div class="h-10 bg-gray-900/80 border-t border-gray-800 px-4 flex items-center justify-between text-xs font-mono-code">
         <div class="flex items-center space-x-3">
           <span class="text-amber-400 font-bold">[PROMPT LITERAL DE ENMANUEL]</span>
@@ -88,17 +88,32 @@
     <!-- PANEL DERECHO: LA MENTE DE LA IA EN VIVO -->
     <section class="w-6/12 h-full flex flex-col bg-[#0b0f19]">
       
-      <!-- Selector de Agente y Estado -->
+      <!-- Selector de Agente (TODOS LOS 21 NOMBRES) -->
       <div class="h-12 bg-gray-900 border-b border-gray-800 px-4 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <span class="text-xs text-gray-400 uppercase font-mono-code">Agente Enfocado:</span>
+          <span class="text-xs text-gray-400 uppercase font-mono-code">Inspeccionar Agente:</span>
           <select id="agentSelect" class="bg-gray-800 border border-gray-700 text-xs font-bold text-emerald-400 rounded px-2.5 py-1 outline-none font-mono-code cursor-pointer">
-            <option value="21" selected>Agente 21: Capitan Atlas (Qwen 2.5 Coder en Servidor)</option>
-            <option value="1">Agente 01: Turing (Poda AST Chunker)</option>
+            <option value="21" selected>Agente 21: Capitan Atlas (Mando Supremo)</option>
+            <option value="1">Agente 01: Turing (Poda AST)</option>
+            <option value="2">Agente 02: Lovelace (Docstrings)</option>
+            <option value="3">Agente 03: Shannon (Densidad de Tokens)</option>
             <option value="4">Agente 04: Dijkstra (Guardia de Sintaxis)</option>
+            <option value="5">Agente 05: Knuth (Estructuras AST)</option>
             <option value="6">Agente 06: Ritchie (Firmas en Busqueda)</option>
-            <option value="18">Agente 18: Wozniak (Runner de Pytest)</option>
+            <option value="7">Agente 07: Thompson (Normalizacion de Rutas)</option>
+            <option value="8">Agente 08: Lamport (Concurrencia)</option>
+            <option value="9">Agente 09: Torvalds (Kernel I/O)</option>
+            <option value="10">Agente 10: Hopper (Compilador)</option>
+            <option value="11">Agente 11: Neumann (Arquitectura)</option>
+            <option value="12">Agente 12: Boole (Logica)</option>
+            <option value="13">Agente 13: Babbage (Computo)</option>
+            <option value="14">Agente 14: Hamilton (Tolerancia a Fallos)</option>
+            <option value="15">Agente 15: Cerf (Protocolo MCP)</option>
+            <option value="16">Agente 16: Berners (Docs)</option>
+            <option value="17">Agente 17: Carmack (Rendimiento)</option>
+            <option value="18">Agente 18: Wozniak (Pytest Runner)</option>
             <option value="19">Agente 19: Stallman (Auditor Tiktoken)</option>
+            <option value="20">Agente 20: Norvig (Precision Top-1)</option>
           </select>
         </div>
         <div class="flex items-center space-x-2">
@@ -134,6 +149,7 @@
           </div>
           <div id="aiThoughtStream" class="flex-1 overflow-auto font-mono-code text-xs text-gray-300 leading-relaxed space-y-2 whitespace-pre-wrap">
 [SERVIDOR KAGGLE]: Notebook 'syntaxrag-qwen-real-prompt-inference' en ejecucion.
+- Tripulacion: 21 agentes registrados bajo el mando del Capitan Atlas (#21).
 - Modulo objetivo: engine/chunker.py
 - Modelo en memoria: Qwen 2.5 Coder
 - El modelo esta procesando la solicitud para redactar su propia funcion de mejora.
@@ -216,24 +232,56 @@ engine/tests/test_chunker.py .......x......                       [100%]
     tabCodingBtn.addEventListener("click", () => setActiveTab("coding"));
     tabTerminalBtn.addEventListener("click", () => setActiveTab("terminal"));
 
-    // Canvas 2D
+    // =========================================================================
+    // CANVAS DE OFICINA 2D: LOS 21 AGENTES EN SUS PUESTOS
+    // =========================================================================
     const canvas = document.getElementById("officeCanvas");
     const ctx = canvas.getContext("2d");
     let animFrame = 0;
 
-    const DESKS = [
-      { id: 21, x: 340, y: 60, name: "Atlas (Qwen)", color: "#f59e0b", isCaptain: true },
-      { id: 1, x: 100, y: 190, name: "Turing", color: "#3b82f6" },
-      { id: 4, x: 280, y: 190, name: "Dijkstra", color: "#ef4444" },
-      { id: 6, x: 460, y: 190, name: "Ritchie", color: "#3b82f6" },
-      { id: 18, x: 190, y: 300, name: "Wozniak", color: "#10b981" },
-      { id: 19, x: 370, y: 300, name: "Stallman", color: "#3b82f6" }
+    // Nombres oficiales de los 20 agentes + Capitan Atlas
+    const AGENTS_LIST = [
+      "Turing", "Lovelace", "Shannon", "Dijkstra", "Knuth",
+      "Ritchie", "Thompson", "Lamport", "Torvalds", "Hopper",
+      "Neumann", "Boole", "Babbage", "Hamilton", "Cerf",
+      "Berners", "Carmack", "Wozniak", "Stallman", "Norvig"
     ];
+
+    const DESKS = [];
+    // Despacho del Capitan Atlas (Arriba en el centro)
+    DESKS.push({ id: 21, x: 335, y: 40, name: "Atlas (#21)", color: "#f59e0b", isCaptain: true });
+
+    // 4 filas de 5 escritorios para los 20 agentes (total 21 puestos)
+    let agentIdx = 0;
+    for (let fila = 0; fila < 4; fila++) {
+      for (let col = 0; col < 5; col++) {
+        const id = agentIdx + 1;
+        const nombre = AGENTS_LIST[agentIdx];
+        let color = "#3b82f6";
+        if (id === 1) color = "#10b981";       // Turing
+        if (id === 4) color = "#ef4444";       // Dijkstra
+        if (id === 18) color = "#10b981";      // Wozniak
+        if (id === 17) color = "#8b5cf6";      // Carmack
+
+        DESKS.push({
+          id: id,
+          x: 45 + col * 140,
+          y: 160 + fila * 85,
+          name: `${nombre} (#${id})`,
+          color: color,
+          isCaptain: false
+        });
+        agentIdx++;
+      }
+    }
+
+    let selectedDeskId = 21;
 
     function drawOffice() {
       animFrame++;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Suelo de baldosas
       for (let x = 0; x < canvas.width; x += 20) {
         for (let y = 0; y < canvas.height; y += 20) {
           ctx.fillStyle = ((x / 20 + y / 20) % 2 === 0) ? "#161f30" : "#1a2538";
@@ -241,38 +289,48 @@ engine/tests/test_chunker.py .......x......                       [100%]
         }
       }
 
+      // Zona de mando del Capitan
       ctx.fillStyle = "#1e293b";
-      ctx.fillRect(300, 40, 160, 90);
+      ctx.fillRect(290, 30, 180, 85);
       ctx.strokeStyle = "#f59e0b55";
       ctx.lineWidth = 2;
-      ctx.strokeRect(300, 40, 160, 90);
+      ctx.strokeRect(290, 30, 180, 85);
 
       DESKS.forEach(desk => {
+        const isSelected = (desk.id === selectedDeskId);
+
+        // Mesa
         ctx.fillStyle = desk.isCaptain ? "#78350f" : "#334155";
-        ctx.fillRect(desk.x, desk.y, 76, 38);
-        ctx.strokeStyle = "#475569";
-        ctx.strokeRect(desk.x, desk.y, 76, 38);
+        ctx.fillRect(desk.x, desk.y, 76, 36);
+        ctx.strokeStyle = isSelected ? "#10b981" : "#475569";
+        ctx.lineWidth = isSelected ? 2 : 1;
+        ctx.strokeRect(desk.x, desk.y, 76, 36);
 
+        // Monitor
         ctx.fillStyle = "#0f172a";
-        ctx.fillRect(desk.x + 24, desk.y + 5, 28, 16);
+        ctx.fillRect(desk.x + 24, desk.y + 5, 28, 15);
         ctx.fillStyle = (animFrame % 30 > 15) ? "#10b981" : "#38bdf8";
-        ctx.fillRect(desk.x + 26, desk.y + 7, 24, 12);
+        ctx.fillRect(desk.x + 26, desk.y + 7, 24, 11);
 
+        // Personaje Pixel
         ctx.fillStyle = desk.color;
         const bob = Math.sin(animFrame * 0.15 + desk.id) * 2;
-        ctx.fillRect(desk.x + 32, desk.y + 24 + bob, 12, 12);
+        ctx.fillRect(desk.x + 32, desk.y + 22 + bob, 12, 12);
 
+        // Ojos
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(desk.x + 34, desk.y + 27 + bob, 2, 2);
-        ctx.fillRect(desk.x + 40, desk.y + 27 + bob, 2, 2);
+        ctx.fillRect(desk.x + 34, desk.y + 25 + bob, 2, 2);
+        ctx.fillRect(desk.x + 40, desk.y + 25 + bob, 2, 2);
 
+        // Manos tecleando
         ctx.fillStyle = "#fcd34d";
         const h = (animFrame % 8 > 4) ? 1 : -1;
-        ctx.fillRect(desk.x + 27 + h, desk.y + 22, 3, 3);
-        ctx.fillRect(desk.x + 46 - h, desk.y + 22, 3, 3);
+        ctx.fillRect(desk.x + 27 + h, desk.y + 20, 3, 3);
+        ctx.fillRect(desk.x + 46 - h, desk.y + 20, 3, 3);
 
-        ctx.fillStyle = "#cbd5e1";
-        ctx.font = "9px monospace";
+        // Nombre
+        ctx.fillStyle = isSelected ? "#34d399" : "#cbd5e1";
+        ctx.font = isSelected ? "bold 9px monospace" : "8px monospace";
         ctx.textAlign = "center";
         ctx.fillText(desk.name, desk.x + 38, desk.y - 4);
       });
@@ -281,6 +339,24 @@ engine/tests/test_chunker.py .......x......                       [100%]
     }
 
     drawOffice();
+
+    // Seleccion
+    document.getElementById("agentSelect").addEventListener("change", (e) => {
+      selectedDeskId = parseInt(e.target.value);
+    });
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      DESKS.forEach(desk => {
+        if (clickX >= desk.x && clickX <= desk.x + 76 && clickY >= desk.y && clickY <= desk.y + 45) {
+          selectedDeskId = desk.id;
+          document.getElementById("agentSelect").value = desk.id;
+        }
+      });
+    });
   </script>
 </body>
 </html>
