@@ -1,0 +1,100 @@
+{
+  "tokenizador": "o200k_base (OpenAI)",
+  "archivos_evaluados": 87,
+  "tokens_sin_synrag": 208904,
+  "tokens_con_synrag": 2895,
+  "ahorro_porcentaje": 98.61,
+  "es_verdad_mas_de_90": true,
+  "detalles_archivos": [
+    {
+      "archivo": "engine/argon.py",
+      "tokens_completos": 2138,
+      "tokens_synrag": 17,
+      "ahorro_pct": 99.2
+    },
+    {
+      "archivo": "engine/conciso.py",
+      "tokens_completos": 2110,
+      "tokens_synrag": 30,
+      "ahorro_pct": 98.58
+    },
+    {
+      "archivo": "engine/empaquetar.py",
+      "tokens_completos": 3089,
+      "tokens_synrag": 24,
+      "ahorro_pct": 99.22
+    },
+    {
+      "archivo": "engine/cli.py",
+      "tokens_completos": 8446,
+      "tokens_synrag": 23,
+      "ahorro_pct": 99.73
+    },
+    {
+      "archivo": "engine/watcher.py",
+      "tokens_completos": 2577,
+      "tokens_synrag": 21,
+      "ahorro_pct": 99.19
+    },
+    {
+      "archivo": "engine/hook_pista.py",
+      "tokens_completos": 1632,
+      "tokens_synrag": 27,
+      "ahorro_pct": 98.35
+    },
+    {
+      "archivo": "engine/impact.py",
+      "tokens_completos": 1209,
+      "tokens_synrag": 14,
+      "ahorro_pct": 98.84
+    },
+    {
+      "archivo": "engine/filtro.py",
+      "tokens_completos": 3352,
+      "tokens_synrag": 23,
+      "ahorro_pct": 99.31
+    },
+    {
+      "archivo": "engine/chunker.py",
+      "tokens_completos": 10288,
+      "tokens_synrag": 16,
+      "ahorro_pct": 99.84
+    },
+    {
+      "archivo": "engine/mapa.py",
+      "tokens_completos": 3733,
+      "tokens_synrag": 25,
+      "ahorro_pct": 99.33
+    },
+    {
+      "archivo": "engine/ranker.py",
+      "tokens_completos": 628,
+      "tokens_synrag": 14,
+      "ahorro_pct": 97.77
+    },
+    {
+      "archivo": "engine/cache.py",
+      "tokens_completos": 1065,
+      "tokens_synrag": 17,
+      "ahorro_pct": 98.4
+    },
+    {
+      "archivo": "engine/qwen_proposal.py",
+      "tokens_completos": 1113,
+      "tokens_synrag": 20,
+      "ahorro_pct": 98.2
+    },
+    {
+      "archivo": "engine/indexer.py",
+      "tokens_completos": 11351,
+      "tokens_synrag": 29,
+      "ahorro_pct": 99.74
+    },
+    {
+      "archivo": "engine/hook_filtro.py",
+      "tokens_completos": 2695,
+      "tokens_synrag": 26,
+      "ahorro_pct": 99.04
+    }
+  ]
+}
