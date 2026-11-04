@@ -8,8 +8,8 @@ authors:
     given-names: Enmanuel
 repository-code: "https://github.com/EnmanuelReynoso23/synrag"
 license: MIT
-version: 1.6.0
-date-released: 2026-10-16
+version: 1.6.1
+date-released: 2026-11-04
 keywords:
   - model context protocol
   - code search

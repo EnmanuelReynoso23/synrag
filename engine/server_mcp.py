@@ -82,7 +82,7 @@ def _ubicacion(r: dict) -> str:
     fin = r.get("end_line", ini)
     rango = f"{ini}-{fin}" if fin != ini else f"{ini}"
     sym = f" {r['symbol_kind']} {r['symbol_name']}" if r.get("symbol_name") else ""
-    ruta = str(r.get("rel_path", ""))
+    ruta = str(r.get("rel_path", "")).replace("\\", "/")
     ruta = ruta if ruta.startswith("/") else f"~/{ruta}"  # rel_path es relativa al HOME salvo fuera de el
     return f"{ruta}:{rango}{sym}"
 

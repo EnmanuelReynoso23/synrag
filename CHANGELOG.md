@@ -1,5 +1,22 @@
 # Cambios
 
+## 1.6.1 (4-nov-2026)
+
+La versión 2.0.0 (29-oct-2026) se retiró y se borró del historial: publicaba cifras sin respaldo y traía un fallo en el troceado.
+
+### Arreglos que se mantienen de 2.0.0
+- `engine/indexer.py`: la carpeta personal sale de `HOME` si está definida (antes solo `Path.home()`).
+- `engine/server_mcp.py`: las rutas con `\` de Windows se normalizan a `/` antes de filtrar.
+
+### Retirado
+- Las cifras -90,2 % y -98,61 % no tienen fila en `CLAIMS.md`: se quitan de la web y del README. La -98,61 % comparaba leer 87 archivos completos contra un solo símbolo, que no es una sesión de trabajo real. Las cifras válidas siguen siendo -76 % (fila 23) y -63,9 % (fila 41).
+- `office.html` y `telemetry/live_state.json`: mostraban una "telemetría en vivo" que era un archivo fijo, no datos reales.
+- `engine/qwen_proposal.py`, `benchmarks/qwen_web_output.txt` y `benchmarks/token_validation_report.json`: borradores sin uso en el motor.
+- La web vuelve a la versión React (`index.html` + `src/`), cuyas cifras salen de `src/data/medido.ts` y `CLAIMS.md`.
+
+### Fallo corregido
+- La "poda sintáctica" de 2.0.0 (`limpiar_contenido_chunk` en `engine/chunker.py`) trataba como docstring cualquier cadena de triple comilla y la cortaba a su primera línea: una consulta SQL de varias líneas dentro de una función se indexaba como `sql = """SELECT id, nombre"""`, y el agente veía código que no existe. Se quita la poda; los trozos vuelven a ser copia exacta del archivo. Prueba nueva: `engine/tests/test_chunker_literal.py`.
+
 ## 1.6.0 (16-oct-2026)
 
 ### Después de la medición (17-oct-2026, sin medir con el agente)
