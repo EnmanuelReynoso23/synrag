@@ -20,7 +20,7 @@ Motor local de búsqueda de código para agentes de IA, por el protocolo MCP. Pr
 
 ## Que es SyntaxRAG (SYNRAG)
 
-Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejemplo, 500 tokens que pueden partir funciones a la mitad y no entienden jerarquías de tipos, y los agentes terminan leyendo archivos completos para orientarse. Otras herramientas modernas también trocean por AST; SyntaxRAG es una opción local y abierta, y publica cómo se mide cada cifra (ver `CLAIMS.md`).
+Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejemplo, 500 tokens que pueden partir funciones a la mitad y no entienden jerarquías de tipos, y los agentes terminan leyendo archivos completos para orientarse. Otras herramientas modernas también trocean por AST; SyntaxRAG es una opción local y abierta, y publica cómo se mide cada cifra (ver `CLAIMS.es.md`).
 
 **SyntaxRAG (SYNRAG)** resuelve este problema analizando el árbol sintáctico abstracto (AST) del código en tu máquina local:
 
@@ -48,7 +48,7 @@ Cada cifra sale de un guion de `benchmarks/` que cualquiera puede repetir en su 
 | Salidas largas de terminal (filtro opcional) | -87 a -99 % conservando todas las líneas de error; la salida completa queda en un archivo | `benchmarks/filtro.py` |
 | Costo fijo por turno (contado con la API de Gemini) | Definiciones: perfil completo 2.068 tokens, `esencial` (5 herramientas) 412, `bajo_demanda` (2) 159; instrucción de uso 108; bloque conciso 115 (antes del recorte: 2.091, 435, 188 y 248) | `benchmarks/costo_fijo.py` |
 
-Lo que más pesa en una sesión real no es ninguna herramienta: es la longitud de la sesión, porque cada turno reenvía todo el historial. `context_budget_alert` y `session_handoff` ayudan a cortar a tiempo. Detalle y límites de cada cifra: `CLAIMS.md`.
+Lo que más pesa en una sesión real no es ninguna herramienta: es la longitud de la sesión, porque cada turno reenvía todo el historial. `context_budget_alert` y `session_handoff` ayudan a cortar a tiempo. Detalle y límites de cada cifra: `CLAIMS.es.md`.
 
 ---
 
@@ -204,7 +204,7 @@ WHERE tokens_retrieved = 631 AND tokens_original_file = 2500 AND results_count =
 
 ## Web
 
-La web (`src/`, React 19 + Tailwind 4, tema `#0D1117` y cian `#00E5FF`) explica qué es SynRAG, cómo funciona y qué se midió. No tiene simulaciones ni cifras propias: todas salen de `src/data/medido.ts`, que copia las filas de `CLAIMS.md` y enlaza cada una. Si una cifra cambia en `CLAIMS.md`, se cambia en `medido.ts` el mismo día. El ejemplo de búsqueda es una salida real sobre Flask.
+La web (`src/`, React 19 + Tailwind 4, tema `#0D1117` y cian `#00E5FF`) explica qué es SynRAG, cómo funciona y qué se midió. No tiene simulaciones ni cifras propias: todas salen de `src/data/medido.ts`, que copia las filas de `CLAIMS.es.md` y enlaza cada una. Si una cifra cambia en `CLAIMS.es.md`, se cambia en `medido.ts` el mismo día. El ejemplo de búsqueda es una salida real sobre Flask.
 
 ### Levantar la Web en Desarrollo
 
@@ -234,7 +234,7 @@ synrag/
 │   └── watcher.py                # Observador opcional de cambios (Watchdog)
 ├── src/                          # Aplicación web (React 19 + Tailwind 4)
 │   ├── components/               # Hero, Problema, ComoFunciona, Resultados, Herramientas, Install, Faq
-│   ├── data/medido.ts            # Cifras de la web (copiadas de CLAIMS.md, con su fila)
+│   ├── data/medido.ts            # Cifras de la web (copiadas de CLAIMS.es.md, con su fila)
 │   └── index.css                 # Sistema de diseño (#0D1117 + Neón Cyan)
 ├── public/                       # Assets públicos, logos vectoriales e install.sh
 ├── install.sh                    # Script universal de instalación en 1 línea

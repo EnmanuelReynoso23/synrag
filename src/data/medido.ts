@@ -3,7 +3,7 @@
 
 export const VERSION = '1.6.1';
 export const REPO = 'https://github.com/EnmanuelReynoso23/synrag';
-export const CLAIMS = `${REPO}/blob/main/CLAIMS.md`;
+export const CLAIMS = `${REPO}/blob/main/CLAIMS.es.md`;
 export const CHANGELOG = `${REPO}/blob/main/CHANGELOG.md`;
 export const INSTALAR = 'curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash';
 
