@@ -1,94 +1,96 @@
-# Afirmaciones verificables
+# Verifiable claims
 
-Cada cifra y cada afirmación que aparece en el README o en la web tiene aquí su fecha, su método y el comando que la reproduce. Lo que no se pudo medir figura como "no afirmado". Última revisión: 16-oct-2026 (las filas 1-9 son del 6-oct salvo donde se indica).
+[Español](CLAIMS.es.md) · English
 
-Equipo de las mediciones: CachyOS (Linux), 12 núcleos, solo CPU; índice de ~76 proyectos, 96.318 fragmentos y 23.721 relaciones. Las cifras de latencia dependen de tu equipo y de la carga que tenga: ejecuta los guiones en el tuyo.
+Every number and claim in the README or on the website has its date, method and reproducing command here. Anything that could not be measured is listed as "not claimed". Last reviewed: Oct 16, 2026 (rows 1-9 are from Oct 6 unless noted).
 
-## Medido
+Measurement machine: CachyOS (Linux), 12 cores, CPU only; index of ~76 projects, 96,318 chunks and 23,721 relations. Latency figures depend on your machine and its load: run the scripts on yours.
 
-| # | Afirmación | Resultado (6-oct-2026) | Cómo reproducirlo |
+## Measured
+
+| # | Claim | Result (Oct 6, 2026) | How to reproduce |
 |---|---|---|---|
-| 1 | Consulta nueva, de punta a punta por MCP, equipo en reposo | Mediana ~90 ms (medianas de 67 a 91 ms en 6 semillas; p90 de 105 a 121 ms). Consultas de 2 a 4 palabras, 4 de cada 5 con filtro de proyecto | `python benchmarks/latencia.py --modo mcp --semilla N` |
-| 2 | Primera consulta tras arrancar el servidor MCP | 118 a 201 ms; el servidor tarda ~1,4 s en arrancar hasta `initialize` | igual que la fila 1 |
-| 3 | Consulta repetida (misma consulta sin distinguir mayúsculas ni espacios) | Mediana 8,3 a 8,9 ms (p90 ~10 ms) | igual que la fila 1 |
-| 4 | Solo el motor, sin MCP | Nueva: medianas de 61 a 91 ms (5 semillas). Repetida: 6,1 a 7,8 ms | `python benchmarks/latencia.py --modo motor --semilla N` |
-| 5 | Con la CPU saturada (12 procesos en 12 núcleos) | Nueva: mediana ~192 ms (p90 241 ms) frente a ~94 ms sin carga; repetida: ~16 ms. Modo motor, proyecto de 23 mil fragmentos, 3 a 6 palabras | `python benchmarks/latencia.py --modo motor --proyecto <el_mayor> --palabras 3-6 --semilla 7`, sin carga y con 12 procesos ocupando la CPU a la vez |
-| 6 | Uso real dentro de Claude Code (con otras tareas en marcha) | 355 a 707 ms en 5 de 6 búsquedas y 52 ms en una. **No se ha explicado la diferencia con la fila 1** | columna `latency_ms` de `~/.local/share/lancedb-hub/telemetry.db` |
-| 7 | Reindexar un archivo pequeño (`index_single_file`) | Mediana 8,0 a 8,6 ms (p90 ~9,3 ms; 3 corridas de 15 pruebas), más 0,6 s de espera con la que el observador agrupa guardados | `python benchmarks/reindex_archivo.py` |
-| 8 | Memoria del observador opcional | 257 MB tras 1 h 54 min y 320 MB tras 2 h 15 min; **crece con el tiempo**. CPU media ~0,3 % | `ps -o rss=,etime= -p $(systemctl --user show lancedb-watcher.service -p MainPID --value)` |
-| 9 | Tamaño del índice del autor | ~76 proyectos, 96.318 fragmentos, 23.721 relaciones, 62 MB en disco. Cambia con cada reindexado | `python benchmarks/conteos.py` |
+| 1 | New query, end to end over MCP, idle machine | Median ~90 ms (medians from 67 to 91 ms across 6 seeds; p90 from 105 to 121 ms). Queries of 2 to 4 words, 4 out of 5 with a project filter | `python benchmarks/latencia.py --modo mcp --semilla N` |
+| 2 | First query after starting the MCP server | 118 to 201 ms; the server takes ~1.4 s to start up to `initialize` | same as row 1 |
+| 3 | Repeated query (same query ignoring case and whitespace) | Median 8.3 to 8.9 ms (p90 ~10 ms) | same as row 1 |
+| 4 | Engine only, without MCP | New: medians from 61 to 91 ms (5 seeds). Repeated: 6.1 to 7.8 ms | `python benchmarks/latencia.py --modo motor --semilla N` |
+| 5 | With the CPU saturated (12 processes on 12 cores) | New: median ~192 ms (p90 241 ms) versus ~94 ms without load; repeated: ~16 ms. Engine mode, project of 23 thousand chunks, 3 to 6 words | `python benchmarks/latencia.py --modo motor --proyecto <el_mayor> --palabras 3-6 --semilla 7`, with no load and with 12 processes occupying the CPU at the same time |
+| 6 | Real use inside Claude Code (with other tasks running) | 355 to 707 ms in 5 of 6 searches and 52 ms in one. **The difference from row 1 has not been explained** | `latency_ms` column of `~/.local/share/lancedb-hub/telemetry.db` |
+| 7 | Reindexing a small file (`index_single_file`) | Median 8.0 to 8.6 ms (p90 ~9.3 ms; 3 runs of 15 tests), plus the 0.6 s wait the watcher uses to group saves | `python benchmarks/reindex_archivo.py` |
+| 8 | Memory of the optional watcher | 257 MB after 1 h 54 min and 320 MB after 2 h 15 min; **it grows over time**. Average CPU ~0.3% | `ps -o rss=,etime= -p $(systemctl --user show lancedb-watcher.service -p MainPID --value)` |
+| 9 | Size of the author's index | ~76 projects, 96,318 chunks, 23,721 relations, 62 MB on disk. Changes with every reindex | `python benchmarks/conteos.py` |
 
-## Verificado en el código
+## Verified in the code
 
-| # | Afirmación | Dónde |
+| # | Claim | Where |
 |---|---|---|
-| 10 | Los candidatos se recuperan por palabras (BM25, Tantivy FTS sobre LanceDB) y se reordenan con FlashRank `ms-marco-TinyBERT-L-2-v2` | `engine/indexer.py` (`search_desktop`), `engine/ranker.py` |
-| 11 | La caché solo acierta con la misma consulta normalizada (minúsculas y espacios), con 4 horas de vigencia, y se vacía al reindexar. No es una caché semántica | `engine/cache.py`, `engine/indexer.py`; probado en `engine/tests/test_cache.py` |
-| 12 | El troceo es por AST para TypeScript, TSX/JSX, JavaScript y Python; Markdown se trocea por secciones y SQL por sentencias; los bloques de más de 2.400 caracteres se dividen | `engine/chunker.py` (`LANG_MAP`, `MAX_CHUNK_CHARS`) |
-| 13 | El grafo de impacto guarda qué archivos importan cada símbolo en una tabla de LanceDB; no usa NetworkX | `engine/impact.py` |
-| 14 | Se excluyen carpetas ocultas, archivos de más de 250 KB y archivos de credenciales, y se redactan patrones de secretos | `engine/indexer.py`; probado en `engine/tests/test_secretos.py` y `engine/tests/test_busqueda.py` |
-| 15 | El motor no hace llamadas de red salvo las dos herramientas opcionales de Gemini, que solo se registran si el usuario configura su propia `GEMINI_API_KEY` | `grep -rln urllib engine/` solo muestra `engine/argon.py`; `server_mcp.py` registra sus herramientas solo si `argon.disponible()` |
-| 16 | 28 herramientas MCP (26 sin clave de Gemini), sin `outputSchema` y sin `title` en los parámetros | `python scripts/ci/mcp_tools_list.py` (falla si alguna trae `outputSchema`) |
+| 10 | Candidates are retrieved by keywords (BM25, Tantivy FTS over LanceDB) and reranked with FlashRank `ms-marco-TinyBERT-L-2-v2` | `engine/indexer.py` (`search_desktop`), `engine/ranker.py` |
+| 11 | The cache only hits on the same normalized query (lowercase and whitespace), lasts 4 hours and is cleared on reindex. It is not a semantic cache | `engine/cache.py`, `engine/indexer.py`; tested in `engine/tests/test_cache.py` |
+| 12 | Chunking is AST-based for TypeScript, TSX/JSX, JavaScript and Python; Markdown is chunked by sections and SQL by statements; blocks over 2,400 characters are split | `engine/chunker.py` (`LANG_MAP`, `MAX_CHUNK_CHARS`) |
+| 13 | The impact graph stores which files import each symbol in a LanceDB table; it does not use NetworkX | `engine/impact.py` |
+| 14 | Hidden folders, files over 250 KB and credential files are excluded, and secret patterns are redacted | `engine/indexer.py`; tested in `engine/tests/test_secretos.py` and `engine/tests/test_busqueda.py` |
+| 15 | The engine makes no network calls except for the two optional Gemini tools, which are only registered if the user configures their own `GEMINI_API_KEY` | `grep -rln urllib engine/` only shows `engine/argon.py`; `server_mcp.py` registers its tools only if `argon.disponible()` |
+| 16 | 28 MCP tools (26 without a Gemini key), with no `outputSchema` and no `title` in the parameters | `python scripts/ci/mcp_tools_list.py` (fails if any has `outputSchema`) |
 
-## Probado
+## Tested
 
-| # | Afirmación | Cómo |
+| # | Claim | How |
 |---|---|---|
-| 17 | Con Claude Code y Antigravity el MCP queda cargado | En el equipo del autor hay un proceso `server_mcp.py` hijo de cada IA; Antigravity lee `~/.gemini/config/mcp_config.json` (la ruta está en su binario y en el del CLI `agy`) |
-| 18 | El instalador funciona en un equipo limpio, es idempotente, conserva servidores ajenos y se desinstala | Probado con un `HOME` falso el 6-oct-2026: instalación, segunda pasada, ruta anterior de Antigravity y `--uninstall`; automatizado en `engine/tests/test_instalador.py` |
+| 17 | With Claude Code and Antigravity the MCP server stays loaded | On the author's machine there is one `server_mcp.py` process as a child of each AI; Antigravity reads `~/.gemini/config/mcp_config.json` (the path is in its binary and in that of the `agy` CLI) |
+| 18 | The installer works on a clean machine, is idempotent, keeps other servers and uninstalls | Tested with a fake `HOME` on Oct 6, 2026: install, second pass, previous Antigravity path and `--uninstall`; automated in `engine/tests/test_instalador.py` |
 
-## Medido el 15-oct-2026
+## Measured on Oct 15, 2026
 
-Equipo del autor, en reposo salvo donde se indica. Repos públicos clonados con `git clone --depth 1` (Flask `d086db8`, Hono `588ec13`); los guiones indexan solo ese repo en un índice temporal (`--indexar`). Tokens = caracteres/4 salvo en las filas 19 y 33 (contador real de la API).
+Author's machine, idle except where noted. Public repos cloned with `git clone --depth 1` (Flask `d086db8`, Hono `588ec13`); the scripts index only that repo in a temporary index (`--indexar`). Tokens = characters/4 except in rows 19 and 33 (real API counter).
 
-| # | Afirmación | Resultado | Cómo reproducirlo |
+| # | Claim | Result | How to reproduce |
 |---|---|---|---|
-| 19 | Con un agente real, SynRAG gasta menos tokens que grep + leer archivos | -11,5 % (72.533 frente a 81.996 tokens; 16 preguntas x 2 rondas, Gemini 3.5 Flash-Lite); 16/16 aciertos en ambos modos; gana en 7 de 16. Las preguntas solo piden la ubicación, el peor caso para SynRAG (entrega la definición entera) | `python benchmarks/agente/agente.py` |
-| 20 | Encontrar y leer una función por su nombre cuesta menos que grep (30 líneas) + leer el tramo | Flask -27 a -30 % (3 semillas, 25 funciones), Hono -45 % (16 funciones); definición primera en 23-25 de 25 y 16 de 16 | `python benchmarks/ahorro.py --repo <repo> --indexar --semilla N` |
-| 21 | Lo mismo con preguntas en lenguaje natural | Flask -31 % (12 preguntas, `benchmarks/preguntas/flask.json`); definición primera 8 de 12, en el top 5 11 de 12 | `python benchmarks/ahorro.py --repo flask --indexar --n 0 --naturales benchmarks/preguntas/flask.json` |
-| 22 | Documentación en fragmentos de ~200 tokens | -22 % frente a grep + 40 líneas, -91 % frente al archivo entero (10 preguntas sobre la doc de Flask); respuesta en el top 5 10 de 10 | `python benchmarks/docs.py --repo flask` |
-| 23 | Empaquetado comprimido (solo firmas, tipos e imports) | Flask 160.514 -> 38.882 tokens (-76 %), Hono 756.316 -> 118.669 (-84 %) | `python benchmarks/mapa.py --repo <repo>` |
-| 24 | Filtro de salidas largas (`configure --filtro-largas`) | find: 178.449 -> 1.249 tokens; script de 5.000 líneas: 73.088 -> 1.738; journalctl: 59.248 -> 7.444; todas las líneas de error conservadas. Claude Code entrega al hook como mucho 30.000 caracteres: por encima de eso SynRAG resume ese trozo y avisa que la completa la guarda Claude Code | `python benchmarks/filtro.py` |
-| 25 | Filtro de comandos ruidosos (`configure --filtro`) | 31-55 % menos en pytest, pip, npm y cargo (fixtures de 42-79 líneas) | `python benchmarks/filtro.py` |
-| 26 | Costo fijo de las definiciones MCP | ~2.000 tokens (7.981 caracteres) con 28 herramientas; antes ~4.150 con 27 | `python scripts/ci/mcp_tools_list.py` |
-| 27 | Latencia en el índice del autor (125.570 fragmentos) | Consulta nueva: medianas de 61 a 89 ms (3 semillas); repetida: 3,3-3,7 ms (antes 6-8 ms: ya no escribe en la caché en cada acierto) | `python benchmarks/latencia.py --modo motor --semilla N` |
-| 28 | Reindexar todo | 16,7 s para 9.247 archivos y 125.570 fragmentos | `SYNRAG index` |
-| 29 | Tamaño del índice tras reindexar | 132 MB (antes 350-400 MB: el grafo de impacto nunca se compactaba y acumuló 7.836 versiones) | `du -sh ~/.local/share/lancedb-hub/data` |
-| 30 | Observador: versiones y hilos | 2.000 guardados sintéticos: 2.001 -> 2 archivos de versión, 23 -> 3 hilos, memoria -10 % (306 -> 275 MB); la memoria todavía crece algo | `python benchmarks/observador.py --guardados 2000` |
-| 31 | Modo conciso (`configure --conciso`) | -77 % en la salida del modelo en 10 tareas; datos clave 28/30 frente a 29/30; código válido 10/10. En las sesiones del autor el texto del modelo es ~9 % del contenido | `python benchmarks/conciso.py` |
-| 32 | Instalación limpia en un `HOME` vacío (Linux) | Instala, detecta `~/Projects`, indexa, busca y arranca el MCP con 28 herramientas | `bash scripts/ci/test_clean_install.sh` |
-| 33 | Sistema completo (búsqueda + filtro de salidas largas + modo conciso) con un agente real en tareas de varios pasos | -29,2 % de tokens cobrados por la API (191.567 frente a 270.717; 10 tareas x 2 rondas, Gemini 3.5 Flash-Lite); calidad (hechos esperados en la respuesta) 87 % -> 90 %. Por tipo: planear un cambio -81 %, pruebas con salida larga -38 %, orientarse -29 %, localizar y entender -23 %, entender -20 %. Pierde en pruebas con salida corta (+124 %, ~900 tokens de definiciones por turno) y en 2 de 3 tareas de Flask (+10 % y +30 %; en esta la calidad baja de 100 % a 83 %). Ronda 1 -15 %, ronda 2 -48 %: con 2 rondas el margen de error es amplio. Filas crudas en `benchmarks/agente/completo-resultados-2026-10-15.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2` |
+| 19 | With a real agent, SynRAG spends fewer tokens than grep + reading files | -11.5% (72,533 versus 81,996 tokens; 16 questions x 2 rounds, Gemini 3.5 Flash-Lite); 16/16 correct in both modes; wins on 7 of 16. The questions only ask for the location, the worst case for SynRAG (it delivers the whole definition) | `python benchmarks/agente/agente.py` |
+| 20 | Finding and reading a function by name costs less than grep (30 lines) + reading the section | Flask -27 to -30% (3 seeds, 25 functions), Hono -45% (16 functions); definition first in 23-25 of 25 and 16 of 16 | `python benchmarks/ahorro.py --repo <repo> --indexar --semilla N` |
+| 21 | The same with natural-language questions | Flask -31% (12 questions, `benchmarks/preguntas/flask.json`); definition first 8 of 12, in the top 5 11 of 12 | `python benchmarks/ahorro.py --repo flask --indexar --n 0 --naturales benchmarks/preguntas/flask.json` |
+| 22 | Documentation in chunks of ~200 tokens | -22% versus grep + 40 lines, -91% versus the whole file (10 questions on the Flask docs); answer in the top 5 10 of 10 | `python benchmarks/docs.py --repo flask` |
+| 23 | Compressed packaging (signatures, types and imports only) | Flask 160,514 -> 38,882 tokens (-76%), Hono 756,316 -> 118,669 (-84%) | `python benchmarks/mapa.py --repo <repo>` |
+| 24 | Long-output filter (`configure --filtro-largas`) | find: 178,449 -> 1,249 tokens; 5,000-line script: 73,088 -> 1,738; journalctl: 59,248 -> 7,444; all error lines kept. Claude Code hands the hook at most 30,000 characters: above that, SynRAG summarizes that piece and notes that Claude Code keeps the full output | `python benchmarks/filtro.py` |
+| 25 | Noisy-command filter (`configure --filtro`) | 31-55% less on pytest, pip, npm and cargo (fixtures of 42-79 lines) | `python benchmarks/filtro.py` |
+| 26 | Fixed cost of the MCP definitions | ~2,000 tokens (7,981 characters) with 28 tools; previously ~4,150 with 27 | `python scripts/ci/mcp_tools_list.py` |
+| 27 | Latency on the author's index (125,570 chunks) | New query: medians from 61 to 89 ms (3 seeds); repeated: 3.3-3.7 ms (previously 6-8 ms: it no longer writes to the cache on every hit) | `python benchmarks/latencia.py --modo motor --semilla N` |
+| 28 | Reindexing everything | 16.7 s for 9,247 files and 125,570 chunks | `SYNRAG index` |
+| 29 | Index size after reindexing | 132 MB (previously 350-400 MB: the impact graph was never compacted and had piled up 7,836 versions) | `du -sh ~/.local/share/lancedb-hub/data` |
+| 30 | Watcher: versions and threads | 2,000 synthetic saves: 2,001 -> 2 version files, 23 -> 3 threads, memory -10% (306 -> 275 MB); memory still grows somewhat | `python benchmarks/observador.py --guardados 2000` |
+| 31 | Concise mode (`configure --conciso`) | -77% in model output over 10 tasks; key facts 28/30 versus 29/30; valid code 10/10. In the author's sessions, model text is ~9% of the content | `python benchmarks/conciso.py` |
+| 32 | Clean install in an empty `HOME` (Linux) | Installs, detects `~/Projects`, indexes, searches and starts the MCP server with 28 tools | `bash scripts/ci/test_clean_install.sh` |
+| 33 | Full system (search + long-output filter + concise mode) with a real agent on multi-step tasks | -29.2% of tokens billed by the API (191,567 versus 270,717; 10 tasks x 2 rounds, Gemini 3.5 Flash-Lite); quality (expected facts in the answer) 87% -> 90%. By type: planning a change -81%, tests with long output -38%, orientation -29%, locating and understanding -23%, understanding -20%. Loses on tests with short output (+124%, ~900 tokens of definitions per turn) and on 2 of 3 Flask tasks (+10% and +30%; on the latter quality drops from 100% to 83%). Round 1 -15%, round 2 -48%: with 2 rounds the margin of error is wide. Raw rows in `benchmarks/agente/completo-resultados-2026-10-15.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2` |
 
-## Medido el 16-oct-2026 (versión 1.6)
+## Measured on Oct 16, 2026 (version 1.6)
 
-Mismo equipo. Flask `d086db8`, Hono `08807ce` (`git clone --depth 1`) y, como monorepo TypeScript real, el del autor (pnpm, ~1.800 archivos indexables, no público). "v1.5.0" es `origin/main` medido el mismo día con los mismos guiones. Los guiones de las filas 34-37 no usan ningún modelo: comparan contra el compilador de TypeScript (`typescript` de `node_modules`) y el módulo `ast` de Python, que hacen de oráculo.
+Same machine. Flask `d086db8`, Hono `08807ce` (`git clone --depth 1`) and, as a real TypeScript monorepo, the author's own (pnpm, ~1,800 indexable files, not public). "v1.5.0" is `origin/main` measured the same day with the same scripts. The scripts in rows 34-37 use no model: they compare against the TypeScript compiler (`typescript` from `node_modules`) and Python's `ast` module, which act as the oracle.
 
-| # | Afirmación | Resultado | Cómo reproducirlo |
+| # | Claim | Result | How to reproduce |
 |---|---|---|---|
-| 34 | El troceador ya no deja código fuera en clases y objetos grandes | Líneas de código (sin comentarios) fuera de todo fragmento: Hono 441 -> 226 (`src/context.ts` 92 -> 0, donde vivían `c.json`, `c.text` y `c.header`); Flask 50 -> 39; monorepo 1.175 -> 1.149. Símbolos con nombre propio en el monorepo: 12.841 -> 13.504 (los métodos de los objetos servicio) | `python benchmarks/cobertura.py <repos> [--engine <motor viejo>]` |
-| 35 | Los imports del grafo de impacto coinciden con los del compilador | Cobertura / precisión de las aristas (archivo, símbolo, origen): Flask 100 % / 96,0 % -> 100 % / 100 %; Hono 74,7 % / 93,9 % -> 100 % / 100 %; monorepo 48,0 % / 94,3 % -> 100 % / 100 % (13.688 imports). Mismo tiempo de troceo (1,49 -> 1,48 s en 1.805 archivos) | `python benchmarks/imports.py <repos> [--engine <motor viejo>]` |
-| 36 | Cada import se resuelve al mismo archivo que TypeScript | 100 % de los imports locales (Hono 960, monorepo 3.564). Resuelve de más 46 en Hono (paquetes del propio monorepo que TypeScript no encontró porque el clon no tenía `node_modules`) y 2 en el monorepo | `python benchmarks/resolucion.py <repos>` |
-| 37 | `get_impact_radius` separa las definiciones con el mismo nombre | Precisión de los consumidores de cada definición, símbolos con nombre repetido: por nombre (v1.5.0) Hono 18,4 %, monorepo 15,4 %; resuelto (v1.6) 93,2 % y 99,9 %. Todos los símbolos: 38,8 / 43,7 % -> 96,9 / 100 %. Cobertura 100 % en todos los casos. Ejemplo: `useAuth` definido en dos paquetes, 54 y 21 consumidores; v1.5.0 decía 30 (cortaba en 30 filas) | `python benchmarks/resolucion.py <repos>` |
-| 38 | Costo de la línea de usos en las búsquedas por nombre | Encontrar y leer una función frente a grep + tramo, 3 semillas: Flask -37 a -39 % (v1.5.0) -> -36 a -38 % (v1.6); Hono -54 % -> -52 %; lenguaje natural Flask -37 % en ambas. Definición primera en 23-25 de 25 y 16 de 16 en ambas | `python benchmarks/ahorro.py --repo <repo> --indexar --semilla N` |
-| 39 | Perfil esencial de herramientas MCP | 5 herramientas, 1.781 caracteres (~445 tokens); el perfil completo, 30 con las dos de Gemini, 8.139 caracteres (~2.034 tokens) | `SYNRAG_PERFIL=esencial python scripts/ci/mcp_tools_list.py` |
-| 40 | La línea de usos no hace más lenta la búsqueda | 30 consultas nuevas por nombre (10 símbolos al azar por repo: Flask, Hono y el monorepo; semilla 1): mediana 59 ms (v1.5.0) frente a 60 ms (v1.6), p90 82 frente a 86 ms. `get_impact_radius` resuelto: 18-42 ms (5 símbolos). La primera consulta de cada proyecto carga la lista de sus archivos y la guarda 60 s | `python benchmarks/latencia_usos.py <repos> [--engine <motor viejo>]` |
-| 41 | Sistema completo con un agente real, v1.6 frente a v1.5 el mismo día | Mismas 10 tareas x 2 rondas que la fila 33, Gemini 3.5 Flash-Lite, tokens cobrados por la API. **v1.6: -63,9 %** frente a no usar SynRAG (305.736 -> 110.338; IC95 por tareas -83 % a -24 %), calidad 87 % -> 94 %; rondas -67 % y -61 %. **v1.5 el mismo día: -4,6 %** (232.681 -> 222.035; IC95 -34 % a +15 %), calidad 87 % -> 92 % (el 15-oct midió -29,2 %: entre días varía mucho). Con SynRAG, la v1.6 gasta un 50 % menos que la v1.5 (110.338 frente a 222.035), pero el IC95 va de -80 % a +29 %: la diferencia sale de 2 tareas (`hono_c_json` -94 %, que la v1.6 resuelve y la v1.5 falla en una de dos rondas; métodos de `Config` -76 %, por la lista de miembros); en las otras 8 quedan parecidas. Sigue perdiendo en pruebas con salida corta (+117 %, costo fijo por turno) y en firma de la sesión de Flask (+38 %). Las 4 tareas sobre el propio repo de SynRAG no son una comparación limpia (cada versión pregunta por su propio código). Filas crudas: `benchmarks/agente/completo-resultados-2026-10-16-v1.6.json` y `-v1.5.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2`, en esta versión y en un `git worktree` de la anterior |
-| 42 | Costo fijo por turno tras el recorte y con el perfil bajo_demanda (17-oct-2026) | Tokens contados con `countTokens` de Gemini 3.5 Flash-Lite, antes del recorte (`12155ec`) frente a `main`: definiciones del perfil completo 2.091 -> 2.068, esencial 435 -> 412, **bajo_demanda 159** (2 herramientas; no existía); instrucción de uso 188 -> 108; bloque conciso 248 -> 115. Completo + instrucción + conciso: 2.527 -> 2.291 por turno; con bajo_demanda, 382. Es costo fijo, no ahorro en una tarea: el benchmark del agente usa sus propias 3 herramientas y no lo refleja | `python benchmarks/costo_fijo.py [--engine <motor viejo>]` |
+| 34 | The chunker no longer leaves code out in large classes and objects | Lines of code (excluding comments) outside every chunk: Hono 441 -> 226 (`src/context.ts` 92 -> 0, where `c.json`, `c.text` and `c.header` lived); Flask 50 -> 39; monorepo 1,175 -> 1,149. Symbols with their own name in the monorepo: 12,841 -> 13,504 (the methods of service objects) | `python benchmarks/cobertura.py <repos> [--engine <motor viejo>]` |
+| 35 | The impact graph's imports match the compiler's | Coverage / precision of the edges (file, symbol, source): Flask 100% / 96.0% -> 100% / 100%; Hono 74.7% / 93.9% -> 100% / 100%; monorepo 48.0% / 94.3% -> 100% / 100% (13,688 imports). Same chunking time (1.49 -> 1.48 s on 1,805 files) | `python benchmarks/imports.py <repos> [--engine <motor viejo>]` |
+| 36 | Each import resolves to the same file as TypeScript | 100% of local imports (Hono 960, monorepo 3,564). Over-resolves 46 in Hono (packages of the monorepo itself that TypeScript did not find because the clone had no `node_modules`) and 2 in the monorepo | `python benchmarks/resolucion.py <repos>` |
+| 37 | `get_impact_radius` separates definitions with the same name | Precision of each definition's consumers, symbols with a repeated name: by name (v1.5.0) Hono 18.4%, monorepo 15.4%; resolved (v1.6) 93.2% and 99.9%. All symbols: 38.8 / 43.7% -> 96.9 / 100%. Coverage 100% in all cases. Example: `useAuth` defined in two packages, 54 and 21 consumers; v1.5.0 said 30 (it cut off at 30 rows) | `python benchmarks/resolucion.py <repos>` |
+| 38 | Cost of the usages line in searches by name | Finding and reading a function versus grep + section, 3 seeds: Flask -37 to -39% (v1.5.0) -> -36 to -38% (v1.6); Hono -54% -> -52%; natural language Flask -37% in both. Definition first in 23-25 of 25 and 16 of 16 in both | `python benchmarks/ahorro.py --repo <repo> --indexar --semilla N` |
+| 39 | Essential MCP tool profile | 5 tools, 1,781 characters (~445 tokens); the full profile, 30 with the two Gemini ones, 8,139 characters (~2,034 tokens) | `SYNRAG_PERFIL=esencial python scripts/ci/mcp_tools_list.py` |
+| 40 | The usages line does not slow down search | 30 new queries by name (10 random symbols per repo: Flask, Hono and the monorepo; seed 1): median 59 ms (v1.5.0) versus 60 ms (v1.6), p90 82 versus 86 ms. Resolved `get_impact_radius`: 18-42 ms (5 symbols). The first query for each project loads its file list and keeps it for 60 s | `python benchmarks/latencia_usos.py <repos> [--engine <motor viejo>]` |
+| 41 | Full system with a real agent, v1.6 versus v1.5 on the same day | Same 10 tasks x 2 rounds as row 33, Gemini 3.5 Flash-Lite, tokens billed by the API. **v1.6: -63.9%** versus not using SynRAG (305,736 -> 110,338; 95% CI by task -83% to -24%), quality 87% -> 94%; rounds -67% and -61%. **v1.5 on the same day: -4.6%** (232,681 -> 222,035; 95% CI -34% to +15%), quality 87% -> 92% (Oct 15 measured -29.2%: it varies a lot between days). With SynRAG, v1.6 spends 50% less than v1.5 (110,338 versus 222,035), but the 95% CI runs from -80% to +29%: the difference comes from 2 tasks (`hono_c_json` -94%, which v1.6 solves and v1.5 fails in one of two rounds; `Config` methods -76%, thanks to the member list); on the other 8 they are similar. It still loses on tests with short output (+117%, fixed cost per turn) and on the Flask session signature (+38%). The 4 tasks on SynRAG's own repo are not a clean comparison (each version asks about its own code). Raw rows: `benchmarks/agente/completo-resultados-2026-10-16-v1.6.json` and `-v1.5.json` | `python benchmarks/agente/completo.py --flask <ruta> --hono <ruta> --rondas 2`, on this version and in a `git worktree` of the previous one |
+| 42 | Fixed cost per turn after trimming and with the bajo_demanda profile (Oct 17, 2026) | Tokens counted with Gemini 3.5 Flash-Lite's `countTokens`, before trimming (`12155ec`) versus `main`: full-profile definitions 2,091 -> 2,068, essential 435 -> 412, **bajo_demanda 159** (2 tools; did not exist); usage instruction 188 -> 108; concise block 248 -> 115. Full + instruction + concise: 2,527 -> 2,291 per turn; with bajo_demanda, 382. This is a fixed cost, not a saving on a task: the agent benchmark uses its own 3 tools and does not reflect it | `python benchmarks/costo_fijo.py [--engine <motor viejo>]` |
 
-Descartado con mediciones: LLMLingua-2 (comprime ~50 % pero rompe el código, borra resultados de pruebas en logs y pesa 1,9-6,6 GB). Ver `investigacion/llmlingua.md`.
+Discarded after measuring: LLMLingua-2 (compresses ~50% but breaks code, deletes test results from logs and weighs 1.9-6.6 GB). See `investigacion/llmlingua.md`.
 
-## No afirmado
+## Not claimed
 
-- **Ahorro en dinero o en sesiones completas de trabajo.** Lo medido son tareas acotadas (filas 19-25 y 33). No hay una medición de sesiones largas reales con y sin SynRAG. `get_savings_report` sigue mostrando una referencia contrafactual, no un ahorro medido.
-- **Que la mejora de la fila 41 entre versiones sea general.** Viene de 2 de 10 tareas y el intervalo de confianza incluye el cero; con un solo modelo y 2 rondas. El ahorro de la v1.6 frente a no usar SynRAG sí excluye el cero (IC95 -83 % a -24 %).
-- **Que la fila 33 valga para cualquier agente.** Son 10 tareas, un solo modelo (Gemini 3.5 Flash-Lite) y 2 rondas con mucha varianza. No está medido con Claude ni en sesiones largas.
-- **Rust y Go.** El chunker trae sus gramáticas y devuelve fragmentos, pero sin nombre de símbolo (probado el 6-oct-2026) y `ALLOWED_EXTENSIONS` de `engine/indexer.py` no incluye `.rs` ni `.go`, así que esos archivos no se indexan. No están soportados.
-- **Compatibilidad** con Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS y Windows con WSL. Se configuran según su documentación, pero no se han probado. La integración continua (`.github/workflows/pruebas.yml`) prueba Linux y macOS cuando se suba a GitHub.
-- **La web** ya no tiene demos simuladas (17-oct-2026). Sus cifras salen de `src/data/medido.ts`, que copia filas de este archivo; el ejemplo de búsqueda es una salida real sobre Flask `d086db8`.
+- **Savings in money or over full work sessions.** What was measured are bounded tasks (rows 19-25 and 33). There is no measurement of real long sessions with and without SynRAG. `get_savings_report` still shows a counterfactual reference, not a measured saving.
+- **That the improvement between versions in row 41 is general.** It comes from 2 of 10 tasks and the confidence interval includes zero; with a single model and 2 rounds. The saving of v1.6 versus not using SynRAG does exclude zero (95% CI -83% to -24%).
+- **That row 33 holds for any agent.** It is 10 tasks, a single model (Gemini 3.5 Flash-Lite) and 2 rounds with high variance. It has not been measured with Claude or on long sessions.
+- **Rust and Go.** The chunker ships their grammars and returns chunks, but without a symbol name (tested on Oct 6, 2026), and `ALLOWED_EXTENSIONS` in `engine/indexer.py` does not include `.rs` or `.go`, so those files are not indexed. They are not supported.
+- **Compatibility** with Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code, Zed, macOS and Windows with WSL. They are configured according to their documentation, but they have not been tested. Continuous integration (`.github/workflows/pruebas.yml`) tests Linux and macOS once pushed to GitHub.
+- **The website** no longer has simulated demos (Oct 17, 2026). Its numbers come from `src/data/medido.ts`, which copies rows from this file; the search example is real output on Flask `d086db8`.
 
-## Cómo añadir o cambiar una afirmación
+## How to add or change a claim
 
-1. Mide con un comando que otra persona pueda ejecutar (o cita el archivo y la línea del código).
-2. Añade una fila aquí con la fecha, el resultado y el comando.
-3. Solo entonces escribe la cifra en el README o en la web.
-4. Si una cifra deja de cumplirse, cámbiala o quítala el mismo día.
+1. Measure with a command someone else can run (or cite the file and line of code).
+2. Add a row here with the date, result and command, and the same row in `CLAIMS.es.md`.
+3. Only then write the number in the README or on the website.
+4. If a number stops holding, change or remove it the same day.
