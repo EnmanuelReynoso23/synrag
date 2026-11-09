@@ -1,248 +1,96 @@
 # SyntaxRAG (SYNRAG)
 
-**AST-Native MCP Engine · Búsqueda de código local · Dependency Impact Graph**
+**Your coding agent stops reading whole files. Local MCP code search: AST chunks, CPU reranking and a dependency impact graph.**
 
-Español · [English](README.en.md)
+[Español](README.es.md) · English
 
-<p align="center"><img src="docs/demo.gif" alt="Demo de SynRAG: indexa Flask y Hono y, al pedir SecureCookieSessionInterface open_session, devuelve ese método primero" width="600"></p>
-
-Motor local de búsqueda de código para agentes de IA, por el protocolo MCP. Probado con Claude Code y Google Antigravity; el instalador también lo configura para Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code y Zed (sin probar).
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![LanceDB](https://img.shields.io/badge/LanceDB-Vector%20Store-00E5FF.svg)](https://lancedb.com/)
-[![Tree--sitter](https://img.shields.io/badge/Tree--sitter-AST%20Parser-green.svg)](https://tree-sitter.github.io/)
-[![FlashRank](https://img.shields.io/badge/FlashRank-ONNX%20Reranker-orange.svg)](https://github.com/PrithivirajDamodaran/FlashRank)
-[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
-[![Tailwind](https://img.shields.io/badge/Tailwind%20CSS-v4-38B2AC.svg)](https://tailwindcss.com/)
-[![Protocol](https://img.shields.io/badge/MCP-Protocol%202.0-purple.svg)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-server-purple.svg)](https://modelcontextprotocol.io/)
+[![Tree-sitter](https://img.shields.io/badge/Tree--sitter-AST-green.svg)](https://tree-sitter.github.io/)
+[![LanceDB](https://img.shields.io/badge/LanceDB-BM25-00E5FF.svg)](https://lancedb.com/)
 
----
+<p align="center"><img src="docs/demo.gif" alt="SynRAG demo: indexing Flask and Hono, then asking for SecureCookieSessionInterface open_session returns that exact method first" width="600"></p>
 
-## Que es SyntaxRAG (SYNRAG)
+To find one function, an agent without SynRAG greps and then reads whole files. SynRAG indexes your projects on your own machine, splits code by its syntax tree (functions, classes, methods, types) and hands the agent **the exact definition, who uses it and what breaks if you change it**. No GPU, no paid APIs, and your code never leaves your machine.
 
-Un RAG de ventanas fijas para código corta los archivos en bloques de, por ejemplo, 500 tokens que pueden partir funciones a la mitad y no entienden jerarquías de tipos, y los agentes terminan leyendo archivos completos para orientarse. Otras herramientas modernas también trocean por AST; SyntaxRAG es una opción local y abierta, y publica cómo se mide cada cifra (ver `CLAIMS.md`).
+## Measured, not promised
 
-**SyntaxRAG (SYNRAG)** resuelve este problema analizando el árbol sintáctico abstracto (AST) del código en tu máquina local:
+Every number comes from a script in [`benchmarks/`](benchmarks) that you can rerun on public repos (Flask and Hono). Each one has its row, date and command in [`CLAIMS.md`](CLAIMS.md), including where SynRAG loses.
 
-- **Tree-sitter AST Chunker:** Trocea por funciones, hooks, clases y objetos grandes (miembro por miembro, también los campos con función flecha como `json = () => {}` y los servicios `const x = { listar() {}, crear: async () => {} }`), tipos y declaraciones completas (TypeScript, TSX/JSX, JavaScript y Python). La documentación (Markdown, MDX, reStructuredText, AsciiDoc) se trocea en fragmentos de ~200 tokens con su ruta de títulos; SQL por sentencias.
-- **Localizar antes que leer:** Con un nombre de símbolo (o `objeto.miembro`, o `Clase miembro`) devuelve su definición primero y entera, con una línea de usos (`sessions.py:324 open_session, :373 save_session; lo importan 3 archivo(s)`) y, si es una clase u objeto grande, la lista de sus miembros con su línea; el resto de resultados ocupa una línea (`ruta:líneas tipo nombre | firma`). Los nombres compuestos se indexan también partidos (`esSinCupo` se encuentra con "sin cupo"). Candidatos por BM25 (Tantivy sobre LanceDB) reordenados en CPU con TinyBERT (FlashRank). Mediana medida: 61-89 ms por consulta nueva.
-- **Grafo de Impacto de Dependencias:** Lee los imports del AST (también los de varias líneas y los re-export de los barrels) y resuelve cada uno a su archivo: rutas relativas, `paths`/`baseUrl` del tsconfig (con `extends`), paquetes del propio monorepo y módulos de Python. Así, si dos archivos definen `useAuth`, `get_impact_radius` dice qué archivos dependen de cada uno. Medido contra el compilador de TypeScript: mismo archivo en el 100 % de los imports locales. No sigue llamadas dinámicas ni `import()`.
-- **Caché de consultas repetidas:** Si repites la misma consulta (sin distinguir mayúsculas ni espacios) se responde desde una tabla local (~3-4 ms). No es una caché semántica y se vacía al reindexar. La búsqueda no usa APIs de pago; los resultados igualmente cuestan tokens al modelo que los lee.
-- **Observador de cambios (opcional):** Un servicio de systemd de usuario (`lancedb-watcher.service`) reindexa solo el archivo que guardas: ~8 ms por archivo pequeño (mediana medida), tras 0,6 s de espera para agrupar guardados. Usa unos 250-300 MB de RAM; compacta la base cada cierto número de cambios y detecta carpetas nuevas sin reiniciar.
+| What | Result |
+|---|---|
+| **Full system, real agent** (Gemini 3.5 Flash-Lite with function calling): 10 multi-step tasks × 2 rounds, counting every token the API bills | **-63.9 % tokens** (305,736 → 110,338; 95 % CI -83 % to -24 %), correct answers 87 % → 94 % |
+| Find and read a function by name, vs grep + reading the range | Flask -36 to -38 %, Hono -52 %; the definition comes first in 92-100 % of cases |
+| Natural-language questions | Flask -37 % |
+| Pack a repo as signatures only (like Repomix `--compress`) | Flask -76 %, Hono -84 % |
+| Import resolution for the impact graph, vs the TypeScript compiler and Python's `ast` | 100 % coverage, 100 % precision |
+| Fixed cost per turn of the tool definitions | Full profile 2,068 tokens, `essential` 412, `bajo_demanda` (on demand) 159 |
+| Latency of a new query, CPU only | 59-89 ms median; repeated query 3-4 ms from the cache |
 
+**Where it loses:** on very short tasks it spends +117 %, because the tool definitions weigh more than the task (that is what the `essential` and `bajo_demanda` profiles are for). Agent measurements were made with Gemini, not Claude, and on bounded tasks, not long sessions.
 
-## Cuánto ahorra (medido, no prometido)
+<p align="center"><img src="docs/resultados.png" alt="Measured results: -63.9 % tokens with a real agent" width="420"></p>
 
-Cada cifra sale de un guion de `benchmarks/` que cualquiera puede repetir en su equipo sobre repositorios públicos (Flask y Hono). La comparación honesta no es contra leer archivos enteros, sino contra lo que hace un agente sin SynRAG: `grep` y leer el tramo.
+## How it works
 
-| Qué | Resultado | Guion |
-|---|---|---|
-| Sistema completo con un agente real (Gemini con function calling): 10 tareas de varios pasos (localizar, entender, planear un cambio, correr pruebas) x 2 rondas, contando todos los tokens que cobra la API | **v1.6: -63,9 % tokens** (305.736 frente a 110.338; intervalo de confianza 95 %: -83 % a -24 %), calidad 87 % -> 94 %. La v1.5 el mismo día: -4,6 % (el 15-oct, -29,2 %). Gana sobre todo al buscar métodos dentro de clases (`c.json` de Hono -94 %, métodos de `Config` -73 %) y al planear un cambio (-65 %); pierde en pruebas con salida corta (+117 %: las definiciones de las herramientas pesan más que la tarea) y en una de Flask (+38 %) | `benchmarks/agente/completo.py` |
-| Agente real, solo ubicar: 16 preguntas x 2 rondas, con y sin SynRAG | **-11,5 % tokens**, 16/16 aciertos en ambos modos; gana en 7 de 16 (hasta -79 % en lenguaje natural en un repo grande; pierde con nombres exactos en un repo chico, donde `grep` devuelve una línea) | `benchmarks/agente/agente.py` |
-| Encontrar y leer una función por su nombre, frente a grep + leer el tramo (v1.6, con la línea de usos) | Flask -36 a -38 %, Hono -52 % (v1.5.0 en las mismas condiciones: -37 a -39 % y -54 %); la definición sale primera en el 92-100 % | `benchmarks/ahorro.py --indexar --semilla N` |
-| Lo mismo con preguntas en lenguaje natural | Flask -37 % | `benchmarks/ahorro.py --naturales` |
-| Precisión del grafo de impacto en símbolos con nombre repetido (contra TypeScript) | Por nombre (v1.5.0): 15-18 %. Resuelto (v1.6): 93-100 %, cobertura 100 % | `benchmarks/resolucion.py` |
-| Imports que llegan al grafo (contra el compilador de TypeScript y `ast` de Python) | v1.5.0: Hono 75 %, un monorepo TS real 48 %. v1.6: 100 % con precisión 100 % | `benchmarks/imports.py` |
-| Documentación (fragmentos de ~200 tokens) | -22 % frente a grep, -91 % frente al archivo entero | `benchmarks/docs.py` |
-| Empaquetar un repo solo con firmas (como Repomix `--compress`) | Flask -76 %, Hono -84 % frente al repo completo | `benchmarks/mapa.py` |
-| Salidas largas de terminal (filtro opcional) | -87 a -99 % conservando todas las líneas de error; la salida completa queda en un archivo | `benchmarks/filtro.py` |
-| Costo fijo por turno (contado con la API de Gemini) | Definiciones: perfil completo 2.068 tokens, `esencial` (5 herramientas) 412, `bajo_demanda` (2) 159; instrucción de uso 108; bloque conciso 115 (antes del recorte: 2.091, 435, 188 y 248) | `benchmarks/costo_fijo.py` |
+1. **Tree-sitter AST chunking** for TypeScript, TSX, JavaScript and Python: one function, method, class or type per chunk, never cut in half. Large classes and object literals are split member by member. Docs (Markdown, MDX, reStructuredText, AsciiDoc) go in ~200-token chunks with their heading path; SQL by statement.
+2. **Locate before reading**: ask for a symbol (`useAuth`), a member (`Config.from_envvar` or `Config from_envvar`) or plain words. The exact definition comes first and whole, with a line of callers (`sessions.py:324 open_session, :373 save_session; imported by 3 files`); every other hit is one line. Candidates come from BM25 (Tantivy over LanceDB) and are reranked on CPU with TinyBERT (FlashRank).
+3. **Dependency impact graph**: imports are read from the AST and resolved to files: relative paths, tsconfig `paths`/`baseUrl` (with `extends`), monorepo packages, barrels and Python modules. If two files define `useAuth`, `get_impact_radius` tells you who depends on each one.
+4. **Optional watcher**: a systemd user service reindexes only the file you save (~8 ms for a small file).
 
-Lo que más pesa en una sesión real no es ninguna herramienta: es la longitud de la sesión, porque cada turno reenvía todo el historial. `context_budget_alert` y `session_handoff` ayudan a cortar a tiempo. Detalle y límites de cada cifra: `CLAIMS.md`.
+## Install
 
----
-
-## Instalacion Universal en 1 Linea
-
-Probado en **Linux (CachyOS)**. Debería funcionar en otras distribuciones, macOS y Windows con WSL, pero no están probados:
+Tested on Linux. It should work on macOS and WSL, but that is not tested yet.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/EnmanuelReynoso23/synrag/main/install.sh | bash
 ```
 
-O desde el repositorio clonado:
+The installer creates an isolated CPU-only virtualenv, adds the `SYNRAG` command and configures **only the AI tools you actually have installed**: it registers the MCP server and adds a short instruction block so the agent actually uses it. It backs up every file before touching it, never overwrites a JSON it cannot parse, and running it twice changes nothing. Preview first with `./install.sh --dry-run`; remove everything with `SYNRAG uninstall`.
 
-```bash
-git clone https://github.com/EnmanuelReynoso23/synrag.git
-cd synrag
-./install.sh
-```
+| Agent | Status |
+|---|---|
+| Claude Code, Google Antigravity | Tested |
+| Gemini CLI, Codex CLI, Cursor, Windsurf, Cline / Roo Code, Zed | Configured from their docs, not tested yet ([report how it went](https://github.com/EnmanuelReynoso23/synrag/issues/18)) |
 
-El instalador copia o descarga el motor, crea un entorno virtual aislado en CPU, instala los lanzadores `SYNRAG` / `synrag` en `~/.local/bin` y configura **solo las IAs que de verdad tengas instaladas**. Si algo falla, se detiene y dice qué falló. Para ver qué haría sin escribir nada: `./install.sh --dry-run` (o `SYNRAG configure --dry-run`).
+### Claude Code plugin
 
----
-
-## Auto-Configuracion Multi-IA
-
-Al instalarse o al ejecutar `SYNRAG configure`, SyntaxRAG hace dos cosas en cada IA detectada: registra el servidor MCP `desktop-lancedb` y añade a sus instrucciones globales un bloque corto (entre las marcas `<!-- SYNRAG:BEGIN -->` y `<!-- SYNRAG:END -->`) que le indica usar `search_desktop` antes de listar carpetas o leer archivos enteros. Sin ese bloque la IA ve la herramienta pero casi nunca la elige.
-
-| Herramienta / Agente | MCP (servidor) | Instrucciones globales |
-|---|---|---|
-| **Claude Code** | `~/.claude.json` | `~/.claude/CLAUDE.md` |
-| **Google Antigravity** | `~/.gemini/config/mcp_config.json` (si ya existe `~/.gemini/antigravity/mcp_config.json`, también lo mantiene al día) | `~/.gemini/GEMINI.md` |
-| **Gemini CLI** | `~/.gemini/settings.json` | `~/.gemini/GEMINI.md` |
-| **Codex CLI** | `~/.codex/config.toml` | `~/.codex/AGENTS.md` |
-| **Cursor** | `~/.cursor/mcp.json` | (se añade a mano en Settings > Rules) |
-| **Windsurf** | `~/.codeium/windsurf/mcp_config.json` | `~/.codeium/windsurf/memories/global_rules.md` |
-| **Cline / Roo Code** | `cline_mcp_settings.json` de VS Code | n/a |
-| **Zed** | `~/.config/zed/settings.json` (solo si es JSON puro; con comentarios muestra qué añadir) | n/a |
-
-Garantías del instalador: no crea la carpeta de una IA que no está instalada, hace una copia `.bak-AAAAMMDD-HHMMSS` antes de modificar un archivo existente, nunca sobrescribe un JSON que no pueda leer y es idempotente (ejecutarlo dos veces no duplica nada).
-
-Estado de compatibilidad (6-oct-2026): **probado en la práctica con Claude Code y Google Antigravity.** Gemini CLI, Codex CLI, Cursor, Windsurf, Cline/Roo Code y Zed se configuran según su documentación, pero no se han probado. Si usas alguna, abre una incidencia con el resultado.
-
-### Plugin de Claude Code
-
-El repositorio también es un marketplace de plugins de Claude Code. El plugin añade una skill que le dice a Claude cuándo usar cada herramienta de SynRAG (~140 tokens por sesión). No instala el motor: primero va el instalador de arriba.
+The repo is also a Claude Code plugin marketplace. The plugin adds a skill that tells Claude when to use each SynRAG tool (~140 tokens per session):
 
 ```bash
 claude plugin marketplace add EnmanuelReynoso23/synrag
 claude plugin install synrag@synrag
 ```
 
----
+## MCP tools
 
-## Desinstalar
+28 tools; `SYNRAG configure --perfil esencial` keeps only 5 and `--perfil bajo_demanda` starts with 2.
 
-```bash
-SYNRAG uninstall            # quita la entrada MCP y el bloque de instrucciones de cada IA y los comandos
-rm -rf ~/.local/opt/lancedb-hub   # opcional: borra tambien el motor y su indice
-```
+- **Search and orient:** `search_desktop`, `get_file_outline`, `repo_map` (PageRank over imports, within a token budget), `list_projects`, `reindex_desktop`
+- **Before editing:** `get_impact_radius`, `find_related_tests`, `find_callers_exact`, `get_symbol_contract`, `extract_type_definition`, `get_import_graph`, `check_breaking_callsites`, `check_circular_imports`, `verify_dependency_exists`, `find_code_duplicates`
+- **Edit:** `patch_function_body`, `add_import_clean`, `rename_symbol_scoped`, `remove_unused_imports`
+- **Run with short output:** `run_test_isolated`, `lint_summary`, `run_typecheck_focus`, `tail_clean_logs`
+- **Session:** `session_handoff`, `context_budget_alert`, `git_staged_overview`, `extract_todo_status`, `get_savings_report`
+- **Optional, with your own `GEMINI_API_KEY`:** `ask_synrag_architect`, `explain_blast_radius`. Without a key the engine makes no network calls.
 
-`SYNRAG uninstall --dry-run` muestra que quitaria sin escribir nada. Solo elimina lo que el instalador anadio.
-
----
-
----
-
-## Herramientas MCP para Agentes de IA
-
-Cualquier agente conectado a SyntaxRAG tiene 28 herramientas (las dos de Gemini solo aparecen si configuras tu propia `GEMINI_API_KEY`; sin ella el motor no usa la red). Con `SYNRAG configure --perfil esencial` expone solo `search_desktop`, `get_file_outline`, `get_impact_radius`, `repo_map` y `run_test_isolated`: útil en clientes que cobran las definiciones en cada turno o limitan el número de herramientas (Claude Code las carga bajo demanda y no lo necesita). `SYNRAG uninstall --perfil` vuelve a todas.
-
-- **Buscar y orientarse:** `search_desktop` (con `tipo="docs"` o `"codigo"`), `get_file_outline` (incluye los métodos de objetos y clases grandes), `repo_map` (firmas de los archivos más importantes por PageRank, dentro de un presupuesto de tokens), `list_projects`, `reindex_desktop`.
-- **Antes de editar:** `get_impact_radius` (separado por definición; `archivo=` elige una), `find_related_tests`, `find_callers_exact`, `get_symbol_contract`, `extract_type_definition`, `get_import_graph`, `check_breaking_callsites`, `check_circular_imports`, `verify_dependency_exists` (entiende monorepos y workspaces), `find_code_duplicates`.
-- **Editar:** `patch_function_body`, `add_import_clean`, `rename_symbol_scoped`, `remove_unused_imports` (conservan saltos de línea y sangría; si el nombre del archivo es ambiguo no tocan nada; respaldo fuera del repo).
-- **Ejecutar con salida corta:** `run_test_isolated`, `lint_summary`, `run_typecheck_focus`, `tail_clean_logs`.
-- **Sesión:** `session_handoff`, `context_budget_alert`, `git_staged_overview`, `extract_todo_status`, `get_savings_report`.
-- **Opcional con Gemini:** `ask_synrag_architect`, `explain_blast_radius`.
-
----
-
-## Comandos del CLI (`SYNRAG`)
-
-SyntaxRAG cuenta con un binario autónomo para terminal:
+## CLI
 
 ```bash
-# Panel de control y estado operativo
-SYNRAG
-
-# Búsqueda por palabras con reordenado neuronal
-SYNRAG "asistenciaServicio"
-
-# Búsqueda filtrada por proyecto
-SYNRAG --project asistoya-web "useEstudiantes"
-
-# Esquema sintáctico de un archivo (firmas y rangos de línea)
-SYNRAG outline apps/web/src/modulos/asistencia/asistencia.servicio.ts
-
-# Radio de impacto y archivos dependientes
-SYNRAG impact asistenciaServicio
-
-# Localizar tests asociados
-SYNRAG tests asistenciaServicio
-
-# Estadísticas del índice y registro de búsquedas
-SYNRAG stats
-
-# Re-escanear y auto-configurar todas las IAs instaladas
-SYNRAG configure
-
-# Qué carpetas se indexan (por defecto se detectan ~/Projects, ~/code, ~/dev...; se guardan en
-# ~/.config/synrag/carpetas.txt o en la variable SYNRAG_CARPETAS)
-SYNRAG carpetas
-SYNRAG agregar ~/trabajo [nombre-del-proyecto]
-SYNRAG quitar ~/trabajo
-
-# Reindexar todo con Tree-sitter AST
-SYNRAG index
-
-# Mapa del repo: firmas de los archivos más importantes (PageRank) en un presupuesto de tokens
-SYNRAG mapa mi-proyecto --tokens 1024 [--foco archivo.ts,funcion]
-
-# Empaquetar un repo solo con firmas, tipos e imports (para pegarlo en un chat web)
-SYNRAG empaquetar ~/mi-proyecto --salida paquete.md [--sin-comprimir]
-
-# Opcionales (se quitan con "SYNRAG uninstall --<lo-mismo>"):
-SYNRAG configure --filtro-largas   # recorta salidas largas de la terminal en Claude Code (hook PostToolUse)
-SYNRAG configure --filtro          # resume salidas de instalar/compilar/probar
-SYNRAG configure --conciso         # respuestas cortas (basado en Caveman de Julius Brussee, Apache-2.0)
-SYNRAG configure --perfil esencial # solo 5 herramientas MCP (412 tokens de definiciones en vez de 2.068)
-SYNRAG configure --perfil bajo_demanda # arranca con search_desktop; synrag_mas activa el resto (159 tokens por turno)
-SYNRAG configure --pista           # Claude Code: aviso de usar SynRAG una vez por sesión, solo en mensajes de código
-
-# Ver log en vivo del demonio reactivo (Ctrl+S)
-SYNRAG watch
-
-# Lanzar agentes directamente con el entorno MCP listo
-SYNRAG claude
-SYNRAG agy
+SYNRAG "useAuth"                         # search with neural reranking
+SYNRAG --project my-app "load config"    # filter by project
+SYNRAG outline src/context.ts            # signatures and line ranges
+SYNRAG impact HTTPException              # who imports it
+SYNRAG tests compose                     # related test files
+SYNRAG mapa my-app --tokens 1024         # repo map within a token budget
+SYNRAG empaquetar ~/my-app --salida pack.md   # signatures-only pack for a web chat
+SYNRAG index                             # reindex everything
 ```
 
-### Telemetría local y bases de datos existentes
+## Contributing
 
-SyntaxRAG registra el uso local en SQLite (`~/.local/share/lancedb-hub/telemetry.db`). Los datos separan las consultas medidas en tiempo real de filas que no corresponden a mediciones reales (columna `origen = 'medido'`).
+Issues and PRs are welcome, in English or Spanish. The most useful contribution right now is trying the installer on an agent or OS marked as untested and telling what happened. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Si vienes de una base antigua con datos sembrados o de pruebas, puedes marcarlos para que no se sumen a las métricas del informe:
+## License
 
-```sql
--- hacer antes una copia de seguridad de telemetry.db
-UPDATE telemetry_events SET origen = 'sembrado'
-WHERE tokens_retrieved = 631 AND tokens_original_file = 2500 AND results_count = 3 AND latency_ms = 6.2;
-```
-
----
-
-## Web
-
-La web (`src/`, React 19 + Tailwind 4, tema `#0D1117` y cian `#00E5FF`) explica qué es SynRAG, cómo funciona y qué se midió. No tiene simulaciones ni cifras propias: todas salen de `src/data/medido.ts`, que copia las filas de `CLAIMS.md` y enlaza cada una. Si una cifra cambia en `CLAIMS.md`, se cambia en `medido.ts` el mismo día. El ejemplo de búsqueda es una salida real sobre Flask.
-
-### Levantar la Web en Desarrollo
-
-```bash
-pnpm install
-pnpm dev
-```
-
-La web estará disponible en `http://localhost:5173`.
-
----
-
-## Estructura del Repositorio
-
-```
-synrag/
-├── engine/                       # Motor Central de Inteligencia Local (Python)
-│   ├── chunker.py                # Tree-sitter AST Chunker (TS, TSX, JS y Python; también Markdown y SQL)
-│   ├── ranker.py                 # FlashRank ONNX Cross-Encoder Reranker
-│   ├── impact.py                 # Grafo de dependientes en LanceDB
-│   ├── cache.py                  # Caché de consultas repetidas (LanceDB)
-│   ├── telemetry.py              # Telemetría persistente en SQLite
-│   ├── server_mcp.py             # Servidor MCP 2.0 (FastMCP / MCPServer)
-│   ├── indexer.py                # Indexador incremental de repositorios
-│   ├── installer.py              # Auto-configurador multi-IA multiplataforma
-│   ├── cli.py                    # Interfaz rica de terminal (Rich + Dark Mode)
-│   └── watcher.py                # Observador opcional de cambios (Watchdog)
-├── src/                          # Aplicación web (React 19 + Tailwind 4)
-│   ├── components/               # Hero, Problema, ComoFunciona, Resultados, Herramientas, Install, Faq
-│   ├── data/medido.ts            # Cifras de la web (copiadas de CLAIMS.md, con su fila)
-│   └── index.css                 # Sistema de diseño (#0D1117 + Neón Cyan)
-├── public/                       # Assets públicos, logos vectoriales e install.sh
-├── install.sh                    # Script universal de instalación en 1 línea
-└── README.md                     # Documentación oficial
-```
-
----
-
-## Licencia
-
-Distribuido bajo la Licencia MIT. Desarrollado por [Enmanuel Reynoso](https://github.com/EnmanuelReynoso23).
+MIT. Built by [Enmanuel Reynoso](https://github.com/EnmanuelReynoso23).
